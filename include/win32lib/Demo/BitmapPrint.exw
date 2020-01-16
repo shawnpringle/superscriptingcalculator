@@ -1,0 +1,115 @@
+-- BitmapPrint.exw
+
+without warning
+include std/filesys.e
+include win32lib.ew
+
+constant TheWindow =
+    create( Window, "Print Bitmaps", 0, Default, Default, 0.50, 0.50, 0 )
+constant PrintIt =
+    create( Button, "&Print", TheWindow, 2, 1, 39, 18, 0)
+constant ChangeIt =
+    create( Button, "&Change Image", TheWindow, 45, 1, 100, 18, 0)
+
+constant Bitmap1 =
+    create( Bitmap, "", TheWindow, 20, 20, 132, 132,0 )
+
+constant Canvas =
+    create( Pixmap, "", 0, 0, 0, 1, 1, 0 )
+
+integer lastguess
+lastguess = 0
+
+integer vOutmap vOutmap = 0
+
+-- action to take when the window opens
+
+procedure onOpen_TheWindow(integer self, integer event, sequence parms)
+   atom hBitmap
+   object files
+   sequence bmsize
+   integer guess
+
+
+   files = dir("..\\demoresources\\*.bmp") -- Look for any bitmaps.
+
+
+    if sequence(files)
+          and
+       length(files) > 0
+    then
+      -- Make sure every click gets a new bitmap
+      while 1 do
+         guess = rand(length(files))
+         if guess != lastguess
+               or
+            length(files) = 1 -- Okay, there is only one bitmap.
+         then
+            lastguess = guess
+            exit
+         end if
+      end while
+
+      hBitmap = loadBitmapFromFile("..\\demoresources\\" & files[guess][D_NAME])
+      bmsize = getCtlSize(hBitmap)
+      if (bmsize[1] + 20) > 300
+            or
+         (bmsize[2] + 20) > 100
+      then
+         setCtlSize(TheWindow, 30 + 20 + bmsize[1], 30 + 20 + bmsize[2])
+      end if
+
+      setBitmap( Bitmap1, "..\\demoresources\\" & files[guess][D_NAME] )
+
+    end if
+
+
+
+end procedure
+
+procedure Click_PrintIt(integer self, integer event, sequence parms)
+
+    sequence lCanvasSize
+    sequence lBmpSize
+    object void
+    sequence lPrt
+    integer lTextWidth
+    integer lTextHeight
+
+    lPrt = getPrintChoice(1,0,0)
+    
+    if length(lPrt) != 0 then
+        -- Rescale the current bitmap so it prints in the top third 
+        -- of the page, keeping a 1-char border around the image.        
+        lTextHeight = getTextHeight(Printer, "|")
+        lTextWidth  = getTextWidth(Printer, "W")
+        lCanvasSize = floor( getRect(Printer) / 3)
+        setCtlSize(Canvas,  lCanvasSize[3], lCanvasSize[4] )
+        setWindowBackColor(Canvas, BrightWhite)
+
+        lBmpSize = getCtlSize(Bitmap1)
+        stretchBlt( Canvas,  lTextWidth, lTextHeight, 
+                             lCanvasSize[3]-2*lTextWidth, lCanvasSize[4]-2*lTextHeight, 
+                    Bitmap1, 0, 0, lBmpSize[1],    lBmpSize[2], 
+                    SRCCOPY)
+
+        void = startDoc("PrintBitmap")
+        void = startPage()
+        wPuts({Printer, 0, 0}, "Printing a bitmap")
+        copyBlt( Printer, 0, lTextHeight*2, Canvas)
+        void = endPage()
+        void = endDoc()
+        releasePrinter()
+    end if
+end procedure
+
+-- tell Windows when to do the action
+setHandler(TheWindow, w32HActivate, routine_id( "onOpen_TheWindow" ))
+setHandler(ChangeIt, w32HClick, routine_id( "onOpen_TheWindow" ))
+
+setHandler(PrintIt, w32HClick, routine_id("Click_PrintIt"))
+
+
+-- hand control over to Windows
+WinMain( TheWindow, Normal )
+

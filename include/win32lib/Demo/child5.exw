@@ -1,0 +1,72 @@
+include Win32Lib.ew
+
+without warning
+
+constant
+  Main = create( Window, "Restrict Child Window Movement Demo", 0,
+                 Default, Default, 640, 480, WS_CLIPCHILDREN ),
+  SB = create(StatusBar, "", Main, 0, 0, 0, 0, 0),
+  TB = create(ToolBar, "", Main, 0, 0, 40, 40, 0),
+  Bnt1 = create(Button, "CLICK", TB, 4, 4, 50, 25, 0),
+  Child1 = create( Window, "Child Window", Main, 0, 0,
+                 320, 240, {WS_CHILD,WS_VISIBLE,WS_CAPTION,WS_SYSMENU} )
+
+constant WM_MOVING = #0216
+integer TBH
+integer SBH
+procedure Activate_Main(integer self, integer event, sequence parms)
+    sequence lSB, lTB
+    -- Force the screen to be fully rendered at startup time.
+    repaintWindow(0)
+    -- Calc height of statusbar and toolbar
+    lSB = getRect(SB)
+    SBH = lSB[4] - lSB[2] - 1
+    lTB = getRect(TB)
+    TBH = lTB[4] - lTB[2] - 1
+end procedure
+
+procedure Moving_Child1(integer self, integer event, sequence parms)
+    sequence lPos
+    sequence vPos
+
+    -- Only interested in moving windows.
+    if parms[1] != WM_MOVING then
+        return
+    end if
+
+    -- Get parent client area and calc boundaries taking bars into consideration.
+    vPos = getClientSize(findParent(self))
+    vPos[2] += TBH
+    vPos[3] += vPos[1]
+    vPos[4] += vPos[2] - TBH - SBH
+
+    -- Get boundaries of the moving window
+    lPos = peek4s({parms[3],4})
+
+    -- Check that left, top, right and bottom edge is still inside
+    -- the parent boundary, and if not recalc where the edges should be.
+    if (lPos[1] < vPos[1]) then
+        lPos[3] = vPos[1] + lPos[3] - lPos[1]
+        lPos[1] = vPos[1]
+    end if
+    if (lPos[2] < vPos[2]) then
+        lPos[4] = vPos[2] + lPos[4] - lPos[2]
+        lPos[2] = vPos[2]
+    end if
+    if (lPos[3] > vPos[3]) then
+        lPos[1] = vPos[3] - lPos[3] + lPos[1]
+        lPos[3] = vPos[3]
+    end if
+    if (lPos[4] > vPos[4]) then
+        lPos[2] = vPos[4] - lPos[4] + lPos[2]
+        lPos[4] = vPos[4]
+    end if
+
+    -- Write back the new boundaries so Windows can reposition the window.
+    poke4(parms[3], lPos)
+end procedure
+
+setHandler(Child1, w32HEvent, routine_id("Moving_Child1"))
+setHandler(Main, w32HActivate, routine_id("Activate_Main"))
+
+WinMain( Main, Normal )

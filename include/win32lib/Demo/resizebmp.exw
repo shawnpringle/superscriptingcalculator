@@ -1,0 +1,47 @@
+include win32lib.ew
+without warning
+
+atom width, height
+integer need_repaint
+integer xratio, yratio
+integer main, pixmap
+
+xratio = 4
+yratio = 3
+
+width = 100
+height = 100
+
+need_repaint = 1
+
+main = create(Window, "Resize and see the \"effect\"", 0, Default, Default, 640, 480,0)
+pixmap = create(Pixmap, "", 0, 0, 0, width, height, 0)
+
+procedure main_onpaint(integer self, integer event, sequence params)
+    if need_repaint then
+        setPenColor(pixmap, Black)
+        drawRectangle(pixmap, True, 0, 0, width, height)
+        setPenColor(pixmap, BrightBlue)
+        drawRectangle(pixmap, True, floor(0.25 * width), floor(0.25 * height),
+                                    floor(0.75 * width),floor(0.75 * height))
+
+        need_repaint = 0
+    end if
+    copyBlt(main, 0, 0, pixmap)
+end procedure
+setHandler(main, w32HPaint, routine_id("main_onpaint"))
+
+procedure main_onresize(integer self, integer event, sequence params)
+    width = params[2]                                     -- window width is limiting?
+    height = floor((yratio / xratio) * width+.5)
+    if height > params[3] then                            -- window height is limiting!
+        height = params[3]
+        width = floor((xratio / yratio) * height+.5)
+    end if
+    setCtlSize(pixmap,width, height)
+    need_repaint = 1
+    repaintWindow(main)
+end procedure
+setHandler(main, w32HResize, routine_id("main_onresize"))
+
+WinMain(main, Normal)

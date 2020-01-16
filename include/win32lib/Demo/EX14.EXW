@@ -1,0 +1,16 @@
+-- ex14.exw
+--  by Pete Eberlein
+-- This example opens a window, and places images in it.
+include win32lib.ew
+
+VOID = setSearchPaths("..\\demoresources\\")
+createForm({
+            "Static Icons and Bitmaps!, image=euphoria.ico, bgcolor=NavyBlue",
+            "Icon,   image=WINLOGO",
+            "Icon,   at=(*+15,**), image=shuttle.ico",
+            "Bitmap, at=(*+15,**), image=java.bmp",
+            "Bitmap, at=(*+15,**), image=largetiles.bmp"
+        })
+
+                        
+include w32Start.ew

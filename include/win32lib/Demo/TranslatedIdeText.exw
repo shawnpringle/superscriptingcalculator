@@ -1,0 +1,135 @@
+include win32lib.ew
+without warning
+-- Demo from Judith
+
+--include IDE_text.e
+-- IDE_text.e
+
+sequence IDETEXT
+
+sequence IDETEXT1
+IDETEXT1 = repeat({{},{}},400)
+
+sequence IDETEXT2
+IDETEXT2 = repeat({{},{}},400)
+
+IDETEXT1[301] = {{301},"Projekt"}
+IDETEXT1[302] = {{302},"Dateie&n"}
+IDETEXT1[303] = {{303},"&Neues Projekt"}
+IDETEXT1[304] = {{304},"Ö&ffnen Projekt \t Ctrl+O"}
+IDETEXT1[305] = {{305},"&Speichern Projekt \t Ctrl+S"}
+IDETEXT1[306] = {{306},"Speichern &Als Projekt \t F12"}
+IDETEXT1[307] = {{307},"-"}
+IDETEXT1[308] = {{308},"&Ende"}
+IDETEXT1[309] = {{309},"Liste der letzten Projekte lös&chen"}
+IDETEXT1[310] = {{310},"&Ansicht"}
+IDETEXT1[311] = {{311},"Projekt &Ansicht \t Ctrl+J"}
+IDETEXT1[312] = {{312},"&Eigenschaften \t Ctrl+P"}
+IDETEXT1[313] = {{313},"Tool &Box \t Ctrl+T"}
+IDETEXT1[314] = {{314},"&Editoren"}
+IDETEXT1[315] = {{315},"&Code Editor \t Ctrl+E"}
+IDETEXT1[316] = {{316},"&Menu Editor \t Ctrl+M"}
+IDETEXT1[317] = {{317},"&Popup Editor \t Ctrl+U"}
+IDETEXT1[318] = {{318},"Timer &Editor \t Ctrl+W"}
+IDETEXT1[319] = {{319},"Werte für List"}
+IDETEXT1[320] = {{320},"E&dit"}
+
+
+IDETEXT2[301] = {{301},"Project"}
+IDETEXT2[302] = {{302},"&File"}
+IDETEXT2[303] = {{303},"&New Project"}
+IDETEXT2[304] = {{304},"O&pen Project \t Ctrl+O"}
+IDETEXT2[305] = {{305},"&Save Project \t Ctrl+S"}
+IDETEXT2[306] = {{306},"Save &As Project \t F12"}
+IDETEXT2[307] = {{307},"-"}
+IDETEXT2[308] = {{308},"&Exit"}
+IDETEXT2[309] = {{309},"clear Recent Project List"}
+IDETEXT2[310] = {{310},"View"}
+IDETEXT2[311] = {{311},"ProjectView"}
+IDETEXT2[312] = {{312},"Properties"}
+IDETEXT2[313] = {{313},"Tool &Box \t Ctrl+T"}
+IDETEXT2[314] = {{314},"&Editors"}
+IDETEXT2[315] = {{315},"&Code Editor \t Ctrl+E"}
+IDETEXT2[316] = {{316},"&Menu Editor \t Ctrl+M"}
+IDETEXT2[317] = {{317},"&Popup Editor \t Ctrl+U"}
+IDETEXT2[318] = {{318},"Timer &Editor \t Ctrl+W"}
+IDETEXT2[319] = {{319},"Initial for List"}
+IDETEXT2[320] = {{320},"E&dit"}
+
+--initialize
+IDETEXT=IDETEXT1
+-------------------------------------------------------------------------------
+--                          Major IDE Windows
+-------------------------------------------------------------------------------
+global constant
+--    Controls            = createEx( Window, "Project", 0, 0, 0, 640, 480, or_all({WS_CLIPCHILDREN,WS_CLIPSIBLINGS}),0 )
+    Controls            = createEx( Window, IDETEXT[301][2] , 0, 0, 0, 640, 480, or_all({WS_CLIPCHILDREN,WS_CLIPSIBLINGS}),0 )
+constant
+    FileMenu            = createEx( Menu,     IDETEXT[302][2] , Controls, 0, 0, 0, 0, 0, 0 ),
+    MenuNew             = createEx( MenuItem, IDETEXT[303][2] , FileMenu, 0, 0, 0, 0, 0, 0 ),
+    MenuOpen            = createEx( MenuItem, IDETEXT[304][2] , FileMenu, 0, 0, 0, 0, 0, 0 ),
+    MenuSave            = createEx( MenuItem, IDETEXT[305][2] , FileMenu, 0, 0, 0, 0, 0, 0 )
+global constant
+    MenuSaveAs          = createEx( MenuItem, IDETEXT[306][2] , FileMenu, 0, 0, 0, 0, 0, 0 )
+constant
+    MenuSep1            = createEx( MenuItem, IDETEXT[307][2] , FileMenu, 0, 0, 0, 0, 0, 0 ),
+    MenuClose           = createEx( MenuItem, IDETEXT[308][2] , FileMenu, 0, 0, 0, 0, 0, 0 ),
+    MenuSep1a           = createEx( MenuItem, IDETEXT[307][2] , FileMenu, 0, 0, 0, 0, 0, 0 )
+global constant
+    MenuClearRecent     = createEx( MenuItem, IDETEXT[309][2] , FileMenu, 0, 0, 0, 0, 0, 0 )
+constant
+    MenuComponents      = createEx( Menu,     IDETEXT[310][2] , Controls, 0, 0, 0, 0, 0, 0 ),
+    MenuProjectViewOpen = createEx( MenuItem, IDETEXT[311][2] , MenuComponents, 0, 0, 0, 0, 0, 0 ),
+    MenuPropertyOpen    = createEx( MenuItem, IDETEXT[312][2] , MenuComponents, 0, 0, 0, 0, 0, 0 ),
+    MenuIconBarOpen     = createEx( MenuItem, IDETEXT[313][2] , MenuComponents, 0, 0, 0, 0, 0, 0 )
+constant
+    MenuEditors         = createEx( Menu,     IDETEXT[314][2] , Controls, 0, 0, 0, 0, 0, 0 ),
+    MenuCodeEditor      = createEx( MenuItem, IDETEXT[315][2] , MenuEditors, 0, 0, 0, 0, 0, 0 )
+global constant
+    MenuMenuEditor      = createEx( MenuItem, IDETEXT[316][2] , MenuEditors, 0, 0, 0, 0, 0, 0 ),
+    MenuPopupEditor     = createEx( MenuItem, IDETEXT[317][2] , MenuEditors, 0, 0, 0, 0, 0, 0 ),
+    MenuTimerEditor     = createEx( MenuItem, IDETEXT[318][2] , MenuEditors, 0, 0, 0, 0, 0, 0 )
+constant
+    MenuListValues      = createEx( CheckBox, IDETEXT[319][2] , Controls, -100, 0, 50, 50, 0, 0 ),
+    EditMenu            = createEx( Menu,     IDETEXT[320][2] , Controls, 0, 0, 0, 0, 0, 0  )
+
+global constant
+    MenuControlUndo     = createEx( MenuItem, "&Control Action Undo \t Ctrl+Z", EditMenu, 0, 0, 0, 0, 0, 0 )
+constant
+    MenuSep2            = createEx( MenuItem, "-", EditMenu, 0, 0, 0, 0, 0, 0 ),
+    MenuWindow          = createEx( MenuItem, "&New Window", EditMenu, 0, 0, 0, 0, 0, 0 ),
+    MenuSep2a           = createEx( MenuItem, "-",            EditMenu, 0, 0, 0, 0, 0, 0 ),
+    MenuWinDel          = createEx( MenuItem, "&Delete Active Window", EditMenu, 0, 0, 0, 0, 0, 0 ),
+    MenuSep2b           = createEx( MenuItem, "-", EditMenu, 0, 0, 0, 0, 0, 0 ),
+
+    mybutton            = createEx(PushButton, "Translate", Controls, 10, 10, 90, 30, 0, 0 )
+
+
+
+procedure mybutton_onClick(integer self, integer event, sequence params)
+    integer ok
+
+    IDETEXT = IDETEXT2
+
+    setText(Controls,IDETEXT[301][2])
+
+
+    --set translated captions
+    setText(FileMenu, IDETEXT[302][2])
+    setText(MenuNew, IDETEXT[303][2])
+    setText(MenuOpen, IDETEXT[304][2])
+    setText(MenuSave, IDETEXT[305][2])
+    setText(MenuSaveAs, IDETEXT[306][2])
+    setText(MenuClose, IDETEXT[308][2])
+    setText(MenuClearRecent, IDETEXT[309][2])
+    setText(MenuComponents, IDETEXT[310][2])
+    setText(MenuProjectViewOpen, IDETEXT[311][2])
+    setText(MenuPropertyOpen, IDETEXT[312][2])
+    setText(MenuIconBarOpen, IDETEXT[313][2])
+    setText(MenuEditors, IDETEXT[314][2])
+    setText(mybutton, "Translated!")
+
+end procedure
+setHandler(mybutton, w32HClick, routine_id("mybutton_onClick"))
+
+WinMain(Controls, Normal)

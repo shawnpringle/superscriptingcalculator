@@ -1,0 +1,31 @@
+-- ComboBoxEx.exw
+-- Matt Lewis
+
+without warning
+include std/machine.e
+include std/os.e
+include win32lib.ew
+
+constant
+Win = create( Window, "ComboBoxEx Demo", 0, 20, 20, 400, 400, 0),
+CBE = create( ComboBoxEx, "", Win, 5, 20, 210, 300, 0 ),
+MLE = create( MleText, "The time is \r\nright now\r\nfor all of us.", Win, 5, 60, 210, 200, ES_READONLY)
+
+atom ptr, iExw
+
+ptr = allocate_string( "exw" )
+iExw = w32Func(xLoadIcon,{instance(), ptr} )
+free(ptr)
+VOID = setSearchPaths("..\\demoresources\\")
+constant
+    closefolder = addIcon( extractIcon( "clsdfold.ico" ) ),
+    openfolder  = addIcon( extractIcon( "openfold.ico" )),
+    dos         = addIcon( extractIcon( "disk05.ico" )),
+    linux       = addIcon( extractIcon( "disk06.ico" ))
+
+addItem( CBE, {"Select to open", closefolder, openfolder })
+addItem( CBE, {"Disk icons.", dos, linux })
+
+
+WinMain( Win, Normal )
+

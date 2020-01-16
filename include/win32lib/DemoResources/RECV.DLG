@@ -1,0 +1,44 @@
+;; recv.dlg
+;; This defines an Receipt input screen.
+
+Window, Receiving Input, bar=status, flags=(new,ws_ex_toolwindow)
+
+Menu, Search
+MenuItem, caption=Product, name=FindProduct
+MenuItem, caption=Purchase Order, name=FindPO
+
+Label, Receipt Number ;;------------------ Receipt Number
+	at=(5,10)
+EditText, name=RecptNumber
+	left=**, top=*, width=20char
+       event=(keypress=LookupKey)
+        hint=Enter a receipt number. Press RETURN to display existing data.
+
+Label, P.O. Number ;;------------------ PO Number
+	left=**, top=*+4
+EditText, name=PONumberValue
+	left=**, top=*, width=20char
+
+Label, Date Received ;;-------------------- Recv Date
+	left=**, top=*+4
+EditText, name=RecptDate
+	left=**, top=*, width=16char
+
+Label, Supplier Id,name=lSupplierId ;;-------------------- Supplier ID
+	left=**, top=*
+EditText, name=SupplierId
+	left=**, top=*, width=20char
+
+Label, Products ;;-------------------- Products
+	left=**, top=*
+MleText, name=ProdList
+      left=**, top=*, size=(50char,10char)
+
+Button, Name=Accept, caption=&Accept ;;----------------- Accept Button
+	left=RecptNumber*, top=*+10
+
+CancelButton, &Cancel ;;----------------- Cancel Button
+	left=*+4, top=**
+	flag=autoclose
+
+

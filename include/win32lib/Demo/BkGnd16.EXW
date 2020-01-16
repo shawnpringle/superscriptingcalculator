@@ -1,0 +1,153 @@
+-- example16.exw
+--      Display Bitmaps In Window
+
+include std/filesys.e
+include win32lib.ew
+without warning
+without trace
+
+VOID = setSearchPaths("..\\demoresources\\")
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+-- controls
+integer MyWindow
+integer MyButton
+integer btnStyle
+integer vImgBuffer
+
+atom vBitmapHandle
+integer vNextBitmap
+sequence vBitmapNames
+
+integer vTiling
+vTiling = w32True
+with trace
+-----------------------------------------------------------------------
+procedure onPaint_MyWindow(integer self, integer event, sequence parms)
+-----------------------------------------------------------------------
+    sequence lExtent
+    sequence lBitmapSize
+
+   if vBitmapHandle = 0 then
+      return
+   end if
+
+    -- get the window size
+    lExtent = getClientSize( MyWindow )
+    lExtent = lExtent[3..4]
+    lBitmapSize = getCtlSize(vBitmapHandle)
+
+
+    if vTiling then
+        -- Adjust size of off-screen buffer
+        setCtlSize(vImgBuffer,lExtent[1], lExtent[2])
+        -- fill the off-screen buffer with the bitmap
+        for i = 0 to lExtent[1] by lBitmapSize[1] do
+            for j = 0 to lExtent[2] by lBitmapSize[2] do
+                drawBitmap( vImgBuffer, vBitmapHandle, i, j )
+            end for
+        end for
+        -- Copy the off-screen buffer to the real screen.
+        copyBlt(MyWindow, 0, 0, vImgBuffer)
+
+    else
+        -- Adjust size of off-screen buffer
+        setCtlSize(vImgBuffer,lBitmapSize[1], lBitmapSize[2])
+        drawBitmap(vImgBuffer, vBitmapHandle, 0, 0 )
+        stretchBlt(MyWindow,0,0, lExtent[1], lExtent[2],
+                   vImgBuffer,0, 0,lBitmapSize[1], lBitmapSize[2],
+                   SRCCOPY)
+    end if
+
+
+end procedure
+
+-----------------------------------------------------------------------
+procedure btnClick(integer self, integer event, sequence parms)
+-----------------------------------------------------------------------
+
+    vNextBitmap += 1
+    if vNextBitmap > length(vBitmapNames) then
+        vNextBitmap = 1
+    end if
+
+    if vBitmapHandle then
+        -- delete the old bitmap
+        deleteObject(vBitmapHandle)
+    end if
+
+    vBitmapHandle = loadBitmapFromFile(vBitmapNames[vNextBitmap])
+
+    repaintFG(MyWindow)
+end procedure
+
+-----------------------------------------------------------------------
+procedure btnStyleClick(integer self, integer event, sequence parms)
+-----------------------------------------------------------------------
+
+    if equal(getCaption(self), "&Tile") then
+        setText(self, "&Stretch")
+        vTiling = w32True
+    else
+        setText(self, "&Tile")
+        vTiling = w32False
+    end if
+
+    repaintFG(MyWindow)
+end procedure
+
+-----------------------------------------------------------------------
+procedure resizing(integer self, integer event, sequence parms)
+-----------------------------------------------------------------------
+    if not vTiling then
+        repaintFG(MyWindow)
+    end if
+end procedure
+
+-----------------------------------------------------------------------
+procedure main()
+-----------------------------------------------------------------------
+    sequence lTextDim
+    object lFileList
+
+    vNextBitmap = 0
+    vBitmapHandle = 0
+    vBitmapNames = {}
+
+    MyWindow =
+        create( Window, "Tiled Bitmap Test", 0, Default, Default, 320, 200, 0 )
+    MyButton =
+        create( PushButton, "&Change Background", MyWindow, 10, 10, 160, 30, 0 )
+
+    btnStyle =
+        create( PushButton, "&Stretch", MyWindow, 180, 10, 100, 30, 0 )
+
+    vImgBuffer = create(Pixmap, "", 0, 0, 0, 1, 1, 0)
+
+    -- Get a list of the bitmaps in the current folder
+    lFileList= dir("..\\demoresources\\*.bmp")
+    if sequence (lFileList) then
+        for i = 1 to length(lFileList) do
+           vBitmapNames = append(vBitmapNames, lFileList[i][D_NAME])
+        end for
+    end if
+
+    if length(vBitmapNames) = 0 then
+       setText(MyButton, "No Bitmaps")
+       setEnable({MyButton, btnStyle}, 0)
+    else
+        setHandler(MyButton, w32HClick, routine_id("btnClick"))
+    end if
+
+    setHandler(btnStyle, w32HClick, routine_id("btnStyleClick"))
+
+
+    -- Establish the handlers.
+    setHandler(MyWindow, w32HPaint, routine_id("onPaint_MyWindow"))
+    setHandler(MyWindow, w32HResize, routine_id("resizing"))
+
+    -- hand control over to Windows
+    WinMain( MyWindow, Normal )
+end procedure
+
+main()

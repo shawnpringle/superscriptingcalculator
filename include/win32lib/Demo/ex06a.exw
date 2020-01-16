@@ -1,0 +1,37 @@
+include win32lib.ew
+without warning
+global function main(sequence pArgs)
+    sequence ListData
+
+    ListData =
+          {
+            "apple",
+            "banana",
+            "carrot",
+            "durian",
+            "eggplant",
+            "fruit",
+            "grapefruit",
+            "huckleberry",
+            "insect",
+            "juice",
+            "kava",
+            "melon",
+            "nashi",
+            "orange"
+          }
+
+    -- Now create the form.
+    createForm({
+                 "Window, Example List Window",
+                 "List," &
+                    "value=" & {ListData} & "," & -- Initial data
+                    "width=12char," &
+                    "height=14char," &
+                    "bgcolor=brightcyan," &
+                    "font=(Courier New,14)"
+            })
+
+    return 0
+end function
+include w32start.ew

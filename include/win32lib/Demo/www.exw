@@ -1,0 +1,18 @@
+without warning
+include win32lib.ew
+constant w = create(Window, "test", 0, 0, 0, 0, 0, {WS_POPUP})
+
+procedure a(integer self,  integer e, sequence p)
+    sequence site
+    site = command_line()
+    if length(site) = 2 then
+        site = "http://www.rapideuphoria.com"
+    else
+        site = site[3]
+    end if
+
+   shellExecute("open", site, SW_SHOWNORMAL)
+   closeWindow(w)
+end procedure
+setHandler(w, w32HActivate, routine_id("a"))
+WinMain(w, SW_HIDE)

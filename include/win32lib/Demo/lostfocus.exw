@@ -1,0 +1,43 @@
+without warning
+include win32lib.ew
+constant w = createEx(Window,"TEST", 0, 0,  0, 100, 200, 0, 0),
+         f1 = createEx(EditText, "one", w, 5,  5, 80,  25, 0, 0),
+         f2 = createEx(EditText, "two", w, 5, 45, 80,  25, 0, 0),
+         f3 = createEx(EditText, "three", w, 5, 85, 80,  25, 0, 0),
+         sb = createEx(StatusBar, "", w, 0, 0, 0, 0, 0, 0)
+
+atom vEvent vEvent = -1
+
+procedure eh(integer self, integer event, sequence parms)
+    atom Msg
+    Msg = parms[1]
+    if find(Msg, {WM_KEYDOWN, WM_LBUTTONDOWN, WM_RBUTTONDOWN}) then
+        vEvent = Msg
+    end if
+end procedure
+
+procedure lf(integer self, integer event, sequence parms)
+    sequence msg
+
+    if vEvent = WM_KEYDOWN then
+        msg = "key"
+    elsif find(vEvent, {WM_LBUTTONDOWN, WM_RBUTTONDOWN}) then
+        msg = "btn"
+    elsif vEvent = 0 then
+        msg = "other"
+    elsif vEvent = -1 then
+        msg = "initial"
+    else
+        msg = sprintf("%d?", vEvent)
+    end if
+
+    setText(sb, sprintf("%s %s ", {getText(self), msg}))
+    -- Reset so we can trap Alt-TAB etc...
+    vEvent = 0
+
+end procedure
+
+setHandler({f1,f2,f3}, w32HEvent,     routine_id("eh"))
+setHandler({f1,f2,f3}, w32HLostFocus, routine_id("lf"))
+
+WinMain(w, Normal)

@@ -1,0 +1,76 @@
+-- ex06.exw
+--
+-- This opens a window with a populated list in it.
+
+include std/win32/msgbox.e
+include win32lib.ew
+without warning
+
+constant ListData = 
+  {
+    "apple",
+    "banana",
+    "carrot",
+    "durian",
+    "eggplant",
+    "fruit",
+    "grapefruit",
+    "huckleberry",
+    "insect",
+    "juice",
+    "kava",
+    "melon",
+    "nashi",
+    "orange"
+  }    
+  
+
+-- Now create the form.
+
+createForm({
+             "Window, List Window"
+             ,  
+             "PushButton, Info..."
+             ,
+             "List, name=List," &
+                "Left=Info+4," & -- 4 pixels to the left of 'Info'
+                "top=Info*," & -- same TOP as 'Info'
+                "value=" & {ListData} & ',' & -- Initial data
+                sprintf("width=%dchar,",w32MaxWidth(ListData)+1) & 
+                sprintf("Height=%dchar,",length(ListData)) & 
+                "font=(Courier New,14), event=Mouse"
+        })
+             
+    
+procedure ShowInfo()
+    integer index
+    integer theList
+    
+    theList = getNameId("List")
+
+    -- get index
+    index = getIndex( theList )
+
+    VOID = message_box( 
+        sprintf("List Count = %d\n" &
+                "Selected Item Index = %d\n" &
+                "Selected Item Text = %s", 
+                {getCount(theList), index, getItem(theList,index)} ), 
+        "List Information", MB_ICONINFORMATION )        
+
+end procedure
+
+procedure Click_Info(integer self, integer event, sequence parms )    
+    ShowInfo()
+end procedure
+registerRoutine("Click_Info", routine_id("Click_Info"))
+
+procedure Mouse_List(integer self, integer event, sequence parms )    
+    if parms[1] = WM_LBUTTONDBLCLK  or parms[1] = WM_RBUTTONDOWN then
+        ShowInfo()
+    end if
+end procedure
+registerRoutine("Mouse_List", routine_id("Mouse_List"))
+
+include w32start.ew
+

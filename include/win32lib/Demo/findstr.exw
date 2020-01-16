@@ -1,0 +1,124 @@
+include win32lib.ew
+include std/dll.e
+include std/machine.e
+include std/filesys.e
+include std/io.e
+
+without warning
+
+object VOID
+constant win = create(Window, "find strings", 0, 0, 0, 400, 400, 0),
+         SB = create(StatusBar, "", win, 0,0, 0,0,0),
+         big = create(MleText, "", win, 5,5, w32Edge, 300, ES_READONLY),
+         small = create(EditText, "", win, 5, 310, 250, 25, 0),
+         findit = create(Button, "&Find", win, 5, 345, 40, 20,0),
+         load = create(Button, "&Load", win , 55, 345, 40, 20, 0)
+setClientRect(win, 400, 400)
+
+setEnable(findit, 0)
+
+constant shlwapi = registerw32Library("shlwapi.dll"),
+         xStrStrI = registerw32Function(shlwapi, "StrStrIA", {C_POINTER, C_POINTER}, C_POINTER)
+
+atom strbuf, strbufsize
+strbuf = 0
+strbufsize = 0
+
+procedure LoadFile(integer id,integer event,sequence params)
+    sequence filename
+    integer fh
+    object dirinfo
+    sequence data
+
+
+    filename = getText(small)
+    if length(filename) = 0 then
+        setText(SB, "I require a file name first.")
+        return
+    end if
+
+    dirinfo = dir(filename)
+    if equal(dirinfo, -1) then
+        setText(SB, sprintf("File '%s' not found.", {filename}))
+        return
+    end if
+
+    if dirinfo[1][D_SIZE] > 32000 then
+        setText(SB, sprintf("File '%s' is larger than 32000 bytes.", {filename}))
+        return
+    end if
+
+    fh = open(filename, "rb")
+    if fh <= 0 then
+        setText(SB, sprintf("Unable to open file '%s'.", {filename}))
+        return
+    end if
+
+
+    data = get_bytes(fh, dirinfo[1][D_SIZE])
+
+    setText(big, data)
+
+    if strbuf != 0 then
+        if strbufsize <= dirinfo[1][D_SIZE] then
+            w32release_mem(strbuf)
+            strbuf = 0
+
+        end if
+    end if
+    if strbuf = 0 then
+        strbufsize = dirinfo[1][D_SIZE] + 1
+        strbuf = w32acquire_mem(0, strbufsize)
+    end if
+    poke(strbuf, data )
+    poke(strbuf + strbufsize-1, 0)
+
+    close(fh)
+
+    setText(SB, "File loaded.")
+    setEnable(findit, 1)
+end procedure
+setHandler(load,w32HClick,routine_id("LoadFile"))
+
+procedure FindStrings(integer id,integer event,sequence params)
+    sequence lookfor
+    integer cntr
+    atom smallstr
+    atom start
+    atom fnd
+
+    lookfor = getText(small)
+    if length(lookfor) = 0 then
+        setText(SB, "You must supply some text first.")
+        return
+    end if
+
+    if strbuf = 0 then
+        setText(SB, "You must load a file first.")
+        return
+    end if
+
+    cntr = 0
+    start = strbuf
+    smallstr = w32acquire_mem(0,lookfor)
+
+    while w32True do
+        fnd = w32Func(xStrStrI, {start, smallstr})
+        if fnd = 0 then
+            exit
+        end if
+
+        cntr += 1
+        start = fnd + length(lookfor)
+        if start > strbuf + strbufsize then
+            exit
+        end if
+    end while
+
+    w32release_mem(smallstr)
+
+    setText(SB, sprintf("Occurances: %d", {cntr}))
+end procedure
+setHandler(findit,w32HClick,routine_id("FindStrings"))
+
+WinMain(win,0)

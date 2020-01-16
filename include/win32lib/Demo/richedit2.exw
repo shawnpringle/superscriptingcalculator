@@ -1,0 +1,85 @@
+include win32lib.ew
+without warning
+-- this is a simple RichEdit demo showing how
+-- to use the Popup box like that of an MleText
+-- written by Greg Haberek
+-- feel free to use any code here,
+-- but please give credit if you use my selectAll() routine
+
+constant
+
+    Main = create( Window, "RichEdit Demo",
+                0, 0.16, 0.12, 0.64, 0.48, 0 ),
+
+    RE = create( RichEdit, "", Main, 0, 0, 1, 1, 0 ),
+
+    Popup1 = create( Popup, "RichEdit Menu", Main,
+                       0, 0, 0, 0, 0 ),
+    Undo = create( MenuItem, "&Undo", Popup1,
+                    0, 0, 0, 0, 0 ),
+    Sep1 = create( MenuItem, "-", Popup1,
+                    0, 0, 0, 0, 0 ),
+    Cut = create( MenuItem, "Cu&t", Popup1,
+                    0, 0, 0, 0, 0 ),
+    Copy = create( MenuItem, "&Copy", Popup1,
+                     0, 0, 0, 0, 0 ),
+    Paste = create( MenuItem, "&Paste", Popup1,
+                    0, 0, 0, 0, 0 ),
+    Delete = create( MenuItem, "&Delete", Popup1,
+                     0, 0, 0, 0, 0 ),
+    Sep2 = create( MenuItem, "-", Popup1,
+                     0, 0, 0, 0, 0 ),
+    SelectAll = create( MenuItem, "Select &All", Popup1,
+                    0, 0, 0, 0, 0 )
+
+procedure Main_w32HResize(
+integer self, integer event, sequence params )
+sequence rect
+    rect = getClientRect( Main )
+
+    setRect( RE, rect[1]+10, rect[2]+10, rect[3]-20, rect[4]-20, 1 )
+
+end procedure
+setHandler( {Main}, {w32HResize},
+routine_id("Main_w32HResize") )
+
+procedure RE_w32HMouse(
+integer self, integer event, sequence params )
+
+    if params[1] = RightDown then
+        popup( {Popup1,self}, params[2]-6, params[3]-6 )
+    end if
+
+end procedure
+setHandler( {RE}, {w32HMouse},
+routine_id("RE_w32HMouse") )
+
+procedure Popup_w32HClick(
+integer self, integer event, sequence params )
+sequence text
+
+    if self = Undo then
+        undo(RE)
+
+    elsif self = Cut then
+        cut(RE)
+
+    elsif self = Copy then
+        copy(RE)
+
+    elsif self = Paste then
+        paste(RE)
+
+    elsif self = Delete then
+        clear(RE)
+
+    elsif self = SelectAll then
+        setIndex( RE, {1, 0} )
+
+    end if
+
+end procedure
+setHandler( {SelectAll,Delete,Paste,Copy,Cut,Undo},
+{w32HClick}, routine_id("Popup_w32HClick") )
+
+WinMain( Main, Normal )

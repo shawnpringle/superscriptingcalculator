@@ -1,0 +1,8 @@
+include win32lib.ew
+without warning
+constant
+display = create(Window,"Fixed Size",
+    0,0,0,100,100,{WS_CAPTION,WS_POPUP,w32AUTOCLOSE})
+
+setHint(display, "Press Alt-F4 to close me")
+WinMain(display, 0)

@@ -1,0 +1,73 @@
+-- colorlabel.exw
+--
+-- This demonstrates one method of creating coloured labels.
+without warning
+include win32lib.ew
+
+constant SimpleWin =  create( Window, "Simple Window", 0, 0, 0, 200, 140, 0 ),
+     lbl1 = create(Window, "Label One", SimpleWin, 5,  5, 120, 20, {WS_VISIBLE,WS_CHILD}),
+     lbl2 = create(Window, "Label Two", SimpleWin, 5, 35, 120, 20, {WS_VISIBLE,WS_CHILD}),
+     lbl3 = create(Window, "Label Three", SimpleWin, 5, 65, 120, 20, {WS_VISIBLE,WS_CHILD}),
+     btn1 = create(Button, "Flip", SimpleWin, 135, 5, 50, 25, 0)
+
+sequence lblList
+lblList = {lbl1,lbl2,lbl3}
+
+
+
+setFont(lbl1, "Arial", 10, Normal)
+setFont(lbl2, "Courier New", 14, Normal)
+setFont(lbl3, "Times Roman", 12, Normal)
+
+defineUserProperty(lbl1, "TextColor", BrightRed)
+defineUserProperty(lbl1, "TextBG", Black)
+
+defineUserProperty(lbl2, "TextColor", BrightCyan)
+defineUserProperty(lbl2, "TextBG", Brown)
+
+defineUserProperty(lbl3, "TextColor", BrightWhite)
+defineUserProperty(lbl3, "TextBG", Blue)
+
+integer vPainting vPainting = w32False
+------------------------------------------------
+procedure onPaint_lbls(integer self, integer event, sequence parms)
+------------------------------------------------
+    sequence lVal
+
+    if vPainting = w32False then
+        vPainting = w32True
+        lVal = getUserProperty(self, "TextColor")
+        setTextColor( self, lVal[1])
+
+        lVal = getUserProperty(self, "TextBG")
+        setWindowBackColor(self, lVal[1])
+
+        wPuts( {self, 2,2}, getText(self))
+        vPainting = w32False
+    end if
+end procedure
+setHandler(lblList, w32HPaint, routine_id("onPaint_lbls"))
+
+------------------------------------------------
+procedure onClick_btn1(integer self, integer event, sequence parms)
+------------------------------------------------
+    atom c1, c2
+    sequence lVal
+
+    for i = 1 to length(lblList) do
+        lVal = getUserProperty(lblList[i], "TextColor")
+        c1 = lVal[1]
+        lVal = getUserProperty(lblList[i], "TextBG")
+        c2 = lVal[1]
+
+        setUserProperty(lblList[i], "TextColor", c2)
+        setUserProperty(lblList[i], "TextBG",  c1)
+    end for
+
+    repaintWindow(SimpleWin)
+
+end procedure
+setHandler(btn1, w32HClick, routine_id("onClick_btn1"))
+
+WinMain( SimpleWin, Normal)
+

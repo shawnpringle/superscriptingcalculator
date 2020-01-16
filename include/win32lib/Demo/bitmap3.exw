@@ -1,0 +1,35 @@
+include Win32Lib.ew
+without warning
+VOID = setSearchPaths("..\\demoresources\\")
+constant Win = createEx( Window,"", 0,Default,Default, 400, 300, 0, 0 ),
+      Picture = createEx( Bitmap, "largetiles.bmp", Win, 112, 40, 256, 172, WS_BORDER, 0 ),
+      Edit    = createEx( EditText, "HELLO", Win, 112, 220, 152, 40, 0,
+or_all({WS_EX_CLIENTEDGE}) ),
+      Button1 = createEx( PushButton,"ON / OFF",Win,12,44,88, 28, 0, 0 ),
+      Button2 = createEx( PushButton,"ON / OFF",Win,12,156,88,28, 0, 0
+),
+      Text1   = createEx( LText, "Bitmap", Win, 12,  16, 100, 24, 0, 0 ),
+      Text2   = createEx( LText, "EditBox",Win, 12, 128, 100, 24, 0, 0 )
+
+      --setBitmap( Picture,)
+
+      setHint( Edit,"This is a EditBox")
+      setFont( Edit,"Arial",14,Italic+Bold)
+
+integer BMvisible, Edvisible
+BMvisible = True
+Edvisible  = True
+
+procedure Button1_Click (integer self, integer event, sequence params)
+     BMvisible = not BMvisible
+     setVisible(Picture, BMvisible)
+end procedure
+setHandler( Button1, w32HClick, routine_id("Button1_Click"))
+
+procedure Button2_Click (integer self, integer event, sequence params)
+     Edvisible = not Edvisible
+     setVisible(Edit, Edvisible)
+end procedure
+setHandler( Button2, w32HClick, routine_id("Button2_Click"))
+
+WinMain( Win,Normal )

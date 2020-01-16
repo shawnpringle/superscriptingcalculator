@@ -1,0 +1,51 @@
+-- This demo simulates a listbox with a single-column listview
+include win32lib.ew
+without warning 
+
+constant 
+    Win = create( Window, "Single Column Listview",0,
+                                1,1,550,600,0),
+    LV = create( ListView,{""},Win,
+                                10,30,410,260,
+                or_all({LVS_REPORT,LVS_NOCOLUMNHEADER})),
+    Btn = create(Button, "&Invert Checked", Win, 
+                10, 2, 120, 24, 0)                    
+
+-- Allow checkboxes and show gridlines
+setLVStyle(LV, or_all({LVS_EX_CHECKBOXES,LVS_EX_GRIDLINES}))
+-- Load in some sample data.
+loadLVInfo( LV, {
+            {"Apple juice"},
+            {"Orange juice"},
+            {"Grape juice"},
+            {"Apple"},
+            {"Orange"},
+            {"Grape"},
+            {"Banana"},
+            {"Mango"},
+            {"Pineapple"},
+            {"Pineapple Juice"},
+            {"Peach"},
+            {"Apricot"},
+            {"Melon"},
+            {"Plum"}
+                })
+                   
+-- Force column to be same width as entire control
+VOID = sendMessage(LV, LVM_SETCOLUMNWIDTH, 0, LVSCW_AUTOSIZE_USEHEADER)
+
+-- This routine inverts the currently checked rows in the listview.
+procedure onClick_Btn(integer self, integer event, sequence parms)
+    sequence lCheckRows
+
+    lCheckRows = getLVAllChecked(LV)
+    for lRow = 1 to getLVCount(LV) do
+        setCheck({{LV, lRow}}, not find(lRow, lCheckRows))
+    end for        
+    
+end procedure               
+setHandler(Btn, w32HClick, routine_id("onClick_Btn"))
+
+
+WinMain(Win,Normal)
+

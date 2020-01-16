@@ -1,0 +1,44 @@
+-- UpDown.exw
+-- Matt Lewis
+without warning
+include win32lib.ew
+
+
+createForm( {
+            "Window,UpDown Demo,width=300, height=200, bars=status",
+            "EditText, name=Num, value=5,left=20, top=20, width=90, height=30",
+            "UpDown, UD, left=20, top=20,width=10,height=*,position=5," &
+                "range=(0,50000),buddy=Num," &
+                "flags=(UDS_ALIGNRIGHT,UDS_SETBUDDYINT, UDS_ARROWKEYS)",
+            "EditText, name=Num2, value=0,left=20, top=60, width=90, height=30",
+            "UpDown, UD2, left=20,top=20,width=10,height=*,position=0," &
+                "range=(-100,100),buddy=Num2," &
+                "flags=(UDS_ALIGNRIGHT,UDS_SETBUDDYINT,UDS_ARROWKEYS)"
+             })
+
+setAcceleration(getNameId("UD"), {{1,2}, {3,5}, {4, 10}, {5,100}, {6,1000}, {7,5000}})
+procedure Scrolled(integer self, integer event, sequence parms)
+    sequence text
+
+    text = sprintf("Name=%s Value=%d", {getIdName(self), getScrollPos(self)})
+    showMessage(text)
+
+end procedure
+
+procedure AppCallback(integer self, integer event, sequence parms)
+    if event = w32HGetHandler then
+        -- parms[1] is the standard routine handler name
+        -- in the form <eventname>_<controlname>
+        -- eg. Click_PushBtn
+        -- parms[3] is the control's name
+        -- eg. "PushBtn"
+        if find(parms[3], {"UD","UD2"}) then
+            returnValue(routine_id("Scrolled"))
+        else
+            returnValue(routine_id(parms[1]))
+        end if
+    end if
+end procedure
+
+startApp(routine_id("AppCallback"))
+

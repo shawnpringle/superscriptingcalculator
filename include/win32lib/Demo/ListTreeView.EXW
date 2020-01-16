@@ -1,0 +1,354 @@
+-- Demo for Listview wrappers.
+-- Matt Lewis (matthewlewis@hotmail.com)
+without warning
+include std/text.e
+include std/os.e
+include win32lib.ew
+
+object VOID
+atom
+    LV,
+    TV,
+    TheList,
+    iExw,
+    ptr,
+    mask,
+    closefolder,
+    openfolder,
+    win,
+    dos,
+    linux,
+    generic
+
+integer
+    Win,
+    SB,
+    CB,
+    clv,
+    tvs
+
+sequence
+    folders,
+    location,
+    vDataBase
+
+VOID = setSearchPaths("..\\demoresources\\")
+setDragPointer({
+    loadCursor("hand.cur"),
+    loadCursor("pen_l.cur"),
+    loadCursor("hcross.cur"),
+    loadCursor("drum.ani")
+        })
+
+
+
+---------------------------------
+procedure RedrawLV()
+---------------------------------
+    integer lCurrent_TV_Node
+
+    VOID = deleteItem( LV, -1 )
+    lCurrent_TV_Node = getIndex( TV )
+
+    -- show items
+    for i = 1 to length( location ) do
+        if location[i] = lCurrent_TV_Node then
+            VOID = addLVItem( LV, vDataBase[i][3], vDataBase[i][1..2] )
+        end if
+    end for
+
+    setIndex(LV, 1)
+    -- Reset the direction to swap asc/desc.
+    VOID = setLVAttr(LV, {{kLVSortSeq, {-2, 1}}})
+
+end procedure
+
+---------------------------------
+procedure DragAndDrop_TheList(integer self, integer event, sequence parms)
+---------------------------------
+    integer fromId, lTopItem
+    object data
+    sequence lMsg
+
+    fromId = parms[1]
+    data = parms[2]
+    lMsg = {}
+    if fromId = LV then
+        -- LV Controls can drag multiple things
+        eraseItems(TheList)
+        for i = 1 to length(data) do
+            addItem(TheList, getLVItemText(fromId, data[i], 1))
+        end for
+        lTopItem = 1
+    elsif fromId = TV then
+        -- TV controls only drag one thing.
+        eraseItems(TheList)
+        addItem(TheList, getTVText(data[1]))
+        lTopItem = 1
+    else
+        -- File list from Explorer
+        if parms[1] = 0 then
+            if length(parms[2]) = 1 then
+                -- Opening call, the file count.
+                eraseItems(TheList)
+                lTopItem = 0
+            elsif length(parms[2]) = 0 then
+                lTopItem = 1
+            else
+                -- add the file name to the list
+                addItem( TheList, parms[2] )
+                lTopItem  = 1
+            end if
+        end if
+    end if
+
+    setIndex(TheList, lTopItem)
+end procedure
+
+---------------------------------
+procedure DragAndDrop_TV(integer self, integer event, sequence parms)
+---------------------------------
+    atom toId
+    sequence col1text
+    integer fromId
+    object data
+    integer lCurrent_TV_Node
+
+    fromId = parms[1]
+    data = parms[2]
+    lCurrent_TV_Node = getIndex(TV)
+
+    if fromId = LV then
+        toId = hitTestTV( TV )
+        if toId != 0 and toId != lCurrent_TV_Node then
+            for i = 1 to length(data) do
+                col1text = getLVItemText(fromId, data[i], 1)
+                for j = 1 to length(vDataBase) do
+                    if equal(col1text, vDataBase[j][1]) then
+                        location[j] = toId
+                        exit
+                    end if
+                end for
+            end for
+
+        end if
+        RedrawLV()
+
+    end if
+
+end procedure
+
+---------------------------------
+procedure DragAndDrop_LV(integer self, integer event, sequence parms)
+---------------------------------
+    integer fromId
+    object data
+    object item
+    sequence msg
+
+
+    fromId = parms[1]
+    data = parms[2]
+
+    item = hitTestLV( LV )
+
+    if sequence(data) then
+        msg = "Items: "
+        for i = 1 to length(data) do
+            msg &= sprintf("%d ", data[i])
+        end for
+        setText(SB, msg)
+
+    elsif length(item) != 2 then
+        setText(SB, "Not on an item")
+    else
+        setText(SB, sprintf("%d %d %d", item&data))
+    end if
+end procedure
+
+---------------------------------
+procedure Change_TV(integer self, integer event, sequence parms)
+---------------------------------
+    sequence msg
+
+    RedrawLV()
+
+    msg = ""
+    for i = 1 to length(folders) do
+        if isChecked({TV, folders[i]}) then
+            msg &= sprintf(" %d ", i)
+        end if
+    end for
+    setText(SB, getText(SB) & ":" & msg)
+end procedure
+
+---------------------------------
+procedure Click_CB(integer self, integer event, sequence parms)
+---------------------------------
+       
+    tvs = expandTV(TV, folders[1], tvs)
+    if tvs = TVE_EXPAND then
+        setText(CB, "Show All")
+    else
+        setText(CB, "Hide All")
+    end if
+
+end procedure
+
+--
+---------------------------------
+procedure Click_LV(integer self, integer event, sequence parms)
+---------------------------------
+  sequence item
+
+  clv += 1
+  item = getIndex(LV)
+  if length(item) > 0 then
+    setText(SB, sprintf("Clicked %d %d", {item[1], clv}))
+  end if
+
+end procedure
+
+-- Customer sort for column 2 of the listview.
+-- Sort on the Surname of the person. Case Insensitive and ascending only.
+---------------------------------
+function lvsort(integer id, atom item1, atom item2, integer column)
+---------------------------------
+    integer brk
+    object text1, text2
+
+
+    text1 = getLVItemText(id, item1, column)
+    brk = find(' ', text1)
+    if brk > 0 then
+        text1 = upper(text1[brk+1 .. length(text1)] & ' ' & text1[1..brk-1])
+    end if
+
+    text2 = getLVItemText(id, item2, column)
+    brk = find(' ', text2)
+    if brk > 0 then
+        text2 = upper(text2[brk+1 .. length(text2)] & ' ' & text2[1..brk-1])
+    end if
+
+
+    return compare( text1, text2)
+
+end function
+
+------------------------------------------------
+-- Application Initiation
+------------------------------------------------
+function AppInit()
+    integer lRC
+
+    lRC = 0
+
+    Win = createEx( Window, "ListView Demo", 0, Default, Default, 640, 460, 0, 0 )
+    SB = createEx(StatusBar, "", Win, 0, 0, 0, 0, 0, 0)
+    CB = createEx(Button, "Show All", Win, 5, 5, 60, 25, 0, 0)
+    TheList = createEx(Combo, "", Win, 320, 5, 300, 325,0, 0)
+    TV = createEx( TreeView,
+                   "Treeview",
+                    Win,
+                    10,
+                    40,
+                    300,
+                    300,
+                    or_all({TVS_HASLINES, TVS_LINESATROOT, TVS_HASBUTTONS,
+                            TVS_SHOWSELALWAYS}), 0)
+
+    LV = createEx(   ListView,
+                    { {"Library",180,'<'}, {"Author",116,'^'} },
+                    Win,
+                    320,
+                    40,
+                    300,
+                    300,
+                    or_all({LVS_REPORT, LVS_ICON, LVS_SHOWSELALWAYS}), 0)
+
+
+
+    iExw = w32Func(xLoadIcon,{instance(), "exw"} )
+
+    closefolder = addIcon( extractIcon( "..\\demoresources\\clsdfold.ico" ) )
+    openfolder  = addIcon( extractIcon( "..\\demoresources\\openfold.ico" ))
+    win         = addIcon( iExw)
+    dos         = addIcon( extractIcon( "..\\demoresources\\disk05.ico" ))
+    linux       = addIcon( extractIcon( "..\\demoresources\\disk06.ico" ))
+    generic     = addIcon( extractIcon( "..\\demoresources\\disks04.ico" ))
+
+    -- Set default insert at end of lists.
+    VOID = setLVInsert(1)
+
+    folders = {}
+    location = {}
+
+    folders &= addTVItem( TV, closefolder, openfolder, "Root", 0 )
+    folders &= addTVItem( TV, closefolder, openfolder, "Windows 1", folders[1] )
+    folders &= addTVItem( TV, closefolder, openfolder, "DOS 2", folders[1] )
+    folders &= addTVItem( TV, closefolder, openfolder, "Linux 3", folders[1] )
+    folders &= addTVItem( TV, closefolder, openfolder, "Generic 4", folders[1] )
+    folders &= addTVItem( TV, closefolder, openfolder, "Library 5", folders[1] )
+    folders &= addTVItem( TV, closefolder, openfolder, "Games 6", folders[1] )
+    folders &= addTVItem( TV, closefolder, openfolder, "Library 7", folders[2] )
+    folders &= addTVItem( TV, closefolder, openfolder, "Games 8", folders[8] )
+    folders &= addTVItem( TV, closefolder, openfolder, "Library 9", folders[3] )
+    folders &= addTVItem( TV, closefolder, openfolder, "Games 10", folders[5] )
+
+    VOID = sendMessage( Win, WM_SETICON, 0, iExw)
+
+    -- Sample Data
+    vDataBase = {
+          { "Win32Lib", "David Cuny", win},
+          { "Neil", "Pete Eberlein", dos},
+          { "Exotica", "Todd Riggins", win},
+          { "Object Euphoria", "Mike Nelson", generic },
+          { "Low-level routines", "Bernie Ryan", win},
+          { "Euphoria Database System", "RDS", generic},
+          { "Remote Procedure Calls", "Pete Eberlein", linux },
+          { "Magefire 3D", "Pete King", win },
+          { "Euphoria CGI Setup", "Irv Mullins", linux},
+          { "Simple Chess Program", "Normand Blaise", linux},
+          { "NeilGUI","Lewis Townsend", dos},
+          { "Spectre Setup", "Pete King", win},
+          { "Saving Master Yoga", "Spocky", win},
+          { "Associative Lists", "Jiri Babor", generic},
+          { "Mini-Assembler", "Pete Eberlein", generic},
+          { "MySQL for Euphoria", "Fabio Ramirez", win },
+          { "File and Pipe Libraries", "Jeff Fielding", linux},
+          { "X Windows GUI Library", "Irv Mullins", linux },
+          { "Lemon Headz Game", "Liquid-Nitrogen", dos},
+          { "Matheval", "Matt Lewis", generic}
+        }
+
+    location = repeat( 0, length( vDataBase ) )
+
+    for i = 1 to length(location) do
+        location[i] = rand(6) + 4
+    end for
+
+    -- Initialise click counter.
+    clv = 0
+
+    -- Initial expansion state.
+    tvs = TVE_EXPAND
+
+    -- Assign my customer sorting routine.
+    VOID = setLVAttr(LV, {{kLVSortRtn, {-2, routine_id("lvsort")}}})
+
+    -- Link in the event handlers.
+    setHandler(TV,      w32HDragAndDrop,routine_id("DragAndDrop_TV"))
+    setHandler(LV,      w32HDragAndDrop,routine_id("DragAndDrop_LV"))
+    setHandler(TV,      w32HChange,     routine_id("Change_TV"))
+    setHandler(CB,      w32HClick,      routine_id("Click_CB"))
+    setHandler(LV,      w32HClick,      routine_id("Click_LV"))
+
+    setHandler(TheList, w32HDragAndDrop,routine_id("DragAndDrop_TheList"))
+    return lRC
+end function
+
+if AppInit() = 0 then
+    WinMain( Win, Normal)
+end if
+
+

@@ -1,0 +1,19 @@
+without warning
+include win32lib.ew
+
+constant
+win = create( Window, "Tab Test", 0, 100, 100, 500, 400, 0 ),
+tab = create( TabControl, "", win, 10, 10, 300, 300, 0 ),
+tab1 = create( TabItem, "Tab 1", tab, 0, 0, 0, 0, 0 ),
+lbl1 = create( LText, "Label 1", tab1, 20, 50, 60, 25, 0 ),
+tab2 = create( TabItem, "Tab 2", tab, 0, 0, 0, 0, 0 ),
+lbl2 = create( LText, "Label 2", tab2, 20, 50, 60, 25, 0 )
+with trace
+procedure win_event( integer self, atom event, sequence params )
+	if isVisible( lbl1 ) or isVisible( lbl2 ) then
+	end if
+end procedure
+setHandler( win, w32HAfterEvent, routine_id("win_event"))
+
+
+WinMain( win, Normal )

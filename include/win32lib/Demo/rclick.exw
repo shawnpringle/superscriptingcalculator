@@ -1,0 +1,29 @@
+include std/win32/msgbox.e
+include Win32lib.ew
+without warning
+ 
+--------------------------------------------------------------------------------
+--  Window Window1
+constant Window1 = createEx( Window, "Window1", 0, Default, Default, 400, 300, 0, 0 )
+---------------------------------------------------------
+--------------------------------------------------------------------------------
+integer rid
+rid= -1
+procedure Window1_onClick (integer self, integer event, sequence params)--params is ()
+-- This checks for the Right mouse click event
+  sequence  lTitl, lMsg
+  integer rc
+  if params[1] = RightDown then
+    rid = self
+  elsif params[1] = RightUp and rid = self then
+  lTitl = ""
+  lMsg  = "Right click !"
+    rc = message_box (lMsg, lTitl, 0)
+  end if
+end procedure
+setHandler( Window1, w32HMouse, routine_id("Window1_onClick"))
+ 
+
+WinMain( Window1,Normal )
+
+ 

@@ -1,0 +1,120 @@
+-- scrollbg.exw
+
+include win32lib.ew
+integer v_Vscroller
+integer v_Hscroller
+integer v_SimpleWindow
+atom vScrollLines
+atom BackGroundBMP
+integer vxMax
+integer vyMax
+integer vx
+integer vy
+
+global procedure Scroll_VerticalScroll (integer self, integer event, sequence parms)
+    -- Calculate bitmap offset
+    vy = vyMax - parms[1]
+    repaintWindow(v_SimpleWindow)
+end procedure
+
+global procedure Scroll_HorizontalScroll (integer self, integer event, sequence parms)
+    -- Calculate bitmap offset
+    vx = vxMax - parms[1]
+    repaintWindow(v_SimpleWindow)
+end procedure
+
+procedure WheelScroll(integer pDir)
+    integer lPos
+    integer lScroller
+
+    if getKeyState( VK_SHIFT ) then
+        -- If shift key is down, use horizontal scroller
+        lScroller = v_Hscroller
+    else
+        lScroller = v_Vscroller
+    end if
+
+    -- Find out where the current position is, then adjust it by the
+    -- direction of the wheel movement.
+    lPos = getIndex(lScroller)
+    lPos -= (pDir * vScrollLines)
+
+    -- Set the new position and indicate that the scroll thumb is being moved.
+    setIndex(lScroller, {lPos, SB_THUMBTRACK})
+
+end procedure
+
+global procedure Mouse_SimpleWindow (integer self, integer event, sequence parms)
+    if parms[1] != WheelMove then
+        return
+    end if
+    WheelScroll(parms[5])
+end procedure
+
+global procedure Mouse_VerticalScroll (integer self, integer event, sequence parms)
+    if parms[1] != WheelMove then
+        return
+    end if
+    WheelScroll(parms[5])
+end procedure
+
+global procedure Mouse_HorizontalScroll (integer self, integer event, sequence parms)
+    if parms[1] != WheelMove then
+        return
+    end if
+    WheelScroll(parms[5])
+end procedure
+
+global procedure Resize_SimpleWindow (integer self, integer event, sequence parms)
+    -- Grow/Shrink the scrollers on the window as it resizes.
+    setRect(v_Vscroller, 0, 0, 20, 0.75, 1)
+    setRect(v_Hscroller, 21, 0, 0.75, 20, 1)
+end procedure
+
+global procedure Paint_SimpleWindow (integer self, integer event, sequence parms)
+   -- Copy the bitmap image to the window's background.
+   bitBlt(self,  0, 0,           -- Dest
+          BackGroundBMP, vx, vy,   -- Source
+          vxMax, vyMax,     -- width, height
+          SRCCOPY )                 -- style
+end procedure
+
+
+global function main(sequence pArgs)
+    sequence lSize
+
+    vScrollLines = getWheelScrollLines()
+    BackGroundBMP = loadBitmapFromFile("..\\demoresources\\landscape.bmp")
+    lSize = getCtlSize(BackGroundBMP)
+    vxMax = lSize[1]
+    vyMax = lSize[2]
+    vx = 0
+    vy = 0
+    createForm({
+        "Window, Simple Window, at=(0, 0), size=(200, 200), bar=status,event=mouse",
+        "VScroll, Vertical Scroll,at=( 0, 0), size=(20, 0.75), range=(1,100,5), delta=(1,8),position=1, event=mouse",
+        "HScroll, Horizontal Scroll,at=( 21, 0), size=(20, 0.75), range=(1,100,5), delta=(1,8),position=1, event=mouse"
+        })
+    v_Vscroller = getNameId("Vertical Scroll")
+    v_Hscroller = getNameId("Horizontal Scroll")
+    v_SimpleWindow = getNameId("Simple Window")
+
+    setScrollRange(v_Vscroller, 0, vyMax)
+    setScrollPos(v_Vscroller, vyMax)
+    setScrollRange(v_Hscroller, 0, vxMax)
+    setScrollPos(v_Hscroller, vxMax)
+    registerRoutine("Scroll_VerticalScroll", routine_id("Scroll_VerticalScroll"))
+    registerRoutine("Mouse_VerticalScroll", routine_id("Mouse_VerticalScroll"))
+
+    registerRoutine("Scroll_HorizontalScroll", routine_id("Scroll_HorizontalScroll"))
+    registerRoutine("Mouse_HorizontalScroll", routine_id("Mouse_HorizontalScroll"))
+
+    registerRoutine("Mouse_SimpleWindow", routine_id("Mouse_SimpleWindow"))
+    registerRoutine("Resize_SimpleWindow", routine_id("Resize_SimpleWindow"))
+    registerRoutine("Paint_SimpleWindow", routine_id("Paint_SimpleWindow"))
+
+    return 0
+end function
+
+include w32start.ew
+

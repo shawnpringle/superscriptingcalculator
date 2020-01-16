@@ -1,0 +1,63 @@
+-- ex00.exw
+--
+-- This is a basic template for new win32lib applications.
+
+include win32lib.ew
+without warning
+
+-- Create the form
+createForm({
+              "Window's Caption,"   & -- The window caption
+              "MainWin,"            & -- Window Name
+              "left=Center,"        & -- Centered horizontally
+              "top=Center,"         & -- Centerted vertically
+              "width=250,"          & -- The width in pixels
+              "height=250,"         & -- The height in pixels
+              "bars=status"           -- Window has a status bar
+         })
+
+-----------------------------------------
+procedure Activate_MainWin(integer self, integer event, sequence parms)
+    -- Example of a status message.
+    showMessage("Window activated")
+
+end procedure
+registerRoutine("Activate_MainWin", routine_id("Activate_MainWin"))
+
+-----------------------------------------
+--procedure Open_MainWin(integer self, integer event, sequence parms)
+--end procedure
+--registerRoutine("Open_MainWin", routine_id("Open_MainWin"))
+
+-----------------------------------------
+--procedure Paint_MainWin(integer self, integer event, sequence parms)
+--end procedure
+--registerRoutine("Paint_MainWin", routine_id("Paint_MainWin"))
+
+-----------------------------------------
+--procedure Scroll_MainWin(integer self, integer event, sequence parms)
+--end procedure
+--registerRoutine("Scroll_MainWin", routine_id("Scroll_MainWin"))
+
+-----------------------------------------
+--procedure Close_MainWin(integer self, integer event, sequence parms)
+--end procedure
+--registerRoutine("Close_MainWin", routine_id("Close_MainWin"))
+
+-----------------------------------------
+--procedure Resize_MainWin(integer self, integer event, sequence parms)
+--end procedure
+--registerRoutine("Resize_MainWin", routine_id("Resize_MainWin"))
+
+global function main(sequence pArgs)
+    integer lReturnCode
+    lReturnCode = 0
+    -- pArgs is the command line data from command_line()
+
+    -- A non-zero return code indicates that an error occurred during initialization
+    -- and thus the application will not start up.
+    return lReturnCode
+end function
+
+-- Start up the application.
+include w32Start.ew

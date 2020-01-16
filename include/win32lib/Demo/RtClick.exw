@@ -1,0 +1,89 @@
+-- RtClick: allows right clicking on an item in a list box to select & use it
+-- by Al Getz 9/2/00
+
+-----------------------------------------------------------------------
+include Win32Lib.ew
+without warning
+
+constant Desktop=0
+
+-------------------------------------------------------------
+-- creates controls:
+constant Window1=
+create(Window,"Allows RIGHT click to select item in listbox",Desktop,10,10,580,460,0)
+
+constant ListBox2=create(List,"2",Window1,40,20,260,200,0)
+
+
+--  label to show info from selected item in listbox:
+global constant DataLabel  = create( CText, "", Window1, 100, 240, 80, 30, 0 )
+
+-- sets label font:
+setFont(DataLabel,"Arial", 12,Bold)
+----------------------------------------------------------------
+--fills listbox with demo items:
+
+for j=1 to 30 do
+addItem(ListBox2,"entry"&sprintf("%d",j))
+end for
+
+-------------------------------------------------------
+
+--defines constants if not already defined in Win32Lib.ew:
+
+--  ADD THIS TO YOUR PROGRAM (unless it gets added to Win32Lib)
+
+constant LB_GETITEMHEIGHT=#01A1,
+LB_GETTOPINDEX=#018E
+
+-- LB_SETCURSEL=#0186
+
+----------------------------------------------------
+
+--puts an onMouse event in your program code:
+
+procedure onMouse_ListBox2(integer id, integer event_, sequence data)
+--  ADD THESE VARIABLES TO YOUR PROGRAM in your onMouse event:
+atom index,bool,height,topindex,indexoffset
+sequence itemtext
+-- *** start auto convrsion of onMouse handler
+integer event,x,y,shift
+event=data[1]
+x=data[2]
+y=data[3]
+shift=data[4]
+-- *** end conversion
+
+-- (insert YOUR routine's VARIABLES here:)
+
+if event=RIGHT_DOWN then  -- note: can use "RightDown", also
+-- start of "housekeeping" to allow right click to work:
+   height=sendMessage(ListBox2,LB_GETITEMHEIGHT,0,0)
+   topindex=sendMessage(ListBox2,LB_GETTOPINDEX,0,0)
+   indexoffset=floor(y/height)
+   index=indexoffset+topindex
+   bool=sendMessage(ListBox2,LB_SETCURSEL,index,0)
+   index +=1  
+--   NOTE:  USE "index" TO REFERENCE TO ITEM SELECTED BY RIGHT CLICK
+-- end of right click housekeeping
+
+   itemtext=getItem(ListBox2,index)
+   if length(itemtext)>0 then	--checks to see if item actually *there*
+
+      -- following shows item selected in list:
+      -- (REMOVE or remark this in your program)
+         setText(DataLabel,itemtext) 
+
+   end if
+end if
+end procedure
+
+setHandler(ListBox2,w32HMouse,routine_id("onMouse_ListBox2"))
+-----------------------------------------------------------------
+
+
+-------------------------------------------------------------------
+--may have to modify this last line for your version of Win32Lib:
+WinMain(Window1,Normal)
+
+

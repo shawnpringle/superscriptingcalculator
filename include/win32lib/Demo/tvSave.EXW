@@ -1,0 +1,407 @@
+-- SAVE TREEVIEW TO FILE AND GET TREEVIEW BACK FROM FILE
+-- tvSAVE.exw version 1.0
+
+-- originally:
+   -- tvedit.exw Version 1.0
+   -- Author: Euman 20/June/2002
+   -- This demonstrates how to edit a treeview control.
+
+-- modifification: tvedit.exw into tvSave.exw
+-- by: Dan Moyer  June 27, 2003
+-- NOTE:  This is just two small procedures,
+--        added on top of
+--        Euman's "tvedit.exw" demo.
+-- mod purpose: show how to save (edited) treeviews to disk & get them back.
+
+-------------------------------------------------------------------------
+without warning
+include std/text.e
+include std/get.e
+include win32lib.ew
+
+object VOID, handle
+
+integer
+    MainWin,
+    SB,
+    HelpText,
+    TV,
+    TVPopup,
+    MI_AddItem,
+    MI_Rename,
+    MI_AddChild,
+    Edit_Id
+    ,FileMenu
+    ,MenuSave
+    ,MenuGet
+
+
+atom
+    closefolder,
+    openfolder
+
+sequence folders
+
+integer vEditSource vEditSource = -1
+integer vNewCount vNewCount = 0
+--------------------------------
+function TVBeginEdit(integer id, atom hWnd, atom wParam, atom lParam)
+--------------------------------
+    atom hWnd_Edit
+
+    hWnd_Edit = w32Func( xSendMessage, {getHandle(TV), TVM_GETEDITCONTROL, 0, 0 } )
+
+    Edit_Id = subClassControl({EditText, MainWin}, hWnd_Edit)
+
+
+    if vEditSource = 1 then
+        setWindowBackColor(Edit_Id, BrightCyan)
+        vNewCount += 1
+        setText(Edit_Id, sprintf("New Item Text %d", vNewCount))
+
+    elsif vEditSource = 0 then
+        setWindowBackColor(Edit_Id, Yellow)
+
+    elsif vEditSource = 2 then
+        setWindowBackColor(Edit_Id, BrightGreen)
+
+    elsif vEditSource = 3 then
+        setWindowBackColor(Edit_Id, Parchment)
+        vNewCount += 1
+        setText(Edit_Id, sprintf("New Child Text %d", vNewCount))
+
+    end if
+
+    setFocus(Edit_Id)
+    return {kReturnNow}
+end function
+
+--------------------------------
+function TVEndEdit(integer id, atom hWnd, atom wParam, atom lParam)
+--------------------------------
+    object lNewText
+    integer lRC
+    integer lTVI
+
+    lNewText = fetch(lParam, TVDISPINFO_TVITEMpszText)
+    if sequence(lNewText) then
+        lRC = w32True
+        lTVI = getId( {TV, fetch( lParam, TVDISPINFO_TVITEMhItem )} )
+        setText( {TV, lTVI}, lNewText)
+
+        if find(vEditSource,{1, 3}) then
+            setFocus( {TV, lTVI} )
+        end if
+
+        -- Get rid of this so I can reuse the id.
+        destroy( Edit_Id )
+
+    else
+        lRC = w32False
+    end if
+
+
+    vEditSource = -1
+    return {kReturnNow, lRC}
+end function
+
+with trace
+--------------------------------
+procedure Mouse_TV(integer self, integer event, sequence parms)
+--------------------------------
+    integer index
+    sequence lXY
+
+    if parms[1] = WM_RBUTTONDOWN then
+        popup({TVPopup, self}, parms[2]-10, parms[3]-4 )
+    end if
+
+end procedure
+
+--------------------------------
+procedure Click_MI_AddItem(integer self, integer event, sequence parms )
+--------------------------------
+    integer index
+    integer lParent
+
+    lParent = getTVParent( getIndex(TV) )
+    folders &= addTVItem( TV, closefolder, openfolder,  "", lParent )
+    index = folders[length(folders)]
+
+    vEditSource = 1
+    VOID = w32Func( xSendMessage, {getHandle(TV), TVM_EDITLABEL, 0, getHandle({TV,index}) } )
+end procedure
+
+--------------------------------
+procedure Click_MI_AddChild(integer self, integer event, sequence parms )
+--------------------------------
+    integer index
+    integer lParent
+
+    lParent = getIndex(TV)
+    folders &= addTVItem( TV, closefolder, openfolder,  "", lParent )
+    index = folders[length(folders)]
+
+    expandItem( lParent )
+    vEditSource = 3
+    VOID = w32Func( xSendMessage, {getHandle(TV), TVM_EDITLABEL, 0, getHandle({TV,index}) } )
+
+end procedure
+
+--------------------------------
+procedure Click_MI_Rename(integer self, integer event, sequence parms )
+--------------------------------
+    integer index
+
+    index = getIndex(TV)
+    if index > 0 then
+        vEditSource = 2
+        VOID = w32Func( xSendMessage, {getHandle(TV), TVM_EDITLABEL, 0, getHandle({TV,index}) } )
+    end if
+end procedure
+
+atom vDownKey
+vDownKey = -1
+--------------------------------
+procedure KeyDown_TV(integer self, integer event, sequence parms )
+--------------------------------
+    integer index
+    sequence temp, temp2 -- used to remove TV data from folder when item deleted
+
+    if find(parms[1],{VK_RETURN,VK_F2,VK_RIGHT,VK_DOWN, VK_DELETE}) = 0 then
+        return
+    end if
+
+    if find(parms[1],{VK_RETURN,VK_F2}) != 0 and parms[2] = 0 then
+        vDownKey = parms[1]
+        index = getIndex(TV)
+        vEditSource = 0
+        VOID = w32Func( xSendMessage, {getHandle(TV), TVM_EDITLABEL, 0, getHandle({TV,index}) } )
+
+    elsif parms[1] = VK_RIGHT and parms[2] = ControlMask then
+        Click_MI_AddChild(self, event, parms)
+
+    elsif parms[1] = VK_DOWN and parms[2] = ControlMask then
+        Click_MI_AddItem(self, event, parms)
+
+    elsif parms[1] = VK_DELETE and parms[2] = ControlMask then
+
+      -- SET UP TO REMOVE THE TV DATA FOR DELETED ITEM & ALL ITS CHILDREN
+      -- FROM "folders":
+   handle = open( "TreeDel.txt", "w" ) -- for development only
+print(handle, folders)
+puts(handle, "\n\n")
+      temp = {}
+      temp2 = {}
+      -- for each element in folders, make an empty sequence in temp;
+      for n = 1 to length(folders) do
+         temp &= {{}}
+      end for
+
+      -- look at each element in folder, one at a time;
+      -- put that into the sequence at same position in temp;
+      -- look for parent of item in temp;
+      -- if HAS parent other than root, place that id after item, then look
+      -- for ITS parent, continue till at root.
+
+      for n = 1 to length( folders) do
+        temp[n] &= folders[n]
+        while 1 do
+          if getTVParent(temp[n][length(temp[n])]) = 0 then
+             exit
+          else
+             temp[n] &= {getTVParent(temp[n][length(temp[n])])}
+          end if
+        end while
+      end for
+
+   print(handle, temp)
+
+        index = getIndex(TV)
+
+      for n = 1 to length(temp) do
+         if find(index, temp[n]) then
+            puts(handle, sprint(n) & "  ")
+         else
+            temp2 &= {temp[n]}
+          end if
+      end for
+
+puts(handle, "\n")
+print(handle, temp2)
+      folders = {}
+      for n = 1 to length(temp2) do
+         folders &= temp2[n][1]
+      end for
+
+puts(handle, "\n\n")
+print(handle, folders)
+
+        VOID = deleteItem( TV, index)
+    close(handle)
+    end if
+
+end procedure
+
+--------------------------------
+procedure KeyPress_TV(integer self, integer event, sequence parms )
+--------------------------------
+    -- Stops Windows beeping at me for using up the RETURN key.
+    if parms[1] != vDownKey then
+        return
+    end if
+
+    vDownKey = -1
+    returnValue(-1)
+end procedure
+
+------------------------------------------------
+procedure Activate_MainWin(integer self, integer event, sequence parms)
+------------------------------------------------
+
+    expandItem( folders[1] )
+
+end procedure
+------------------------------------------------------------------------
+-- SAVE TREE TO FILE:
+procedure Click_MenuSave(integer self, integer event, sequence parms)
+   sequence temp
+   integer wrongIndex
+   temp = {}
+
+   handle = open( "Tree.dat", "w" )
+
+-- for each element in folders, make an empty sequence in temp;
+   for n = 1 to length(folders) do
+     temp &= {{}}
+   end for
+
+
+-- look at each element in folder, one at a time;
+-- put that into the sequence at same position in temp;
+-- look for parent of item in temp, place that id after item,
+-- then place items text right after that.
+
+   for n = 1 to length( folders) do
+     temp[n] &= folders[n]
+     temp[n] &= {getTVParent(temp[n][1])}
+     temp[n] &= {getTVText(temp[n][1])}
+   end for
+
+
+-- now see if any of the items, because of deletions, might have "wrong"
+-- "index" (?) numbers, & "correct" (?) them:
+-- ("correct" means the items should be listed "in order", and all items
+--  which are children of any corrected item should be refered to that
+--  corrected reference)
+
+   for m = 1 to length(temp) do
+     if not equal (m, temp[m][1]) then
+        wrongIndex = temp[m][1]
+        temp[m][1] = m
+        for n = 1 to length(temp) do
+            if equal (wrongIndex, temp[n][2]) then
+               temp[n][2] = m
+            end if
+        end for
+     end if
+   end for
+
+
+   print(handle, temp)
+   close(handle)
+   setText(SB, {"Items written: %d", length(temp)})
+end procedure
+-----------------------------------------------------------------
+-- GET TREE FROM FILE:
+--  clears exisiting tree, retrieves saved tree info,
+--  then rebuilds tree with the saved info:
+procedure Click_MenuGetTree(integer self, integer event, sequence parms)
+sequence savedTree, result
+
+savedTree = {}
+
+-- first empty the tree:
+  eraseItems(TV)
+
+-- now get saved items:
+   handle = open( "Tree.dat", "r" )
+   result = get(handle)
+   if result[1] = GET_SUCCESS then
+      savedTree = result[2]
+      folders = {}
+      for n = 1 to length(savedTree) do
+         folders &= addTVItem( TV, closefolder, openfolder,
+                               savedTree[n][3] , savedTree[n][2] )
+      end for
+      VOID = expandTV( TV, folders[1], TVE_EXPAND )
+   end if
+   close(handle)
+   setText(SB, {"Items read: %d", length(savedTree)})
+end procedure
+-----------------------------------------------------------------------
+
+------------------------------------------------
+-- Application Initiation
+------------------------------------------------
+function AppInit()
+    integer lRC
+
+    lRC = 0
+
+    Edit_Id = -1
+    closefolder = addIcon( extractIcon( "clsdfold.ico" ))
+    openfolder  = addIcon( extractIcon( "openfold.ico" ))
+
+    MainWin =  create( Window, "Treeview: Save Tree after Edit Demo", 0, 1, 1, 492, 410, { WS_DLGFRAME, WS_SYSMENU})
+    SB      =  create( StatusBar, "", MainWin, 0, 0, 0, 0, 0)
+
+    HelpText = create( LText, "", MainWin, 15, 5, 400, 75, 0)
+
+    setText(HelpText, "You can edit an item by pressing RETURN or F2\n" &
+                      "Add a Child item by pressing Ctrl-Right\n" &
+                      "Add a Sibling item by pressing Ctrl-Down\n" &
+                      "Delete an item by pressing Ctrl-Delete\n" &
+                      "Press the Right Mouse Button for extra options")
+
+
+    TV = create(TreeView, "TreeView", MainWin, 10, 95, 464, 230,
+             or_all({TVS_HASLINES,TVS_LINESATROOT,TVS_HASBUTTONS,TVS_EDITLABELS, TVS_SHOWSELALWAYS}) )
+
+    folders = {}
+    folders &= addTVItem( TV, closefolder, openfolder, "Root Item" , 0 )
+    folders &= addTVItem( TV, closefolder, openfolder, "Item One" , folders[1] )
+
+FileMenu = create( Menu, "&File", MainWin, 0, 0, 0, 0, 0 )
+  MenuGet    = create( MenuItem, "&Get Tree",    FileMenu, 0,0,0,0,0 )
+  MenuSave   = create( MenuItem, "&Save Tree",   FileMenu, 0,0,0,0,0 )
+
+
+
+    TVPopup = create( Popup, "", TV, 0, 0, 0, 0, 0 )
+    MI_AddItem = create( MenuItem, "New Item", TVPopup, 0, 0, 0, 0, 0 )
+    MI_AddChild = create( MenuItem, "New Child", TVPopup, 0, 0, 0, 0, 0 )
+    MI_Rename  = create( MenuItem,   "Rename", TVPopup, 0, 0, 0, 0, 0 )
+
+
+    setHandler(MainWin, w32HActivate,    routine_id("Activate_MainWin"))
+    setHandler(TV,          w32HMouse,   routine_id("Mouse_TV"))
+    setHandler(MI_AddItem,  w32HClick,   routine_id("Click_MI_AddItem"))
+    setHandler(MI_AddChild, w32HClick,   routine_id("Click_MI_AddChild"))
+    setHandler(MI_Rename,   w32HClick,   routine_id("Click_MI_Rename"))
+    setHandler(TV,          w32HKeyDown, routine_id("KeyDown_TV"))
+    setHandler(TV,          w32HKeyPress,routine_id("KeyPress_TV"))
+
+    setHandler(MenuSave,  w32HClick,   routine_id("Click_MenuSave"))
+    setHandler(MenuGet,  w32HClick,   routine_id("Click_MenuGetTree"))
+
+
+    VOID = setNotifyHandler( TVN_BEGINLABELEDIT, routine_id("TVBeginEdit"))
+    VOID = setNotifyHandler( TVN_ENDLABELEDIT, routine_id("TVEndEdit"))
+
+    return lRC
+end function
+
+if AppInit() = 0 then
+    WinMain( {MainWin,TV}, Normal)
+end if

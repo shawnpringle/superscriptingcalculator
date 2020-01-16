@@ -1,0 +1,22 @@
+-- listtabs.exw
+-- List with Tabs example --
+without warning
+
+include win32lib.ew
+
+constant
+   Win = create(Window,"List with Columns",0,10,10,300,500,0),
+   List2 = create(List,"",Win,10,10,250,450,LBS_USETABSTOPS)
+
+procedure openWin( integer self, integer event, sequence params )
+   setTabs(List2,{30,70})
+   addItem(List2,{"Derek\tParnell\tAustralia",
+                  "David\tCuny\tUnited States of America",
+                  "Robert\tCraig\tCanada",
+                  "Eric\tEilender\tGermany"
+                 })
+end procedure
+setHandler( Win, w32HOpen, routine_id("openWin") )
+
+WinMain(Win,Normal)
+

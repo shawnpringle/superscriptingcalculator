@@ -1,0 +1,73 @@
+include win32lib.ew
+without warning
+
+integer HelpW, HelpL, SubW, SubL
+
+
+procedure KeyDown_HelpL(integer self, integer event, sequence params)
+    if equal(params[1..2],{'Q',ControlMask}) then -- Ctrl Q
+        openWindow(SubW, Normal)
+    end if
+end procedure
+registerRoutine("KeyDown_HelpL", routine_id("KeyDown_HelpL"))
+
+constant Ctrl_Q = {'Q',ControlMask}
+procedure KeyDown_SubL(integer self, integer event, sequence params)
+
+    if equal(params[1..2],Ctrl_Q) then -- Ctrl Q
+        closeWindow(SubW)
+        setFocus(HelpL)
+    end if
+end procedure
+registerRoutine("KeyDown_SubL", routine_id("KeyDown_SubL"))
+
+procedure Activate_Main(integer self, integer event, sequence params)
+
+    HelpW = getNameId("Help")
+    HelpL = getNameId("HelpL")
+    SubW = getNameId("Subhelp")
+    SubL = getNameId("SubL")
+
+    showMessage(sprintf("Win32Lib version %d.%d Patch#%d", Win32LibVersion[1..3]))
+    addItem(HelpL, "line1" )
+    addItem(SubL,"a")
+    openWindow(HelpW,Normal)
+
+end procedure
+registerRoutine("Activate_Main", routine_id("Activate_Main"))
+
+procedure Activate_Help(integer self, integer event, sequence params)
+    setFocus(HelpL)
+end procedure
+registerRoutine("Activate_Help", routine_id("Activate_Help"))
+
+procedure Activate_Subhelp(integer self, integer event, sequence params)
+    setFocus(SubL)
+end procedure
+registerRoutine("Activate_Subhelp", routine_id("Activate_Subhelp"))
+
+procedure KeyDown_Screen(integer self, integer event, sequence params)
+    if params[1]=VK_ESCAPE then closeApp() end if
+end procedure
+registerRoutine("KeyDown_Screen", routine_id("KeyDown_Screen"))
+
+global function main(sequence pArgs)
+    createForm({
+        "Window,name=Main,caption=Press ESC to close all., at=(0,0), size=(400,400), bar=status"
+        })
+
+    createForm({
+        "Window, Help, parent=Main, at=(100, 20), size=(200, 200)",
+        "List, HelpL, at=(10, 40), size=(100, 100), event=KeyDown, hint=Ctrl-Q to open sub window"
+        })
+
+    createForm({
+        "Window, Subhelp,at=(140, 110), size=(200, 210)",
+        "List, SubL, at=(10, 40), size=(100, 100), event=KeyDown,hint=Ctrl-Q to close"
+        })
+    setHandler(Screen, w32HKeyDown, routine_id("KeyDown_Screen"))
+    return 0
+end function
+
+include w32Start.ew
+

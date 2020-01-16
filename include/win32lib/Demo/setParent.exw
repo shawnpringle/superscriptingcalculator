@@ -1,0 +1,32 @@
+include win32lib.ew
+without warning
+constant
+w=create(Window,"test",0,50,50,200,400,0),
+b=create(PushButton,"Check the menu item layout, then push me, then check again",w,10,10,150,120,BS_MULTILINE),
+m1=create(Menu,"menu1",w,0,0,0,0,0),
+m2=create(Menu,"menu2",w,0,0,0,0,0),
+m11=create(MenuItem,"item1_1",m1,0,0,0,0,0),
+m12=create(MenuItem,"item1_2",m1,0,0,0,0,0),
+m13=create(MenuItem,"item1_3",m1,0,0,0,0,0),
+m21=create(MenuItem,"item2_1",m2,0,0,0,0,0),
+m22=create(Menu,"item2_2",m2,0,0,0,0,0),
+m23=create(MenuItem,"item2_3",m2,0,0,0,0,0),
+m314=create(MenuItem,"item3_3",m22,0,0,0,0,0)
+procedure p(integer id,integer event,sequence params)
+?"I'm here!"
+end procedure
+setHandler(m22,w32HClick,routine_id("p"))
+
+procedure a(integer id,integer event, sequence s)
+w32VOID=setParent(m22,m1,{MP_AFTER,m12})
+w32VOID=setParent(m11,w,MP_END) 
+end procedure
+setHandler(b,w32HClick,routine_id("a"))
+
+WinMain(w,Normal)
+
+
+
+
+
+

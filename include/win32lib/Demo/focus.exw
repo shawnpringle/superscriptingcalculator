@@ -1,0 +1,34 @@
+include win32lib.ew
+without warning
+
+constant Win = createEx( Window, "TEST", 0, 50, 50, 300, 200,
+                        {WS_VISIBLE,WS_POPUP,WS_DLGFRAME},
+                        WS_EX_CLIENTEDGE),
+    MB = create(Menu, "Application", Win, 0, 0, 0, 0, 0),
+    MI1 = create(MenuItem, "Exit", MB, 0, 0, 0, 0, 0),
+    SB = create(StatusBar, "", Win, 0, 0, 0, 0, 0),
+   box1 = create( EditText, "Box 1", Win, 5, 10, 90, 22, 0),
+   box2 = create( EditText, "Box 2", Win, 5, 40, 90, 22, 0),
+   box3 = create( EditText, "Box 3", Win, 5, 70, 90, 22, 0),
+   lb = create(List,"", Win, 100, 10, 100, 100, WS_HSCROLL),
+   btn1 = create( Button, "&Close",   Win, 5,110, 90, 22, 0)
+
+setText(SB, sprintf("%d %d %d", {box1, box2, box3}))
+addItem(lb, {"one","two", "thirteen","a very long item appearing in the listbox"})
+
+-- Readjust the scrollbar to the size of the listbox contents.
+VOID = setListHScroll(lb)
+
+procedure onFocus_box(atom id, atom event, sequence params)
+    setText(SB, id)
+end procedure
+setHandler({box1,box2,box3},w32HGotFocus, routine_id("onFocus_box"))
+
+procedure CloseApp(atom id, atom event, sequence params)
+    integer x
+    closeWindow(Win)
+end procedure
+setHandler({MI1,btn1}, w32HClick, routine_id("CloseApp"))
+
+VOID = canFocus(box2, w32False)
+WinMain({Win, btn1},Normal)

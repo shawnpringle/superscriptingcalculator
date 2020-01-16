@@ -1,0 +1,50 @@
+include win32lib.ew
+--with trace
+without warning
+
+constant mWin  = create(Window,  "Shell Execute Sample",0,  0, 0, 460,300, 0),
+         btn   = create(PushButton, "&Run", mWin,  5,   5, 50, 25, 0),
+         verbl = create(LText,   "Verb:",   mWin,  5,  95, 60, 25, 0),
+         verb  = create(EditText, "open",   mWin, 70,  95, 350, 25, 0),
+         filel = create(PushButton,   "File:",   mWin,  5, 125, 60, 25, 0),
+         file  = create(EditText, "C:\\",   mWin, 70, 125, 350, 25, 0),
+         parml = create(LText,   "Params:", mWin,  5, 155, 60, 25, 0),
+         parm  = create(EditText, "",       mWin, 70, 155, 350, 25, 0),
+         ddirl = create(LText,   "Dir:",    mWin,  5, 185, 60, 25, 0),
+         ddir  = create(EditText, "",       mWin, 70, 185, 350, 25, 0),
+         SB    = create(StatusBar, "",      mWin, 0, 0, 0, 0, 0)
+
+
+
+procedure Doit(integer self, integer event, sequence parms)
+    integer x
+
+    x = shellExecuteEx(getText(verb),
+                     getText(file),
+                     getText(parm),
+                     getText(ddir),
+                     SW_SHOWNORMAL,
+                     0)
+
+
+    showMessage(sprintf("Result = %d", {x}))
+
+end procedure
+setHandler(btn, w32HClick, routine_id("Doit"))
+
+procedure FindFile(integer self, integer event, sequence parms)
+sequence theFile
+
+    theFile = getOpenFileName(mWin, getText(file),
+                          { "dialog flags",
+                {OFN_EXPLORER,       -- looks like windows explorer
+                 OFN_HIDEREADONLY,   -- hide the read-only checkbox
+                 OFN_LONGNAMES      -- use long filenames
+                    },
+                          "All Files (*.*)", "*.*"})
+    setText(file, theFile)
+end procedure
+setHandler(filel, w32HClick, routine_id("FindFile"))
+
+WinMain(mWin, Normal)
+

@@ -1,0 +1,40 @@
+-- ex04.exw
+-- This is an example of the various formats of control definitons.
+
+-- This opens a window with a couple of buttons.
+-- Clicking the 'goodbye' button closes the window.
+without warning
+include win32lib.ew
+
+createForm({
+            -- Create a window. This should always be the first control.
+            "name=MsgWindow," & -- The window's name
+              "at=(Center,Center)," &
+              "caption={\" Hello, World! \"},bar=status," &
+              "BGColor=Parchment"  -- The background color
+            ,
+
+            -- Close Button
+            "Button," &
+                "name=closebtn," &
+                "size=(80,40)," &
+                "at=(Center,5)," &
+                "Caption=&Goodbye," &
+                "flag=AutoClose," & -- Indicates that this can close the app.
+                "tooltip=Closes Window",
+
+            -- Accept Button
+            "Button," &
+                "Name=do it btn," &
+                "at=(**,*+10)," &
+                "size=()," &
+                "Caption=&Just Do It"
+
+          })
+
+procedure Click_doitbtn(integer self, integer event, sequence parms)
+    showMessage("Done!")  
+end procedure
+registerRoutine("Click_doitbtn", routine_id("Click_doitbtn"))
+
+include w32Start.ew

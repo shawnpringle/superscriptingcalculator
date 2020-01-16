@@ -1,0 +1,86 @@
+include Win32lib.ew
+without warning
+
+--
+-- Window Window1
+constant Window1 = createEx( Window, "Thrown Dice Chart", 0, Default,Default, 276, 300, 0, 0 )
+constant txt_Sides = createEx( EditText, "6", Window1, 48, 8, 48, 20, 0, 0 )
+constant LText3 = createEx( LText, "Sides", Window1, 12, 12, 36, 20, 0, 0 )
+constant LText4 = createEx( LText, "QTY", Window1, 12, 36, 36, 20, 0, 0 )
+constant txt_QTY = createEx( EditText, "3", Window1, 48, 32, 48, 20, 0, 0 )
+constant LText6 = createEx( LText, "Rolls", Window1, 12, 60, 36, 20, 0, 0 )
+constant txt_Rolls = createEx( EditText, "1000", Window1, 48, 56, 48,20, 0, 0 )
+constant bttn_Roll = createEx( PushButton, "Roll", Window1, 104, 8, 156,68, 0, 0 )
+constant Bitmap9 = createEx( Pixmap, "Bitmap9", Window1, 8, 84, 252,184, 0, 0 )
+
+--
+
+procedure update_roll_button()
+    setText( bttn_Roll, getText( txt_QTY ) & "d" & getText( txt_Sides )
+& " x " & getText( txt_Rolls ) )
+end procedure
+
+update_roll_button()
+
+--
+
+procedure txt_Sides_onChange (integer self, integer event, sequence params)--params is ()
+    update_roll_button()
+end procedure
+setHandler( txt_Sides, w32HChange, routine_id("txt_Sides_onChange"))
+
+--
+
+procedure bttn_Roll_onClick (integer self, integer event, sequence params)--params is ()
+integer dice_num, dice_sides, dice_rolls, roll
+sequence dice_results
+
+integer BIGGEST, WIDTH, HEIGHT
+
+    BIGGEST = 0
+    dice_num = getNumber( txt_QTY )
+    dice_sides = getNumber( txt_Sides )
+    dice_rolls = getNumber( txt_Rolls )
+    dice_results = repeat(0,dice_sides*dice_num)
+
+    WIDTH = floor(252/(dice_num*dice_sides))
+    HEIGHT = floor(100/(dice_num*dice_sides))
+
+    for t=1 to dice_rolls do
+        roll = 0
+        for loop0 = 1 to dice_num do
+            roll += floor(getRandInt(1, (dice_sides-1)* 1000)/1000)+1
+        end for
+        dice_results[roll] += 1
+        if dice_results[roll] > BIGGEST then
+            BIGGEST = dice_results[roll]
+       end if
+    end for
+
+    setPenColor(Bitmap9,Black)
+    drawRectangle(Bitmap9,1,0,0,244,183)
+    setPenColor(Bitmap9,BrightRed)
+    for loop0 = 1 to length(dice_results) do
+       drawRectangle(Bitmap9,1,(loop0-1) * WIDTH,183,((loop0-1) * WIDTH)+WIDTH,183-(floor((dice_results[loop0]/BIGGEST)*183)))
+    end for
+    copyBlt(Window1,8,80,Bitmap9)
+
+end procedure
+setHandler( bttn_Roll, w32HClick, routine_id("bttn_Roll_onClick"))
+
+--
+
+procedure txt_QTY_onChange (integer self, integer event, sequence params)--params is ()
+    update_roll_button()
+end procedure
+setHandler( txt_QTY, w32HChange, routine_id("txt_QTY_onChange"))
+
+--
+
+procedure txt_Rolls_onChange (integer self, integer event, sequence params)--params is ()
+    update_roll_button()
+end procedure
+setHandler( txt_Rolls, w32HChange, routine_id("txt_Rolls_onChange"))
+
+
+WinMain( Window1,Normal )

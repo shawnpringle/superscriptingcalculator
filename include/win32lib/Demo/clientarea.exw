@@ -1,0 +1,59 @@
+-- Demo to show client area parameters.
+include win32lib.ew
+without warning
+constant w = create(Window, "Client Area Demo", 0, 0, 0, 400, 400, 0),
+         tb = create(ToolBar, "", w, 0, 0, 400, 40, 0),
+         sb = create(StatusBar, "", w, 0, 0, 0, 0, 0),
+         btb = create(Button, "Hide TB", w, 0.25, 0.25, 76, 25, 0),
+         bsb = create(Button, "Hide SB", w, {0.25,85}, 0.25, 76, 25, 0)  
+------------------------------------------------
+procedure showSize()
+------------------------------------------------
+    sequence area
+    sequence atb, asb
+    area = getClientRect(w)         
+    atb = getRect(btb)
+    asb = getRect(bsb)
+    
+    setText(w, sprintf("Left=%d Top=%d Width=%d Height=%d"
+        & "  tb=%d,%d sb=%d,%d"
+    , area & atb[1..2] & asb[1..2]))
+
+end procedure
+
+------------------------------------------------
+procedure onClick_bt(integer self, integer event, sequence parms)
+------------------------------------------------
+    integer cid
+    integer state
+    sequence text
+    
+    if self = btb then
+        cid = tb
+        text = " TB"
+    else
+        cid = sb
+        text = " SB"
+    end if
+                            
+    state = isVisible(cid)
+    setVisible(cid, not state)    
+    setText(self, w32iff(state,"Show","Hide") & text) 
+
+    showSize()
+end procedure
+setHandler({btb,bsb}, w32HClick, routine_id("onClick_bt"))
+
+
+------------------------------------------------
+procedure onResize_w(integer self, integer event, sequence parms)
+------------------------------------------------
+    setRect(btb,  0.25, 0.25, 76, 25, 1)
+    setRect(bsb, {0.25,85}, 0.25, 76, 25, 1)
+    showSize()
+end procedure
+setHandler(w, w32HResize, routine_id("onResize_w"))
+         
+WinMain(w, Normal)         
+         
+         

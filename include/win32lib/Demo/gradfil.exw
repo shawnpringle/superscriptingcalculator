@@ -1,0 +1,72 @@
+-- Gradfil by Martin Stachon
+-- Gradient Fill Demo
+
+include std/dll.e
+include win32lib.ew
+without warning
+
+constant
+msimg32 = registerw32Library("msimg32.dll"),
+xGradientFill = registerw32Procedure( msimg32, "GradientFill",
+{C_LONG,C_POINTER,C_LONG,C_LONG,C_LONG,C_LONG} )
+
+constant
+ TRIVERTEX_x     = w32allot(Long),
+ TRIVERTEX_y     = w32allot(Long),
+ TRIVERTEX_Red   = w32allot(Word),
+ TRIVERTEX_Green = w32allot(Word),
+ TRIVERTEX_Blue  = w32allot(Word),
+ TRIVERTEX_Alpha = w32allot(Word),
+ SIZEOF_TRIVERTEX = w32allotted_size(),
+
+ GRADIENT_RECT_UpperLeft  = w32allot(Long),
+ GRADIENT_RECT_LowerRight = w32allot(Long),
+ SIZEOF_GRADIENT_RECT     = w32allotted_size()
+
+constant
+ GRADIENT_FILL_RECT_H   = #00000000,
+ GRADIENT_FILL_RECT_V   = #00000001,
+ GRADIENT_FILL_TRIANGLE = #00000002,
+ GRADIENT_FILL_OP_FLAG  = #000000FF
+           with trace
+global procedure gradientRect(atom id, atom leftColor, atom rightColor, atom x1, atom y1,
+atom x2, atom y2)
+ atom hDC, PTRIVERTEX, PTRIVERTEX2, gRect
+
+ PTRIVERTEX = w32acquire_mem( 0, 2*SIZEOF_TRIVERTEX )
+ PTRIVERTEX2 = PTRIVERTEX + SIZEOF_TRIVERTEX
+
+ store(PTRIVERTEX, TRIVERTEX_x, x1)
+ store(PTRIVERTEX, TRIVERTEX_y, y1)  
+ store(PTRIVERTEX, TRIVERTEX_Red,   and_bits(leftColor, #0000FF)*#100)  
+ store(PTRIVERTEX, TRIVERTEX_Green, and_bits(leftColor, #00FF00))
+ store(PTRIVERTEX, TRIVERTEX_Blue,  and_bits(leftColor, #FF0000)/#100)
+ store(PTRIVERTEX, TRIVERTEX_Alpha, 0)
+
+ store(PTRIVERTEX2, TRIVERTEX_x    ,  x2)
+ store(PTRIVERTEX2, TRIVERTEX_y    ,  y2)
+ store(PTRIVERTEX2, TRIVERTEX_Red  ,  and_bits(rightColor, #0000FF)*#100)
+ store(PTRIVERTEX2, TRIVERTEX_Green,  and_bits(rightColor, #00FF00))
+ store(PTRIVERTEX2, TRIVERTEX_Blue ,  and_bits(rightColor, #FF0000)/#100)
+ store(PTRIVERTEX2, TRIVERTEX_Alpha,  0)
+
+ gRect = w32acquire_mem( 0, SIZEOF_GRADIENT_RECT )
+ store(gRect, GRADIENT_RECT_UpperLeft,  0)
+ store(gRect, GRADIENT_RECT_LowerRight, 1)
+
+ hDC = getDC(id)
+ w32Proc(xGradientFill, {hDC, PTRIVERTEX, 2, gRect, 1, GRADIENT_FILL_RECT_H})
+ releaseDC(id)
+ w32release_mem(PTRIVERTEX)
+ w32release_mem(gRect)
+end procedure
+
+constant win = create(Window, "Win", 0, Default, Default, 500, 500, 0)
+
+procedure onPaint_win(integer self, integer event, sequence params)
+ gradientRect(win, Yellow, SkyBlue, 0, 0, 100, 100) -- zelena - modra, pro blazna dobra
+end procedure
+setHandler(win, w32HPaint, routine_id("onPaint_win"))
+
+WinMain(win, Normal)
+

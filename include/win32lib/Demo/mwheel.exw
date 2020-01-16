@@ -1,0 +1,59 @@
+without warning
+include win32lib.ew
+
+constant MyWin = create(Window, "Mouse Wheel", 0, 0, 0, 400, 400, 0)
+constant SB = create(StatusBar, "", MyWin, 0, 0, 0, 0, 0)
+constant JM = create(CheckBox, "", MyWin, 5, 5, 230, 25, 0)
+constant PlayPen = create(Window, "", MyWin, 10, 40, 350, 300, {WS_CHILD,WS_VISIBLE,WS_BORDER})
+constant Sprite = create(LText, "XXX", PlayPen, 196, 200, 32, 25, 0)
+
+
+setText(JM, sprintf("Use default skip value of %d", getWheelScrollLines()))
+
+procedure onMouse_XXX(integer self, integer event, sequence parms)
+
+   sequence lRaw
+   atom lDist
+   sequence lMsg
+   sequence lPosn
+   integer lInc
+   integer lDir
+
+
+    if parms[1] != WM_MOUSEWHEEL then
+        return
+    end if
+    if isChecked(JM) then
+        lInc = getWheelScrollLines()
+    else
+        lInc = 1
+    end if
+    lInc *=  parms[5]
+
+    if parms[5] < 0 then
+        -- wheel down (towards user)
+        lMsg = "To User"
+    else
+        -- wheel up (away from user)
+        lMsg = "Away from User"
+    end if
+    lPosn = getRect(Sprite)
+    if parms[4] = 0 then -- Vertical movement
+        lDir = 2
+        lInc *= getTextHeight(self, "x")
+    else  -- Shiftkey pressed so horizontal mvt
+        lDir = 1
+        lInc *= getTextWidth(self, "x")
+    end if
+    lPosn[lDir] += lInc
+
+    setRect(Sprite, lPosn[1], lPosn[2], 32, 25, 1)
+    setText(SB, {"%s\t\t%d %d", {lMsg, lPosn[1], lPosn[2]}})
+    repaintWindow(PlayPen)
+end procedure
+
+-- Trap the movement no matter which control has focus.
+setHandler(Screen, w32HMouse, routine_id("onMouse_XXX"))
+
+WinMain(MyWin, Normal)
+

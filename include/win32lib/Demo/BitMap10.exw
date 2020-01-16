@@ -1,0 +1,41 @@
+-- example10.exw
+-- This example opens a window, and places bitmaps in it.
+
+without warning
+include std/filesys.e
+include std/win32/msgbox.e
+include win32lib.ew
+
+constant MainWindow =  
+    create( Window, "Click to show another bitmap", 0, Default, Default, 400, 400, 0 )
+
+constant BitmapArea =
+    create( Bitmap, "", MainWindow, 0, 0, 132, 132,0 )
+
+integer vBM_Index
+object vBM_Files
+
+procedure Change_Bitmap(integer self, integer event, sequence parms)
+    
+    if sequence(vBM_Files) and length(vBM_Files) > 0 then
+        -- Every click gets the next bitmap
+        vBM_Index += 1
+        if vBM_Index > length(vBM_Files) then
+            -- To back to first bitmap
+            vBM_Index = 1
+        end if
+        setBitmap( BitmapArea, "..\\demoresources\\" & vBM_Files[vBM_Index][D_NAME] )
+    end if
+
+end procedure
+
+vBM_Index = 0
+vBM_Files = dir("..\\demoresources\\*.bmp") -- Look for any bitmaps.
+if not sequence(vBM_Files) or length(vBM_Files) = 0 then
+    VOID = message_box("This demo needs one or more bitmap vBM_Files in the directory.","",0)
+end if    
+
+setHandler(MainWindow, {w32HActivate, w32HClick}, routine_id( "Change_Bitmap" ))
+WinMain( MainWindow, Maximize )
+
+

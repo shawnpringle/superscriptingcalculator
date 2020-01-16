@@ -1,0 +1,39 @@
+-- MessageBox
+--
+-- This example show how to fill a message box with multi-line text
+--  and call it
+
+-- by Dan Moyer  Sept. 6, 2000
+
+include std/win32/msgbox.e
+include win32lib.ew
+
+constant CR = { 13, 10 } -- carriage return/linefeed
+
+------------------------------------------------------------------------
+-- A WINDOW:
+constant aWindow =  
+    create( Window, "Message Box Window", 0, 0, 0, 640, 480, 0 )
+--------------------------------------------------------------------------
+-- A BUTTON:
+global constant MsgBoxButton = create( PushButton, "Press Me", aWindow, 250, 200, 110, 30, 0 )
+
+
+procedure OnClick_MsgBoxButton(integer id,integer event,sequence params)
+atom result
+
+    result = message_box(
+	"*  This is some text in a Message Box;" & CR &
+	"  you can put line after line of text here," & CR &
+	"   practically as many as you want" & CR & CR &
+	"*   It will expand to a certain degree to fit long lines," & CR &
+	" but if your lines get really really really long like this one then it will reach some maximum width and then put some of your text on a new line." & CR & CR &
+    	"*   It's generally better to use shorter lines," & CR &
+	"so you don't exceed the line length of the interpreter.", 
+		"MESSAGE BOX", 0 )
+end procedure
+
+setHandler(MsgBoxButton,w32HClick ,routine_id("OnClick_MsgBoxButton"))
+
+-------------------------------------------------------------------------
+WinMain( aWindow, Normal )

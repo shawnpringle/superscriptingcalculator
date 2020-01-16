@@ -1,0 +1,30 @@
+-- ex03.exw
+--
+-- This creates a window with a single button.
+-- Pushing the button does nothing.
+
+include win32lib.ew
+without warning
+
+integer MainWindow                                                        
+integer ChildWindow
+integer OkButton
+
+-- Create the windows.
+MainWindow =  create( Window, "Button Example", 0, 20, 20, 200, 200, 0 )
+ChildWindow = create( Window, "child", MainWindow, 20, 20, 100, 100, 
+                {WS_CHILD, WS_VISIBLE,WS_OVERLAPPEDWINDOW} )
+-- Create a control in the window.
+OkButton =    create( Button, "&Button", ChildWindow, 10, 10, 80, 40, 0 )    
+
+-- Add a tooltip to the button.
+setHint( OkButton, "This button destroys the window." )
+                                                   
+procedure Click_OkButton(integer self, integer event, sequence parms)
+    destroy(MainWindow)
+end procedure
+setHandler(OkButton, w32HClick, routine_id("Click_OkButton"))
+
+-- Hand control over to Windows, nominating which is the 'main' window.
+WinMain( MainWindow, Normal )
+

@@ -1,0 +1,110 @@
+                  Upgrading code to the setHandler() syntax
+                  =========================================
+                  
+                  
+    From version 70.2 up, win32lib dropped support for the way early versions of the library were
+establishing event links. This may prevent old code to run under neer versions. Here are
+instructions on how to upgrade to the "newer" syntax, which has been there for 6 years at least.
+    The newer syntax has several advantages over the earlier one:
+    * it allows a whole chain of handlers to be associated to a (control,event) couple;
+    * since all handlers have the same prototype regardless of the parameters of the event, these may change without any need to rewrite code.
+    * you can associate the same handler to several controls and/or events.
+
+1/ Setting a handler.
+
+Old form was:
+
+    on<event>[control_id] = routine_id("handler_name")
+
+New form is:
+
+    setHandler(control_id,w32H<event>,{-1,routine_id("handler_name")})
+    
+where <event> is any among the following strings, without quotes:
+
+   "Mouse",
+   "Click",
+   "KeyPress",
+   "KeyUp",
+   "KeyDown",
+   "Resize",
+   "Change",
+   "GotFocus",
+   "LostFocus",
+   "Scroll",
+   "Open",
+   "Activate",
+   "Close",
+   "Destroy",
+   "Timer",
+   "Paint",
+   "DragAndDrop",
+   "Event".
+   
+The first time the event handler for some event is set, you can use the simpler form:
+
+    setHandler(control_id,w32H<event>,routine_id("handler_name"))
+
+2/ Inquiring about a handler.
+
+Old form was:
+
+    xyz = on<event>[control_id]
+
+New form is:
+
+    temp_seq = getHandler(control_id,w32H<event>)
+    if length(temp_seq) then
+        xyz = temp_seq[1]
+    else
+        xyz = -1
+    end if
+
+3/ Removing a handler.
+
+Old form was
+
+    on<event>[control_id] = -1
+
+New form is:
+
+    removeHandler(control_id,w32H<event>,routine_id("handler_name"))
+
+You can also disable a handler temporarily by
+
+    w32VOID = enableHandler(control_id,w32H<event>,routine_id("handler_name"),w32False)
+
+4/ Writing event handlers.
+
+    This is the hardest part of the upgrading. It can be made relatively straightforward though.
+
+    If the argument list of the handler has the form
+      
+        type_1 name_1, type_2 name_2, ...
+        
+    then
+    1/ define all these as private variables in the handler, instead of parameters;
+    2/ initialise the variables as follows:
+
+       name_1 = params[1]
+       name_2 = params[2]
+       ...
+    
+    and so on till the old parameter list is exhausted;
+
+    3/ Replace the whole parameter list with
+
+       integer iD_,integer evenT_,sequence paramS_
+
+    The underscores and unusual capitalisation are there because names like "event" or "id" are
+    pretty commonplace so that name clashes might occur, and the trick above nearly eliminates them.
+
+    If the parameter list is empty, like for the onClick event, then only perform step 3.
+
+5/ Still doesn't work?
+
+    You can always ask for assistance on EuForum. If some potentially frequent conversion task
+was left out in this short paper, it wi ll be added as soon as the author becomes aware of it.
+
+
+                           ****************************

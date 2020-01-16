@@ -1,0 +1,77 @@
+include win32lib.ew
+without warning
+
+integer win
+win = create(Window, "TEST GETPIXEL", 0, 0, 0, 500, 500, 0)
+
+integer bm
+bm = create(Bitmap, "", win, 10, 30, 400, 400, 0)
+
+integer msg
+msg = create(Label, "Double-click for dots, Hold and Move for lines, RClick to wipe",
+                win, 5, 5, 350, 25, 0)
+
+integer oldx, oldy
+oldx = -1
+oldy = -1
+
+procedure Mouse_Window(integer self, integer event, sequence parms)
+    integer x,y,d,c
+    sequence lExtent
+
+    if parms[1] = LeftUp then
+        oldx = -1
+        oldy = -1
+
+    elsif parms[1] = LeftDown then
+        oldx = parms[2]
+        oldy = parms[3]
+
+    elsif parms[1] = LeftDoubleClick then
+        -- Find the width and height of the client area.
+        lExtent = getClientRect(bm)
+        -- Paint 1000 dots.
+        for i = 1 to 1000 do
+            -- Get a x between 0 and width-1
+            x = rand(lExtent[3])-1
+            -- Get a y between 0 and height-1
+            y = rand(lExtent[4])-1
+            -- Get a color from 0 to #FFFFFF
+            c = rand(255 * 255 * 255 + 1)-1
+            -- Set the pixel's color
+            setPixel(bm, x, y, c)
+            -- Check if it set it ok.
+            d = getPixel(bm, x, y)
+            if (d != c) then
+                abortErr(sprintf("[%d,%d] #%d BAD COLOR at %d,%d: %x not %x", {lExtent[3], lExtent[4], i, x,y,c,d}))
+            end if
+
+        end for
+    elsif parms[1] = RightDown then
+        lExtent = getClientRect(bm)
+        -- Get a color from 0 to #FFFFFF
+
+        c = rand(255 * 255 * 255 + 1)-1
+        setPenColor(bm, c)
+        -- Set every pixel's color
+        drawRectangle(bm, w32True, 0, 0, lExtent[3], lExtent[4])
+        -- Check if it set it ok.
+        d = getPixel(bm, 0, 0)
+        if (d != c) then
+            abortErr(sprintf("BAD WIPE: %x not %x", {c,d}))
+        end if
+
+    elsif parms[1] = MouseMove then
+        if oldx != -1 then
+            c = rand(255 * 255 * 255 + 1)-1
+            setPenColor(bm, c)
+            setPenWidth(bm, 3)
+            drawLine(bm, oldx, oldy, parms[2], parms[3])
+            oldx = parms[2]
+            oldy = parms[3]
+        end if
+    end if
+end procedure
+setHandler({bm,win,msg}, w32HMouse, routine_id("Mouse_Window"))
+
+WinMain(win, Normal)

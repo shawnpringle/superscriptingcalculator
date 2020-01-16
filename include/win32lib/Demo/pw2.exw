@@ -1,0 +1,36 @@
+without warning
+include win32lib.ew
+
+integer MainWin, Win2
+integer Text1
+integer Text2
+integer Text3
+integer Text21
+integer Text22
+integer Text23
+
+MainWin = create(Window,   "Initial Focus",0,     0,  0, 300, 300, 0)
+Text1   = create(EditText, "Not here", MainWin,   5,  5, 200,  25, 0)
+Text2   = create(EditText, "This is it", MainWin, 5, 35, 200,  25, 0)
+Text3   = create(EditText, "Nor here", MainWin,   5, 65, 200,  25, 0)
+
+Win2    = create(Window,   "Window 2",  MainWin, 50, 50, 300, 300, 0)
+Text21  = create(EditText, "Password",     Win2,  5,  5, 200,  25, 0)
+Text22  = create(EditText, "Text22",       Win2,  5, 35, 200,  25, 0)
+Text23  = create(EditText, "Text23",       Win2,  5, 65, 200,  25, 0)
+
+procedure Activate_MainWin(integer self, integer event, sequence parms)
+    showWindow(MainWin, SW_HIDE)  -- Hide main window
+    openWindow(Win2, Normal)   -- Window opens and execution continues
+    setFocus(Text21)   -- Set focus to password field
+end procedure
+
+procedure Close_Win2(integer self, integer event, sequence parms)
+    showWindow(MainWin, SW_NORMAL)  -- PW window closed, now open main window
+end procedure
+
+setHandler(MainWin, w32HActivate, routine_id("Activate_MainWin"))
+setHandler(Win2, w32HClose, routine_id("Close_Win2"))
+
+WinMain(MainWin, Normal)
+

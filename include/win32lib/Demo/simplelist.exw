@@ -1,0 +1,12 @@
+include win32lib.ew
+without warning
+integer win, lst1
+win =  create(Window, "Simple List",    0,   0,  0, 400, 400, 0)
+lst1 = create(List, "", win, 5,5, 350, 340, 0)
+constant LISTTOP = 0
+VOID = insertItem(lst1, "One", LISTTOP)
+VOID = insertItem(lst1, "Two", LISTTOP)
+VOID = insertItem(lst1, "Three", LISTTOP)
+VOID = insertItem(lst1, "Four", LISTTOP)
+WinMain(win, Normal)
+

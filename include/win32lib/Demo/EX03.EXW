@@ -1,0 +1,32 @@
+-- ex03.exw
+--
+-- This creates a window with a button.
+-- Pushing the button does nothing.
+without warning
+include win32lib.ew
+-- Create a window
+createForm({
+            "Some Buttons"    -- The window's name (and default caption)
+            ,
+            -- Now the Button
+            "Button," &         -- We want a button
+              "&Button1," &      -- it's caption
+              "size=(80,80)," & -- size (width, height)
+              "at=(10, 10)," &   -- location (left, top)
+              "tooltip=This button does nothing." -- And some hint/tooltip text
+            ,
+            -- Now another Button
+            "Button," &         -- We want a button
+              "&Button2," &      -- it's caption
+              "size=*," & -- size (width, height)
+              "at=(**,*+10)," &  -- location (left, top)
+              "hint=Does does nothing either." -- And some hint/tooltip text
+            ,
+            -- Now another Button
+            "Button," &         -- We want a button
+              "&Button3," &      -- it's caption
+              "size=*," & -- size (width, height)
+              "at=(**,*+10)," &  -- location (left, top)
+              "tooltip=Still nothing." -- And some hint/tooltip text
+          })
+include w32Start.ew

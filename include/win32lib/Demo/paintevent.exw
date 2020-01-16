@@ -1,0 +1,35 @@
+include Win32Lib.ew
+without warning
+
+--  Window Win
+constant Win = createEx( Window, "Window1", 0, 50, 50, 400, 300, 0, 0 )
+constant BM = createEx( Bitmap, "Bitmap2", Win, 68, 44, 260, 172, 0, 0 )
+constant Edit = createEx( EditText, "Hello World", Win,4,156,144,32,0,0)
+constant PB = createEx( PushButton, "Exit", Win,268, 64, 104, 36, 0, 0 )
+--constant Edit = createEx( EditText, "Hello World", Win,4,156,144,32, {WS_CHILD, WS_VISIBLE,ES_AUTOHSCROLL,ES_LEFT,WS_BORDER,WS_TABSTOP},0)
+--constant PB = createEx( PushButton, "Exit", Win, 268, 64, 104, 36, {WS_CHILD,WS_VISIBLE,BS_PUSHBUTTON,WS_TABSTOP}, 0 )
+
+VOID = setSearchPaths("..\\demoresources\\")
+setBitmap( BM,"largetiles.bmp")
+setHint( Edit,"This is an EditText")
+setFont( Edit,"Arial",12,Normal+Bold)
+setFont( PB,"Arial",12,Normal+Bold)
+moveZOrder(BM, HWND_BOTTOM)
+procedure Win_onAfterEvent (integer self, integer event, sequence params)
+sequence result
+   setPenWidth(BM,3)
+   drawLine(BM, 10,10,390,260)
+   setFont(BM, "Arial", 10, Bold+Italic)
+   result=drawText(BM,"Fourscore and twenty years ago, our fathers,...",
+            {5,50, 140, 120}, DT_WORDBREAK, 4, 0, 0)
+end procedure
+setHandler( Win, w32HPaint, routine_id("Win_onAfterEvent"))
+
+procedure PB_onClick (integer self, integer event, sequence params)
+      closeWindow(Win)
+end procedure
+setHandler( PB, w32HClick, routine_id("PB_onClick"))
+
+   repaintWindow(BM)            
+
+WinMain( Win,Normal )

@@ -1,0 +1,116 @@
+include std/text.e
+include Win32Lib.ew
+without warning
+
+constant NEW_CHILD_WND = {
+	0,			--1-- window handle
+	0,			--2-- edit box handle
+	""			--3-- window title
+}
+
+function get_wnd_set(sequence wnd_list, object item)
+	atom len
+	atom x
+	
+	len = length(wnd_list)
+	
+	for i = 1 to len do
+		x = find(item, wnd_list[i])
+		if x then
+			return wnd_list[i]
+		end if
+	end for
+	
+	return 0
+end function
+
+atom frame_window_handle
+sequence child_window_list
+
+--------------------------------------------------------------------------------
+
+procedure child_window_onResize (integer self, integer event, sequence params)
+	sequence c_rect
+	sequence wnd
+	
+	wnd = get_wnd_set(child_window_list,self)
+	c_rect = getClientRect(wnd[1])
+	moveWindow(wnd[2], 0, 0, c_rect[3], c_rect[4], 1)
+end procedure
+
+procedure child_window_onPaint (integer self, integer event, sequence params)
+
+    wPuts({self, 100, 100}, "Hello")	
+end procedure
+
+procedure child_window_onActivate(integer self, integer event, sequence params)
+	sequence wnd
+	
+	wnd = get_wnd_set(child_window_list,self)
+	moveZOrder(wnd[1],  HWND_TOP)
+end procedure
+
+-------------------------------------------------------------------------------
+
+global function CreateChildWindow(atom parent_hwnd, sequence title)
+	sequence IDEFlags
+	sequence rect
+	sequence new_wnd
+			 new_wnd = NEW_CHILD_WND
+	
+	new_wnd[1] = createEx( Window, title, parent_hwnd, Default, Default, 320, 240, 
+					  {WS_CHILD,WS_CLIPSIBLINGS,WS_VISIBLE, WS_BORDER, WS_DLGFRAME, WS_THICKFRAME, WS_CAPTION, WS_SYSMENU, WS_MINIMIZEBOX, WS_MAXIMIZEBOX},
+					  {0} )
+	new_wnd[2] = createEx( EditText, "", new_wnd[1], 0, 0, 320, 200, {WS_CHILD,WS_VISIBLE,ES_READONLY,WS_VSCROLL,ES_MULTILINE,ES_AUTOVSCROLL}, {0} )
+	
+	setFont( new_wnd[2], "Arial", 14, {Bold,0,0,0,DEFAULT_CHARSET,0,0,0,0} )
+	
+	new_wnd[3] = title
+	
+	setHandler(new_wnd[1], w32HResize,{-1, routine_id("child_window_onResize")} & getHandler(new_wnd[1], w32HResize))
+	setHandler(new_wnd[1], w32HActivate,{-1, routine_id("child_window_onActivate")} & getHandler(new_wnd[1], w32HActivate))
+	setHandler(new_wnd[2], w32HPaint,{-1, routine_id("child_window_onPaint")} & getHandler(new_wnd[1], w32HPaint))
+	
+	child_window_list = append(child_window_list, new_wnd)
+		
+		
+	child_window_onResize(new_wnd[1],0,{0})
+	openWindow(new_wnd[1],Normal)
+
+	return new_wnd
+end function
+
+
+
+
+
+--------------------------------------------------------------------------------
+frame_window_handle = createEx( Window, "Fake MDI", 0, Default, Default, 640, 480, {WS_THICKFRAME, WS_SYSMENU, WS_MINIMIZEBOX, WS_MAXIMIZEBOX}, {WS_EX_CLIENTEDGE} )
+
+
+procedure InitFoo()
+	sequence wnd
+	
+	child_window_list = {}
+	
+	wnd = CreateChildWindow(frame_window_handle,"Child Window " & sprint(length(child_window_list)+1))
+	wnd = CreateChildWindow(frame_window_handle,"Child Window " & sprint(length(child_window_list)+1))
+end procedure
+
+procedure ShutdownFoo()
+end procedure
+
+
+--------------------------------------------------------------------------------
+procedure frame_window_onOpen (integer self, integer event, sequence params)
+	InitFoo()
+end procedure
+setHandler( frame_window_handle, w32HOpen, routine_id("frame_window_onOpen"))
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+-- APP STARTS HERE															  --
+--------------------------------------------------------------------------------
+WinMain(frame_window_handle, Normal)
+

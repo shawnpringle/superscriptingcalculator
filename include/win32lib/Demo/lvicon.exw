@@ -1,0 +1,37 @@
+----------------------------
+include std/text.e
+include win32lib.ew
+
+constant Win1 = createEx( Window, "LV Test", 0,
+Default, Default, 400, 300, 0, 0)
+
+constant LV1 = createEx( ListView, {"Column 1"}, Win1,4, 10, 300, 100,
+or_all({LVS_REPORT,LVS_SHOWSELALWAYS}), 0)
+
+constant LV2 = createEx( ListView, {"Column 1"}, Win1,4, 120, 300, 100, 
+or_all({LVS_ICON,LVS_SHOWSELALWAYS}), 0)
+
+object OK
+sequence ic ic = {}
+sequence sq sq = {}
+
+ic &= addIcon(extractIcon({"C:\\WINDOWS\\system32\\shell32.dll",5}))
+-- disks04.ico is from win32lib\demo it contains, in order, a 32x32 icon and a 16x16 icon
+-- place in same directory as lv_test.exw
+ic &= addIcon(extractIcon({"..\\demoresources\\disks04.ico",-2}))
+--ic &= addIcon(extractIcon({"..\\demoresources\\disks04.ico", 1}))  --appears to be same as above
+--ic &= addIcon(extractIcon({"..\\demoresources\\disks04.ico", 2}))  --does not work
+                               ?ic
+-- disks04a.ico is just the 16x16 icon taken from the above file
+-- place in same directory as lv_test.exw
+--ic &= addIcon(extractIcon("..\\demoresources\\disks04a.ico"))
+for i = 1 to length(ic) do
+  OK = addLVItem(LV1, ic[i], "test line" & sprint(i))
+  sq &= ic[i]
+  sq = append(sq, {"test line" & sprint(i)})
+end for
+
+loadLVInfo(LV2, sq)
+
+WinMain(Win1, Normal)
+

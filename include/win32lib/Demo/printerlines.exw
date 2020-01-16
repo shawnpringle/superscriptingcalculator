@@ -1,0 +1,47 @@
+include win32lib.ew
+without warning
+object lNewState
+
+global procedure Click_Test(integer self, integer event, sequence parms)
+    sequence lRect
+    sequence lPrinterDef
+    atom lAspectX
+    atom lAspectY
+    atom lResX
+    atom lResY
+    lPrinterDef = getPrintChoice(1, w32or_all({PD_NOSELECTION,PD_NOPAGENUMS}), 0)
+    if length(lPrinterDef) = 0 then
+        return
+    end if
+
+    lAspectX = w32Func(xGetDeviceCaps, {lPrinterDef[4], HORZSIZE})
+    lAspectY = w32Func(xGetDeviceCaps, {lPrinterDef[4], VERTSIZE})
+    lResX = w32Func(xGetDeviceCaps, {lPrinterDef[4], HORZRES})
+    lResY = w32Func(xGetDeviceCaps, {lPrinterDef[4], VERTRES})
+    VOID = startDoc("Printer Test")
+
+    -- Draw some stuff.
+    lRect = getClientRect(Printer)
+
+    setPenWidth(Printer, floor(0.5 * lResX / lAspectX) )
+    drawRectangle(Printer, 0, 0, 0, lRect[3], lRect[4])
+    drawLine(Printer, 0, 0, lRect[3]-1, lRect[4]-1)
+    drawLine(Printer, lRect[3]-1, 0, 0, lRect[4]-1)
+
+
+    VOID = endDoc()
+    releasePrinter()
+end procedure
+registerRoutine("Click_Test", routine_id("Click_Test"))
+
+global function main(sequence pArgs)
+
+    createForm({
+        "Window, Print Lines Test, at=(100,100)",
+        "label,This puts a border around the page and draws corner-to-corner lines",
+        "Button, &Test, at=(**+20,*+5)"
+        })
+    return 0
+end function
+
+include w32start.ew

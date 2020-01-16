@@ -1,0 +1,66 @@
+include win32lib.ew
+without warning
+
+constant TwoToneWin = createEx(Window, "", 0, 0, 0, 940, 640, 0, 0)
+--constant bm = createEx(Bitmap, "", TwoToneWin, 0, 0, 600, 600, 0, 0)
+integer bm
+bm = TwoToneWin
+
+integer r,g,b
+r = -1
+g = -1
+b = -1
+
+procedure small (integer self, integer event, sequence parms)
+    integer x, y
+
+    if parms[1] != WM_LBUTTONUP then
+        return
+    end if
+    r = floor(parms[2]/2)
+    g = floor(parms[3]/2)
+    if r >=256 or g >=256 then
+        g = -1
+        return
+    end if
+
+
+    setText(bm, sprintf("%d %d", {r,g}))
+    repaintWindow(TwoToneWin)
+end procedure
+
+procedure painter (integer self, integer event, sequence parms)
+integer x,y
+atom color
+    for i = 0 to 255  do
+      x = i+i-1
+      for j = 0 to 255 do
+         y = j +j - 1
+         for k = 0 to 1 do
+           for l = 0 to 1 do
+            setPixel(bm, x+k,y+l, rgb(i,j, 0))
+           end for
+         end for
+      end for
+
+    end for
+
+if g >= 0 then
+    b = -1
+    for i = 600 to 855 by 8 do
+      x = i
+      y = 100
+      b += 1
+      color = rgb(r,g,b)
+      setPenColor(bm, color)
+      drawRectangle(bm, 1,x,y,x+8,y+8)
+
+    end for
+end if
+
+
+end procedure
+
+setHandler(bm, w32HPaint, routine_id("painter"))
+setHandler(bm, w32HMouse, routine_id("small"))
+WinMain(TwoToneWin, Normal)

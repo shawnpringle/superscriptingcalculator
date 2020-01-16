@@ -1,0 +1,39 @@
+without warning
+include win32lib.ew
+
+constant PW = create(Window, "Prime", 0, 0, 0, 400, 400, 0)
+constant PWOpen  = create(Button, "Open", PW, 5, 35, 45, 20,0)
+constant MW1 = create(Window, "Modal One", PW, 10, 10, 100, 200, {WS_THICKFRAME+WS_DLGFRAME})
+constant MW2 = create(Window, "Modal Two", MW1, 10, 10, 100, 100, {WS_THICKFRAME+WS_DLGFRAME})
+constant MW1Close  = create(Button, "Cancel", MW1, 5, 5, 45, 20,w32AUTOCLOSE)
+constant MW1Open  = create(Button, "Open", MW1, 5, 35, 45, 20,0)
+constant MW1Edit = create(EditBox, "", MW1, 5, 65, 80, 25, 0)
+constant MW2Close  = create(Button, "Close", MW2, 5, 35, 45, 20,w32AUTOCLOSE)
+
+procedure Click_PWOpen(integer self, integer event, sequence parms)
+
+    openWindow(MW1, Modal)
+    
+end procedure
+setHandler( PWOpen, w32HClick, routine_id("Click_PWOpen"))
+
+procedure Click_MW1Open(integer self, integer event, sequence parms)
+
+    openWindow(MW2, Modal)
+    
+end procedure
+setHandler( MW1Open, w32HClick, routine_id("Click_MW1Open"))
+
+
+procedure Activate_All(integer self, integer event, sequence parms)
+    if self = PW then
+        setText(self, sprintf("Prime %d", self))
+    elsif self = MW1 then
+        setText(self, sprintf("ONE %d", self))
+    elsif self = MW2 then
+        setText(self, sprintf("TWO %d", self))
+    end if        
+end procedure
+setHandler( {PW, MW1, MW2}, w32HActivate, routine_id("Activate_All"))
+
+WinMain(PW, Normal)

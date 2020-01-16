@@ -1,0 +1,148 @@
+<!-- Author: Dan Moyer -->
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<meta name="GENERATOR" content="Microsoft FrontPage Express 2.0">
+<title></title>
+</head>
+
+<body>
+
+<h1>SYNOPSIS of <a href="#INTRODUCTION">Win32Lib</a>
+Documentation:</h1>
+
+<h3><strong>BASIC INFO:</strong></h3>
+
+<p><font size="3">Win32Lib is a library of routines which make
+programming for Windows easier. To use the Win32Lib library you
+type:</font><font size="1"> </font></p>
+
+<pre>include win32lib.ew</pre>
+
+<p><font size="3">on a line all by itself at the beginning of
+your program. You can then use the routines defined in the
+library in your own Windows program. (Note: there is a separate </font><a
+href="#IDE:"><font size="3">IDE</font></a><font size="3"> program
+available from user contributions at </font><a
+href="http://www.rapideuphoria.com/"><font size="3">RDS</font></a><font
+size="3"> to make this process easier.)</font></p>
+
+<hr>
+
+<h3>CORE CONCEPTS:</h3>
+
+<dir>
+    <li><a href="CONTROL.htm#CONTROL">CONTROLS</a> are the basic
+        visual &amp; useable elements of Windows programs. They
+        are what you see, act upon, or set to perform actions.
+        They include the main &amp; other windows, timers, list
+        boxes, buttons, status bars, etc. You can <a
+        href="ATTRIBUTE.htm#CREATE">create</a> them, query and
+        change their <a href="ATTRIBUTE.htm#ATTRIBUTE">Attributes</a>,
+        and write code to respond to <a href="EVENT.htm#EVENT">Events</a>
+        which happen to
+        them.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </li>
+    <li><a href="ATTRIBUTE.htm#ATTRIBUTE">ATTRIBUTES of Controls</a>:
+        Controls can have a variety of properties, such as size
+        of the control, font size, font color, etc. Various
+        routines let you inspect and alter attributes of
+        controls. </li>
+    <li><a href="EVENT.htm#EVENT">EVENTS</a>: In addition to
+        creating controls and setting their attributes, Windows
+        programming consists of writing routines to respond to
+        various events, such as actions taken by the user of the
+        application - mouse clicks, key presses, resizing
+        windows, and so on. These response routines are called
+        &quot;Event Handlers&quot;. You must also refer a desired
+        event on a specified control to the appropriate event
+        handler routine, using the <a href="EVENT.htm#SETHANDLER">setHandler()</a>
+        routine. Note: These events must be events which are
+        already predefined within Win32Lib itself.</li>
+    <li><a href="ATTRIBUTE.htm#WINMAIN">MAIN EVENT LOOP</a> :
+        WinMain is the main processing loop for Win32Lib. You
+        call WinMain at the VERY END of your program. This must
+        be after ALL your controls have been declared, after all
+        the routines you have written to handle all of the events
+        you want to be responded to in your program, and after
+        all the <a href="#EVENTTRIGGER">event handler statements</a>
+        which direct the program to the various appropriate event
+        handler routines. </li>
+</dir>
+
+<hr>
+
+<h3><a name="EVENTTRIGGER">EVENT HANDLER STATEMENTS:</a></h3>
+
+<p>In order to make your program respond to some known event, you
+must write an <a href="EVENT.htm#SETHANDLER">event handler
+statement</a>, somewhere AFTER the routine you have written to
+respond to &amp; handle the occurance of the event, like this: </p>
+
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;setHandler(controlID,
+eventType, routine_id(&quot;event_handler_name&quot;))</p>
+
+<p>where controlID is a <a href="CONTROL.htm#CONTROL">control</a>
+you have created, eventType is a defined <a
+href="EVENT.htm#EVENT">event</a>, routine_id is typed in small
+letters, and the event_handler_name is the name of the procedure
+you made to handle the occurance of the event. </p>
+
+<p>example: </p>
+
+<p>-- event handling procedure:<br>
+procedure onClick_btnToDoSomething()<br>
+&nbsp;&nbsp;&nbsp;&nbsp;--do something<br>
+end procedure </p>
+
+<p>-- event to respond to:<br>
+setHandler(btnToDoSomething, w32HClick, routine_id
+(&quot;onClick_btnDoSomething&quot;) </p>
+
+<hr>
+
+<h3><a name="IDE:">IDE:</a></h3>
+
+<p>There is an Integrated Development Environment program
+available from user contributions at <a
+href="http://www.rapideuphoria.com/">RDS</a> which utilizes
+Win32Lib to give Windows programmers the ability to easily create
+the visual elements of a Windows program by mouse clicks, like
+Visual Basic. It also allows event handlers to be easily created.</p>
+
+<hr>
+
+<h3>FAQ:</h3>
+
+<p>See also: some <a href="W32Faq.htm">Frequently Asked Questions</a>
+about using Win32Lib.</p>
+
+<hr>
+
+<h3>WIN32LIB NAMED COLORS:</h3>
+
+<pre>
+    Black           = rgb( 0, 0, 0 ),
+    Blue            = rgb( 0, 0, 127 ),
+    Green           = rgb( 0, 127, 0 ),
+    Cyan            = rgb( 0, 127, 127 ),
+    Red             = rgb( 127, 0, 0 ),
+    Magenta         = rgb( 127, 0, 127 ),
+    Brown           = rgb( 127, 127, 0 ),
+    White           = rgb( 127, 127, 127 ),
+    Gray            = rgb( 127, 127, 127 ),
+    BrightBlue      = rgb( 0, 0, 255 ),
+    BrightGreen     = rgb( 0, 255, 0 ),
+    BrightCyan      = rgb( 0, 255, 255 ),
+    BrightRed       = rgb( 255, 0, 0 ),
+    BrightMagenta   = rgb( 255, 0, 255 ),
+    Yellow          = rgb( 255, 255, 0 ),
+    BrightWhite     = rgb( 255, 255, 255 )
+
+</pre>
+
+<p>Optional, not pre-named in Win32Lib: SkyBlue = rgb( 0, 127,
+255) </p>
+</body>
+</html>

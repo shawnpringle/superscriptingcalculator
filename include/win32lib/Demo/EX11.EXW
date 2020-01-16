@@ -1,0 +1,119 @@
+-- ex11.exw
+--
+-- Creates a Moire pattern with colored lines
+
+include win32lib.ew
+without warning
+without type_check
+createForm({
+     "Moire Pattern, width=150, height=150, event=Timer",
+     "Pixmap, Canvas, font=(Arial,24,Bold)"
+    })
+
+constant Canvas = getNameId("Canvas"),
+         Colors = {{BrightBlue, BrightRed, BrightGreen},
+                   {BrightRed, BrightGreen, BrightBlue},
+                   {BrightGreen, BrightBlue, BrightRed}
+                  }  
+         
+sequence wsize
+sequence vector           
+integer Colorset Colorset = 0
+atom totf totf = 0
+atom tott tott = 0
+integer avg  avg = 0
+sequence ltott ltott = repeat(0,10)
+atom lastdraw lastdraw = -1
+integer oldpps oldpps  = 0
+
+procedure FillCanvas(integer self)
+    atom e
+    e = time()
+    drawLines(Canvas, vector[Colorset])
+    lastdraw = e
+    e = time() - e
+    if avg < 10 then
+        avg += 1
+    end if
+    tott -= ltott[1]
+    ltott[1..9] = ltott[2..10]
+    ltott[avg] = e
+    tott += e
+    if tott != 0 then
+        if e != 0 then
+            oldpps = floor(wsize[1] / e / 1024)
+        end if
+        wPuts({Canvas,5,5}, sprintf("F/s: %3d, P/s: %4dK", {floor((avg / tott) + 0.5), oldpps} ))
+    end if
+    -- Force the screen to refresh                  
+    repaintFG(self)
+
+end procedure
+
+procedure Resize_MoirePattern( integer self, integer event, sequence parms )
+    integer vi
+                
+    -- Set the timer on the first resize event.                             
+    if Colorset = 0 then
+        setTimer(self, 1, 1)
+        Colorset = 1
+    end if
+
+    wsize = getClientSize(self)
+    wsize[1]= wsize[3] * wsize[4]
+    setCtlSize(Canvas,wsize[3], wsize[4])
+    
+    vector = repeat(repeat(0,2 * (wsize[3] + wsize[4] + 6)), length(Colors))
+    
+    for c = 1 to length(Colors) do
+        vi = 1
+        for i = 0 to wsize[3] by 3 do
+            for j = 0 to 2 do
+            
+                -- draw the line            
+                vector[c][vi] = Colors[c][j+1]
+                vi += 1
+                vector[c][vi] = {0, 0, i+j, wsize[4] }
+                vi += 1
+            end for
+        end for
+
+        for i = 0 to wsize[4] by 3 do
+            for j = 0 to 2 do
+            
+                -- draw the line            
+                vector[c][vi] = Colors[c][j+1]
+                vi += 1
+                vector[c][vi] = {0, 0, wsize[3], i+j }
+                vi += 1
+            end for
+        end for
+    end for
+    
+    FillCanvas(self)
+                    
+end procedure
+registerRoutine("Resize_MoirePattern", routine_id("Resize_MoirePattern"))
+
+procedure Paint_MoirePattern( integer self, integer event, sequence parms ) 
+    copyBlt(self,0,0,Canvas)
+end procedure
+registerRoutine("Paint_MoirePattern", routine_id("Paint_MoirePattern"))
+
+procedure Timer_MoirePattern( integer self, integer event, sequence parms )
+    -- On each 'tick' we change the color set only if 1/10th of a second has passed.
+    if time() - lastdraw > 0.1 then
+        Colorset += 1
+        if length(Colors) < Colorset then
+            Colorset = 1
+        end if                                    
+        -- Redraw the canvas.
+        FillCanvas(self)
+    end if
+end procedure
+registerRoutine("Timer_MoirePattern", routine_id("Timer_MoirePattern"))
+
+
+include w32Start.ew
+
+

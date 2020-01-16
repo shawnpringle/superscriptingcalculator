@@ -1,0 +1,42 @@
+include win32lib.ew
+without warning
+--with trace
+object VOID
+
+constant SS_NOTIFY = #100
+integer w,SB,l,r,c
+         w = create(Window, "test", 0, 0, 0, 400, 400,0)
+         SB = create(StatusBar, "", w, 0, 0, 0, 0, 0)
+         l = create(LText, "Left Text", w, 5, 5, 120, 25, SS_NOTIFY)
+         r = create(RText, "Right Text", w, 5, 35, 120, 25, SS_NOTIFY)
+         c = create(CText, "Center Text", w, 5, 65, 120, 25, SS_NOTIFY)
+
+procedure handler(integer self, integer event, sequence params)
+    sequence etype
+    sequence cntrl
+
+    cntrl = getText(self)
+    if event = w32HMouse then
+        etype = "Mouse"
+        for i = 1 to length(params) do
+            if i = 1 then
+                etype &= "("
+            end if
+            etype &= sprintf("%d ", params[i])
+            if i != length(params) then
+                etype &= ","
+            end if
+            if i = length(params) then
+                etype &= ")"
+            end if
+        end for
+    else
+        etype = "Click"
+    end if
+
+    setText(SB, sprintf("%s '%s' ", {etype,cntrl}))
+end procedure
+
+setHandler({l,r,c}, {w32HClick,w32HMouse}, routine_id("handler"))
+WinMain(w, Normal)
+

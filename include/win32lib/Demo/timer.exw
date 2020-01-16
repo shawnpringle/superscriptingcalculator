@@ -1,0 +1,36 @@
+without warning
+include std/text.e
+include win32lib.ew
+
+integer dummywin
+integer dummytext
+integer mytimer
+integer timerint
+
+global procedure Open_TimerWindow(integer self, integer event, sequence parms)
+    showMessage("It's open")
+    setTimer(self,mytimer,1000)
+end procedure
+registerRoutine("Open_TimerWindow", routine_id("Open_TimerWindow"))
+
+global procedure Timer_TimerWindow(integer self, integer event, sequence parms)
+    timerint += 1
+    setText(dummytext,"Timer:  "&sprint(timerint))
+    showMessage("")
+end procedure
+registerRoutine("Timer_TimerWindow", routine_id("Timer_TimerWindow"))
+
+global function main(sequence pArgs)
+
+    createForm({
+        "Window, Timer Window, at=(300,300),event=timer",
+        "LText, Beginning text, at=(10,10), size=(100,40)"
+    })
+
+    dummytext = getNameId("Beginning text")
+    mytimer = next_number("My Timer")
+    timerint = 0
+
+    return 0
+end function
+include w32Start.ew

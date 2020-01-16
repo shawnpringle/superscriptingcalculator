@@ -1,0 +1,17 @@
+without warning
+include win32lib.ew
+integer MainWin
+integer RE
+
+MainWin = create(Window, "Single Line RichEdit", 0, 100, 100, 300, 300, 0)
+RE = create(RichEdit, "This is a single line richedit control.", MainWin, 5, 5, 250, 40, 
+                    { WS_CLIPPINGCHILD,
+	    	          WS_VISIBLE,
+	    	          WS_HSCROLL,
+	    	          ES_AUTOHSCROLL,
+	    	          WS_TABSTOP,
+	    	          ES_SAVESEL,
+	    	          WS_BORDER }
+                    )
+
+WinMain({MainWin,RE}, Normal)

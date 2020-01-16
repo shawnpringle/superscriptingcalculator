@@ -1,0 +1,78 @@
+-- example14.exw
+--  by Pete Eberlein
+-- This example opens a window, and places an icon in it.
+
+without warning
+include std/filesys.e
+include win32lib.ew
+
+constant SP = "..\\demoresources\\"
+VOID = setSearchPaths(SP)
+constant StaticWin =
+    create( Window, "Pete's Static Icons and Bitmaps!", 0, Default, Default, 0.50, 0.50, 0 )
+
+constant Icon1 =
+    create( Icon, "", StaticWin, 20, 20, 32, 32, 0 )
+
+constant Icon2 =
+    create( Icon, "", StaticWin, 120, 20, 32, 32, 0 )
+
+constant Bitmap1 =
+    create( Bitmap, "text", StaticWin, 220, 20, 132, 132,0 )
+
+integer lastguess
+lastguess = 0
+
+-- action to take when the window opens
+
+procedure onOpen_StaticWin(integer self, integer event, sequence parms)
+   atom hBitmap
+   object files
+   sequence bmsize
+   integer guess
+
+
+   files = dir(SP & "*.bmp") -- Look for any bitmaps.
+
+    setIcon( Icon1, IDI_WINLOGO )
+    setIcon( Icon2, "shuttle.ico" )
+    setIcon( StaticWin, "Euphoria.ico" )
+
+    if sequence(files)
+          and
+       length(files) > 0
+    then
+      -- Make sure every click gets a new bitmap
+      while 1 do
+         guess = rand(length(files))
+         if guess != lastguess
+               or
+            length(files) = 1 -- Okay, there is only one bitmap.
+         then
+            lastguess = guess
+            exit
+         end if
+      end while
+      hBitmap = loadBitmapFromFile(files[guess][D_NAME])
+      bmsize = getCtlSize(hBitmap)
+      if (bmsize[1] + 220) > 300
+            or
+         (bmsize[2] + 20) > 100
+      then
+         setCtlSize(StaticWin, 30 + 220 + bmsize[1], 30 + 20 + bmsize[2])
+      end if
+
+      setBitmap( Bitmap1, files[guess][D_NAME] )
+
+    end if
+
+
+
+end procedure
+
+-- tell Windows when to do the action
+setHandler(StaticWin, {w32HActivate, w32HClick}, routine_id( "onOpen_StaticWin" ))
+
+-- hand control over to Windows
+WinMain( StaticWin, Normal )
+

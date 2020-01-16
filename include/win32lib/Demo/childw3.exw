@@ -1,0 +1,18 @@
+include win32lib.ew
+without warning
+integer window, child1, child2
+
+window = create(Window, "Main Window", 0, 0, 0,500, 500, 0)
+child1 = create(Window, "Child 1", window, 0, 0, 400, 400, 
+                {WS_CHILD, WS_CLIPSIBLINGS,WS_VISIBLE, WS_OVERLAPPEDWINDOW})
+child2 = create(Window, "Child 2", window, 40, 40, 400, 400, 
+                {WS_CHILD, WS_CLIPSIBLINGS,WS_VISIBLE, WS_OVERLAPPEDWINDOW})
+                    
+procedure mouse_cw(integer self, integer event, sequence p)       
+    if find(p[1], {WM_LBUTTONDOWN,WM_RBUTTONDOWN, WM_MBUTTONDOWN, WM_MOUSEMOVE}) then
+        moveZOrder( self,  HWND_TOP)
+    end if
+end procedure
+setHandler({child1, child2}, w32HMouse, routine_id("mouse_cw"))
+
+WinMain(window, Normal)

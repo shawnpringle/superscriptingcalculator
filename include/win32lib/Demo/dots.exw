@@ -1,0 +1,99 @@
+--code follows:
+include win32lib.ew
+without warning
+
+sequence sizeS
+sizeS=getRect(Screen)
+
+constant win=createEx(Window,"test grid",0,Default,Default,400,300,0,0)
+constant tile=createEx(Pixmap, "a",win,0,0,40,40,0,0)
+constant GridBlit=createEx(Pixmap,"",win,0,0,sizeS[3],sizeS[4],0,0)
+constant ControlBlit=createEx(Pixmap,"",win,0,0,sizeS[3],sizeS[4],0,0)
+integer SnapSize, GridDots, GridLines, GridColor
+SnapSize=5
+GridDots=w32True
+GridLines=w32False
+GridColor=BrightBlue
+
+procedure drawGrid( integer id )
+    integer blitsize, many, many1, many2
+    atom hdcTile, hdcId
+    sequence lShape
+    sequence size
+
+    atom lBackColor
+    
+    size=getClientRect(win)
+    lBackColor = getSysColor(COLOR_BTNFACE)
+
+    blitsize=20
+    many = floor( blitsize/SnapSize )
+    many1 = blitsize - ( many*SnapSize )
+    many2 = SnapSize - many1
+    blitsize+=many2
+
+
+    if not SnapSize then
+        return
+    end if
+
+    setWindowBackColor(id, lBackColor)
+    setPenColor( id, GridColor )
+                   
+    lShape = {}
+    if GridDots then
+
+        if SnapSize < 41 then
+            setWindowBackColor(tile, lBackColor)
+            setPenColor( tile, GridColor )
+            for i=0 to blitsize by SnapSize do
+                for j=0 to blitsize by SnapSize do
+                    lShape &= {{i, j, i+1, j+1}}
+                end for
+            end for
+            drawLines(tile, lShape)
+            
+            for i=0 to size[3] by blitsize do
+                for j=0 to size[4] by blitsize do
+                    copyBlt( id, i, j, tile )
+                end for
+            end for
+        else
+            for i=0 to size[3] by SnapSize do
+                for j=0 to size[4] by SnapSize do
+                    lShape &= {{i, j, i+1, j+1}}
+                end for
+            end for
+            drawLines(id, lShape)
+        end if
+
+    else
+
+        for i = 0 to size[3] by SnapSize do
+            lShape &= {{i, 0, i, size[4]}}
+        end for
+
+        for i = 0 to size[4] by SnapSize do
+            lShape &= {{0, i, size[3], i}}
+        end for
+        drawLines(id, lShape)
+
+    end if
+    
+   
+end procedure
+
+procedure Activate_win(integer self, integer event, sequence params)
+    sequence size
+    size=getClientRect(win)
+    drawGrid(GridBlit)
+    copyBlt(ControlBlit,0,0,GridBlit)
+    bitBlt(win,0,0,ControlBlit,0,0,size[3],size[4],SRCCOPY )
+end procedure                              
+
+
+setHandler(win,w32HPaint, routine_id("Activate_win"))
+
+
+WinMain(win,Normal)
+

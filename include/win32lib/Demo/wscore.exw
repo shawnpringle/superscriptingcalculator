@@ -1,0 +1,379 @@
+--------------------------------------------------------------------------------
+--
+-- Bridge scores for Windows in Euphoria using Win32Lib
+-- Rudolf W. Meijer, (c) June 2004
+--
+--------------------------------------------------------------------------------
+
+
+--------------------------------------------------------------------------------
+-- preliminaries
+--------------------------------------------------------------------------------
+include win32lib.ew
+without warning
+--------------------------------------------------------------------------------
+-- basic constants
+--------------------------------------------------------------------------------
+constant false = 0, true = 1
+constant empty = {} -- also written for ""
+constant space = ' '
+constant lineheight = 20
+
+--------------------------------------------------------------------------------
+-- symbolic constants
+--------------------------------------------------------------------------------
+constant Clubs = 1, Diamonds = 2, Hearts = 3, Spades = 4, NoTrump = 5 -- suit
+constant NS = 1, EW = 2 -- team
+--------------------------------------------------------------------------------
+-- fieldnames (indexes)
+--------------------------------------------------------------------------------
+constant clevel = 1, csuit = 2  -- index in bids, contract
+--------------------------------------------------------------------------------
+-- display names for symbolic types and listview bozes
+--------------------------------------------------------------------------------
+constant snames  = {"C", "D", "H", "S", "NT"}
+constant lnames  = {"1", "2", "3", "4", "5", "6", "7"}
+constant mnames  = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"}
+--------------------------------------------------------------------------------
+--  Windows definitions
+--------------------------------------------------------------------------------
+-- main window = 500 * 150
+--------------------------------------------------------------------------------
+constant MainWindow = create( 
+Window, "Bridge scores, by Rudolf W. Meijer", 0, Default, Default, 320, 230, 0)
+
+constant ContractWindow = create( 
+LText, "Contract", MainWindow,
+ 20, 20, 80, lineheight, 0 )
+
+constant BidlevelWindow = create( 
+DropDownList, empty, MainWindow,
+ 20, 40, 40, 8*lineheight, 0 )
+
+constant BidsuitWindow = create( 
+DropDownList, empty, MainWindow,
+ 65, 40, 45, 8*lineheight, 0 )
+
+constant BiddblWindow = create( 
+CheckBox, "dbl", MainWindow,
+ 120, 40, 60, lineheight, 0 )
+
+constant BidrdblWindow = create( 
+CheckBox, "rdbl", MainWindow,
+ 120, 60, 60, lineheight, 0 )
+
+constant Vuln0Window = create(
+Radio, "not vuln.", MainWindow,
+ 200, 40, 100, lineheight, 0 )
+
+constant Vuln1Window = create(
+Radio, "vulnerable", MainWindow,
+ 200, 60, 100, lineheight, 0 )
+
+constant TrickswonWindow = create( 
+DropDownList, empty, MainWindow,
+ 20, 90, 40, 8*lineheight, 0 )
+
+constant TricksWindow = create( 
+LText, "tricks made", MainWindow,
+ 70, 90, 200, lineheight, 0 )
+
+constant ResultWindow = create( 
+LText, empty, MainWindow,
+ 70, 130, 200, lineheight, 0 )
+
+constant ScoreWindow = create( 
+LText, empty, MainWindow,
+ 70, 170, 120, lineheight, 0 )
+--------------------------------------------------------------------------------
+-- buttons for main control flow
+--------------------------------------------------------------------------------
+constant Scorechoice  = create(
+PushButton, "Score", MainWindow, 
+ 20, 130, 40, 20, 0 )
+--------------------------------------------------------------------------------
+constant Clearchoice  = create(
+PushButton, "Clear", MainWindow, 
+ 200, 130, 40, 20, 0 )
+--------------------------------------------------------------------------------
+constant Endchoice  = create(
+PushButton, "End", MainWindow, 
+ 200, 170, 40, 20, 0 )
+--------------------------------------------------------------------------------
+-- type definitions
+--------------------------------------------------------------------------------
+type Boolean(integer x)
+     return (x = 0) or (x = 1)
+end type
+--------------------------------------------------------------------------------
+type counter(integer x)
+     return x >= 0
+end type
+--------------------------------------------------------------------------------
+type player(integer x)
+     return (x >= 1) and (x <= 4)
+end type
+--------------------------------------------------------------------------------
+-- global variables
+--------------------------------------------------------------------------------
+sequence vulnerable  -- Boolean per team
+Boolean dbl, rdbl
+sequence contract
+player leader
+sequence trickswon -- per team
+integer upordown
+sequence score -- per team
+--------------------------------------------------------------------------------
+-- auxiliary procedures and functions
+--------------------------------------------------------------------------------
+function team(player p) -- returns 1 for NS, 2 for EW
+
+return remainder(p + 1, 2) + 1
+
+end function -- team
+--------------------------------------------------------------------------------
+-- main procedures and functions implementing the rules
+--------------------------------------------------------------------------------
+procedure doscore() -- expects to be set:
+                    -- leader, contract, dbl, rdbl, vulnerable, trickswon
+                    -- set on exit: score
+
+integer tricksmade -- tricks made over and above 6
+integer down
+counter contractscore
+integer wteam -- winning team
+integer lteam -- losing team
+ 
+score = {0, 0}
+leader = 1
+
+contract[clevel] = getIndex(BidlevelWindow)
+contract[csuit] = getIndex(BidsuitWindow)
+
+tricksmade = getIndex(TrickswonWindow)
+
+if   (contract[clevel] != 0)
+ and (contract[csuit] != 0)
+ and (tricksmade != 0) then
+   tricksmade -= 1 -- for 0 based counting
+   tricksmade -= 6 -- for rules of bridge
+   upordown = tricksmade - contract[clevel] 
+
+   if upordown < 0 then -- down
+
+      down = - upordown
+      lteam = team(leader) -- leader's team loses
+      wteam = 3 - lteam -- other team wins
+
+      if (not dbl) and (not rdbl) then
+         score[wteam] = down * 50 * w32iff(vulnerable[lteam], 2, 1)
+      else -- dbl or rdbl
+         if not vulnerable[lteam] then
+            score[wteam] = 100 + (down - 1) * 200
+            if upordown > 3 then
+               score[wteam] += (down - 3) * 100
+            end if
+         else -- vulnerable
+            score[wteam] = 200 + (down - 1) * 300
+         end if
+         score[wteam] *= w32iff(rdbl, 2, 1)
+      end if
+
+   else -- contact made, possibly with up tricks
+
+      wteam = team(leader) -- leader's team wins
+      if contract[csuit] < Hearts then -- low suits
+         contractscore = contract[clevel] * 20
+      elsif contract[csuit] < NoTrump then -- high suits
+         contractscore = contract[clevel] * 30
+      else -- No Trump
+         contractscore = 40 + (contract[clevel] - 1) * 30
+      end if
+      contractscore *= w32iff(rdbl, 4, w32iff(dbl, 2, 1))
+      score[wteam] = contractscore 
+
+      -- add any additional points for ups and premiums
+
+      -- premium for part score or manche
+      if contractscore < 100 then
+         score[wteam] += 50
+      else
+         score[wteam] += w32iff(vulnerable[wteam], 500, 300)
+      end if
+
+      -- premium for making contract against doubling
+
+      score[wteam] += w32iff(rdbl, 100, w32iff(dbl, 50, 0))
+
+      -- premium for up tricks
+      if upordown != 0 then
+         if (not dbl) and (not rdbl) then
+            if contract[csuit] < Hearts then
+               score[wteam] += upordown * 20
+            else
+               score[wteam] += upordown * 30
+            end if
+         else -- dbl or rdbl
+            score[wteam] += upordown * w32iff(rdbl, 200, 100)
+                                     * w32iff(vulnerable[wteam], 2, 1)
+         end if
+      end if
+
+      -- premium for slam
+      if contract[clevel] > 5 then
+         score[wteam] += (contract[clevel]-5) * w32iff(vulnerable[wteam], 750, 500)
+      end if
+   end if
+end if
+
+end procedure -- doscore
+--------------------------------------------------------------------------------
+-- initialisations
+--------------------------------------------------------------------------------
+setFont( ContractWindow,     "Fixedsys", 10, Normal)
+setFont( BidlevelWindow,     "Fixedsys", 10, Normal)
+setFont( BidsuitWindow,      "Fixedsys", 10, Normal)
+setFont( ScoreWindow,        "Fixedsys", 10, Normal)
+setFont( BiddblWindow,       "Fixedsys", 10, Normal)
+setFont( BidrdblWindow,      "Fixedsys", 10, Normal)
+setFont( Vuln0Window,        "Fixedsys", 10, Normal)
+setFont( Vuln1Window,        "Fixedsys", 10, Normal)
+setFont( TricksWindow,       "Fixedsys", 10, Normal)
+setFont( TrickswonWindow,    "Fixedsys", 10, Normal)
+setFont( ResultWindow,       "Fixedsys", 10, Normal)
+--------------------------------------------------------------------------------
+procedure doinit()
+setIndex(BidlevelWindow, 0)
+setIndex(BidsuitWindow, 0)
+setIndex(TrickswonWindow, 0)
+setText(ResultWindow, empty)
+setText(ScoreWindow, empty)
+setCheck(BiddblWindow,false)
+setCheck(BidrdblWindow,false)
+setCheck(Vuln0Window, true)
+setCheck(Vuln1Window, false)
+dbl = false
+rdbl = false
+vulnerable = {false, false} 
+contract = {0, 0}
+score = {0, 0}
+upordown = 0
+end procedure -- doinit
+--------------------------------------------------------------------------------
+for i = 1 to length(lnames) do
+    addItem(BidlevelWindow, lnames[i])
+end for
+for i = 1 to length(snames) do
+    addItem(BidsuitWindow, snames[i])
+end for
+for i = 1 to length(mnames) do
+    addItem(TrickswonWindow, mnames[i])
+end for
+doinit()
+hideControlSet(1)
+--------------------------------------------------------------------------------
+-- painting routines (incl. auxiliary ones)
+--------------------------------------------------------------------------------
+procedure Result_onPaint (integer self, integer event, sequence params)
+
+if score[NS]+score[EW] = 0 then
+   setText(self, empty)
+else
+   setText(self,  "result  C"
+                & w32iff(upordown = 0, space,
+                  w32iff(upordown > 0, '+' & sprintf("%-2d",upordown),
+                                     '-' & sprintf("%-2d",-upordown))))
+end if
+
+end procedure
+setHandler( ResultWindow, w32HPaint, routine_id("Result_onPaint"))
+--------------------------------------------------------------------------------
+procedure Score_onPaint (integer self, integer event, sequence params)
+
+if score[NS]+score[EW] = 0 then
+   setText(self, empty)
+else
+   setText(self, sprintf("%5d pts", score[NS]-score[EW]))
+end if
+
+end procedure
+setHandler( ScoreWindow, w32HPaint, routine_id("Score_onPaint"))
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- clicking routines
+--------------------------------------------------------------------------------
+procedure Biddbl_onClick (integer self, integer event, sequence params)
+
+dbl = not dbl
+if dbl then
+   rdbl = false
+   setCheck(BidrdblWindow, false)
+end if
+
+repaintWindow(MainWindow)
+
+end procedure
+setHandler( BiddblWindow, w32HClick, routine_id("Biddbl_onClick"))
+--------------------------------------------------------------------------------
+procedure Bidrdbl_onClick (integer self, integer event, sequence params)
+
+rdbl = not rdbl
+if rdbl then
+   dbl = false
+   setCheck(BiddblWindow, false)
+end if
+
+repaintWindow(MainWindow)
+
+end procedure
+setHandler( BidrdblWindow, w32HClick, routine_id("Bidrdbl_onClick"))
+--------------------------------------------------------------------------------
+procedure Vuln0_onClick (integer self, integer event, sequence params)
+
+vulnerable = {false, false}
+repaintWindow(MainWindow)
+
+end procedure
+setHandler( Vuln0Window, w32HClick, routine_id("Vuln0_onClick"))
+--------------------------------------------------------------------------------
+procedure Vuln1_onClick (integer self, integer event, sequence params)
+
+vulnerable = {true, false}
+repaintWindow(MainWindow)
+
+end procedure
+setHandler( Vuln1Window, w32HClick, routine_id("Vuln1_onClick"))
+--------------------------------------------------------------------------------
+procedure Score_onClick (integer self, integer event, sequence params)
+
+doscore()
+repaintWindow(MainWindow)
+
+end procedure
+setHandler( Scorechoice, w32HClick, routine_id("Score_onClick"))
+--------------------------------------------------------------------------------
+procedure Clear_onClick (integer self, integer event, sequence params)
+
+doinit()
+
+repaintWindow(MainWindow)
+
+end procedure
+setHandler( Clearchoice, w32HClick, routine_id("Clear_onClick"))
+--------------------------------------------------------------------------------
+procedure End_onClick (integer self, integer event, sequence params)
+
+closeWindow(MainWindow)
+
+end procedure
+setHandler( Endchoice, w32HClick, routine_id("End_onClick"))
+--------------------------------------------------------------------------------
+
+--------------------------------------------------------------------------------
+-- main loop
+--------------------------------------------------------------------------------
+
+
+WinMain( MainWindow,Normal )
+

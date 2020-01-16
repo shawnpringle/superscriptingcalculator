@@ -1,0 +1,40 @@
+without warning
+include win32lib.ew
+integer fLblTwo
+
+global function main(sequence pArgs)
+
+    createForm({
+        "Window, name=MainWin, caption=Test Mouse Position, at=(10,20), size=(400,400), bar=status",
+        "label, Move the mouse into the inner box, flag=SS_NOTIFY",
+        "Window, LABEL ONE, at=(50,30), size=(100,100), parent=MainWin, flag=(NEW,WS_BORDER,WS_CHILD,WS_VISIBLE)",
+        "Window, LABEL TWO, at=(15,25), size=(65, 25), parent=LABEL ONE, flag=(NEW,WS_BORDER,WS_CHILD,WS_VISIBLE), bgcolor=BrightWhite"
+        })
+
+    fLblTwo = getNameId("LABEL TWO")
+
+    return 0
+end function
+
+global procedure Paint_LABELTWO(integer self, integer event, sequence parms)
+    clearWindow(self)
+end procedure
+registerRoutine("Paint_LABELTWO", routine_id("Paint_LABELTWO"))
+
+global procedure Mouse_Screen(integer self, integer event, sequence parms)
+    sequence lSXY
+    integer lIsIn
+
+    lSXY = getPointerPos()
+    lIsIn = isScreenPointIn(fLblTwo, lSXY[1], lSXY[2])
+    showMessage(sprintf("%d In? %d", {self,lIsIn}))
+
+    if lIsIn then
+        setWindowBackColor(fLblTwo, BrightCyan)
+    else
+        setWindowBackColor(fLblTwo, BrightWhite)
+    end if
+
+end procedure
+setHandler(Screen, w32HMouse, routine_id("Mouse_Screen"))
+include w32start.ew

@@ -1,0 +1,82 @@
+include Win32Lib.ew --v0.59.1 w/o modifications
+without warning
+with trace
+constant KCSTATE_SELECTED = 1,
+         KCSTATE_MOVING = 2,
+         KCSTATE_NORMAL = 0
+sequence CState CState = {0,KCSTATE_NORMAL,{},{},{}}
+
+createForm({
+        "Window, name=Main,caption={Drag to move, Shift-Drag to resize}, at=(Default, Default), size=(400, 500), event=mouse",
+        "Window, name=Fld1,at=(5, 5), size=(300, 25), parent=Main,flags=(new,WS_CHILD, WS_VISIBLE), bgcolor=Red, event=mouse=Mouse_Main, bgcolor=Red",
+        "Window, name=Fld2,at=(5,35), size=(300, 25), parent=Main,flags=(new,WS_CHILD, WS_VISIBLE), Bgcolor=Blue, event=mouse=Mouse_Main, bgcolor=Green",
+        "Window, name=Fld3,at=(5,65), size=(300, 25), parent=Main,flags=(new,WS_CHILD, WS_VISIBLE), bgcolor=Green, event=mouse=Mouse_Main, bgcolor=Blue"
+    }   )
+
+
+----------------------------------------------------------------------------
+global procedure Mouse_Main (integer self, integer event, sequence params)
+sequence lMov
+atom hWnd
+
+ if params[1]=LEFT_DOWN then
+     if CState[1]  != 0 then
+        setMousePointer(CState[1],-1)
+     end if
+    setMousePointer(self,SizeAllPointer) --pointer has not changed. Does it change on Left Up perhaps?
+    CState = {self, KCSTATE_SELECTED, getRect(self), getPointerPos(), {}}
+    CState[3][3] -= CState[3][1]
+    CState[3][4] -= CState[3][2]
+    CState[5] = CState[4]
+
+ elsif params[1]=MOUSE_MOVE then
+
+     if CState[1]  = 0 then
+        return
+     end if
+
+    self = CState[1]
+    if CState[2] = KCSTATE_SELECTED then
+        if and_bits(params[4], ShiftMask) then
+            setMousePointer(self,SizeNWSEPointer) --just an example of different cursor
+        end if
+        CState[2] = KCSTATE_MOVING
+    end if
+
+    if CState[2] = KCSTATE_MOVING then
+        lMov = getPointerPos()
+        if  not equal(CState[5], lMov) then
+
+            CState[5] = lMov
+            hWnd = getHWND(self)
+
+            if and_bits(params[4], ShiftMask) = 0 then
+                -- No-shift ==> move
+                VOID = w32Func( xMoveWindow, {hWnd,
+                                    CState[3][1] + CState[5][1] - CState[4][1],
+                                    CState[3][2] + CState[5][2] - CState[4][2],
+                                    CState[3][3], CState[3][4], 1} )
+            else
+                -- Shift ==> resize
+                VOID = w32Func( xMoveWindow, {hWnd,
+                                    CState[3][1],
+                                    CState[3][2],
+                                    CState[3][3] + CState[5][1] - CState[4][1],
+                                    CState[3][4] + CState[5][2] - CState[4][2], 1} )
+            end if
+            w32Proc( xUpdateWindow, { hWnd } )
+        end if
+    end if
+
+ elsif params[1]=LEFT_UP then
+    if CState[2] != KCSTATE_NORMAL then
+        setMousePointer(self,-1) --instead I see SizeAllPointer from LeftDown
+        CState = {0,KCSTATE_NORMAL,{},{},{}}
+        repaintWindow(self)
+    end if
+ end if
+
+end procedure
+registerRoutine("Mouse_Main", routine_id("Mouse_Main"))
+include w32Start.ew
+

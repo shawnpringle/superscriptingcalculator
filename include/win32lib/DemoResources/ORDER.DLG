@@ -1,0 +1,44 @@
+;; Order.dlg
+;; This defines an Order input screen.
+
+Window, Purchase Order Input, bar=status, flags=(new,ws_ex_toolwindow)
+
+Menu, Search
+MenuItem, caption=Customer, name=FindCustomer
+MenuItem, caption=Product, name=FindProduct
+MenuItem, caption=Purchase Order, name=FindPO
+
+Label, P.O. Number ;;------------------ PO Number
+	at=(5,10)
+EditText, name=PONumberValue
+	left=**, top=*, width=20char
+        event=(keypress=LookupKey)
+        hint=Enter a P.O. number. Press RETURN to display existing data.
+
+Label, Date Ordered ;;-------------------- Order Date
+	left=**, top=*+4
+EditText, name=OrderDate
+	left=**, top=*, width=16char
+LText, Name=CurOrderDate,
+        left=**, top=*, width=16char
+
+Label, Customer Id ;;-------------------- Customer ID
+	left=**, top=*
+EditText, name=CustId
+	left=**, top=*, width=20char
+LText, Name=POCustName,
+        left=**, top=*, width=20char
+
+Label, Products ;;-------------------- Products
+	left=**, top=*
+MleText, name=ProdList
+	left=**, top=*, size=(50char,10char)
+
+Button, name=Accept, caption=&Accept ;;----------------- Accept Button
+	left=**, top=*+10
+
+CancelButton, &Cancel ;;----------------- Cancel Button
+	left=*+4, top=**
+	flag=autoclose
+
+

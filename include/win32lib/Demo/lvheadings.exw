@@ -1,0 +1,59 @@
+include Win32lib.ew
+without warning
+
+--  Window Window1
+constant Window1 = createEx( Window, "Window1", 0, Default, Default, 600, 400, 0, 0 )
+constant myLV = createEx( ListView, {"One","Two","Three"}, Window1, 44, 36, 500, 300, or_all({LVS_REPORT,LVS_SHOWSELALWAYS}), 0 )
+constant Btn = createEx(Button, "Display", Window1, 5,5, 64, 25, 0, 0)
+procedure Window1_onOpen (integer self, integer event, sequence params)
+    sequence theData
+    integer iconMale, iconFemale
+    iconMale = addIcon(loadBitmapFromFile("..\\demoresources\\male.ico"))
+    iconFemale = addIcon(loadBitmapFromFile("..\\demoresources\\female.ico")) 
+    
+    setFont(myLV, "Trebuchet MS", 14, Normal)      
+
+    theData = {}
+    theData &= iconMale
+    theData = append(theData, {"George Abby", 95.4, "Judo"})
+    theData = append(theData, {"Harry Bellows", 97.2, "Karate"})
+    theData &= iconFemale
+    theData = append(theData, {"Wendy Carr", 65.1, "Kendo"})
+    theData = append(theData, {"Jill Davidson", 75.8, "Ice Hockey"})
+    theData &= iconMale
+    theData = append(theData, {"Horatio Edgars", 105.1, "Chess"})
+    theData = append(theData, {"Felix Finster", 87.0, "Butterflies"})
+    
+    loadLVInfo(myLV, theData)   
+    
+    setLVStyle(myLV, {LVS_EX_FULLROWSELECT, 
+                    LVS_EX_GRIDLINES,
+                    LVS_EX_HEADERDRAGDROP})
+    
+    
+end procedure
+
+procedure Btn_onClick (integer self, integer event, sequence params)
+    sequence lData
+    sequence lheads
+    
+    lheads = getColumnHeadings(myLV)
+    puts(1, '\n')
+    for i = 1 to length(lheads) do
+        printf(1, "%-25s", {lheads[i][2]})
+    end for
+    printf(1, "\n%s\n", {repeat('-', 75)})
+    
+    for i = 1 to getLVCount(myLV) do
+        for j = 1 to length(lheads) do
+            lData = getLVItemText(myLV, i, lheads[j][1])
+            printf(1, "%-25s", {lData})
+        end for
+        puts(1, '\n')
+    end for
+end procedure
+
+setHandler( Window1, w32HOpen, routine_id("Window1_onOpen"))
+setHandler( Btn, w32HClick, routine_id("Btn_onClick"))
+
+WinMain( Window1,Normal )

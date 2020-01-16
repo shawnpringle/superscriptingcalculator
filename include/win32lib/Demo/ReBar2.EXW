@@ -1,0 +1,26 @@
+-- ReBar.exw
+-- Matt Lewis
+without warning
+--with trace
+include win32lib.ew
+
+constant ReBarDemo = create(Window, "Rebar Demo", 0,         20, 20, 300, 300, 0)
+constant RB        = create(ReBar,  "RB",         ReBarDemo,  0,  0,   0,   0, 0)
+constant Band1     = create(ReBarBand, "Band 1",  RB,         0,  0,   0,   0, RBBS_BREAK)
+constant CB        = create(Combo, "CB",          RB,      0,  0,  90, 150, 0)
+addToBand(CB, Band1 ) 
+
+constant Band2     = create(ReBarBand, "Band 2",  RB,         0,  0,   0,   0, RBBS_BREAK)
+constant Tool      = create(ToolBar,  "Tool",     RB,         0,  0, 300,  34, 0)
+addToBand(Tool, Band2 )
+constant One       = create(Button, "One",      Tool,         0,  0,  50,  30, 0)
+constant Two       = create(Button, "Two",      Tool,        50,  0,  50,  30, 0)
+
+constant Band3     = create(ReBarBand, "Band 3",  RB,         0,  0,   0,   0, RBBS_BREAK)
+constant Tool2     = create(ToolBar,  "Tool2",    RB,         0,  0, 300,  34, 0)
+addToBand(Tool2, Band3 )
+constant One2      = create(Button, "One 2",      Tool2,      0,  0,  50,  30, 0)
+constant Two2      = create(Button, "Two 2",      Tool2,      50, 0,  50,  30, 0)
+
+WinMain(ReBarDemo, Normal)
+

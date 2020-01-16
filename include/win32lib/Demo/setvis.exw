@@ -1,0 +1,85 @@
+without warning
+include win32lib.ew
+include groupadv.ew
+sequence Triggers
+
+global procedure ShowView(integer self, integer event, sequence parms)
+    showControlSet(find(self, Triggers)) 
+end procedure
+registerRoutine("ShowView", routine_id("ShowView"))
+
+global function main(sequence pArgs)
+    atom closefolder
+    atom openfolder
+    integer lRoot
+    VOID = setSearchPaths("..\\demoresources\\")
+    closefolder = addIcon( extractIcon( "clsdfold.ico" ) )
+    openfolder  = addIcon( extractIcon( "openfold.ico" ) )
+
+    createForm({
+            "Window,name=MainWin, Win32lib Control Visibility Demo by Euman 2002," &
+                "at=(Default, Center), size=(641, 470)",
+            "RadioButton, Screen #1,at=( 12, 408), size=(96, 24), check=yes," &
+                "event=(click=ShowView)," &
+                "hint=Display our first set of controls for this MainWindow",
+            "RadioButton, Screen #2, at=(116, 408), size=(96, 24)," &
+                "event=(click=ShowView)," &
+                "hint=Display our second set of controls for this MainWindow",
+            "RadioButton, Screen #3,at=(220, 408), size=(96, 24)," &
+                "event=(click=ShowView)," &
+                "hint=Display our third set of controls for this MainWindow",
+            "PushButton, Exit Demo,at=(532, 408), size=(88, 24),flag=autoclose," &
+                 -- N.B. Using '{}' to escape the embedded comma.
+                "hint={Exit this little demo, Have a nice day!}",
+
+            -- first view
+            "Treeview, TreeView Test, at=(8, 8), size=(156, 392),member=1," &
+                "flags=(tvs_hasbuttons, tvs_haslines)," &
+                "hint=Our Treeview Control",
+            "ListView, ListView Test, at=(168, 8), size=(452,392),member=1," &
+                "flags=lvs_ex_gridlines," &
+                "columns=((Name, 150.5, <),(Description, -250.984, ^))," &
+                "hint=Our Listview Control",
+
+            -- second view
+            "TabControl, at=(12, 8), size=(604, 388), hint=Our Tab Control,member=2",
+                "TabItem, TabItem 1",
+                    "Button, Tab 1, at=(10, 50), size=(100, 40)",
+                "TabItem, TabItem 2",
+                    "Button, Tab 2, at=(20, 60), size=(100, 40)",
+                "TabItem, TabItem 3",
+                    "Button, Tab 3, at=(30, 70), size=(100, 40)",
+
+            -- third view
+            "GroupAdv,name=MainWin2,at=(0,0),pragma=parent,size=(625,405),member=3,owner=MainWin",  -- Restablish the default parent
+            "MonthCalendar, MonthCalendar, at=(12, 14), size=(250, 190)," &
+                "hint=Our MonthControl",
+            "List, ListBox, at=(264, 32), size=(352, 176)," &
+                "flags=LBS_NOINTEGRALHEIGHT, hint=Our ListBox",
+            "Combo, ComboBox, at=(264, 8), size=(352, 144)," &
+                "hint=Our ComboBox",
+            "GroupAdv, Group of stuff, at=( 12, 212), size=(604, 188)",
+                "MleText, MleText, at=(12, 16), size=(440, 164)," &
+                    "hint=Our MLE Control",
+                "CheckBox, CheckBox 1, at=( 456, 16), size=(140, 20)," &
+                    "hint=Our CheckBox one",
+                "CheckBox, CheckBox 2, at=(456, 40), size=(140, 20)," &
+                    "hint=Our CheckBox two",
+                "Button, E&xample, at=(480, 152), size=(88, 28)," &
+                    "hint=Our Example Button"
+    })
+    
+    lRoot = addTVItem( getNameId("TreeView Test"), closefolder, openfolder, "Root Item", 0 )
+    VOID = addTVItem( getNameId("TreeView Test"), closefolder, openfolder, "Sub Item", lRoot )
+    VOID = expandTV ( getNameId("TreeView Test"), lRoot, TVE_EXPAND)
+
+    VOID = addLVItem( getNameId("ListView Test"), 0, {"RAAF","Royal Australia Air Force"} )
+    VOID = addLVItem( getNameId("ListView Test"), 0, {"AIF", "Australian Infantry Force"} )
+
+    Triggers = {getNameId("Screen #1"),getNameId("Screen #2"),getNameId("Screen #3")}
+    setHandler(Triggers, w32HClick, {-1, routine_id("ShowView")})
+    return 0
+end function
+
+include w32start.ew
+

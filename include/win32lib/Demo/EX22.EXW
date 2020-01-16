@@ -1,0 +1,42 @@
+-- ex22.exw
+-- This shows a 'typical' use of the createForm call.
+
+include std/sequence.e
+include std/win32/msgbox.e
+include win32lib.ew
+without warning
+
+createForm({"Login,height=200,bar=status, left=10, top=Center",
+            "RText,   User Name:, left=10,top=10",
+            "EditText,name=User Name Text,left=*+2,top=**-2, width=25chars",
+            "RText,   Password:, from=UserName,left=**,top=*+15,width=*",
+            "EditText,name=Password Text,left=*+2,top=**-2, width=*,flag=es_password,tooltip=Password is reverse of User Name",
+            "DefPushButton,&Submit, right=75, width=70,bottom=5, height=25",
+            "CancelButton,&Cancel, left=*+5,top=**, height=Submit, width=Submit, flag=autoclose"
+            })
+integer vCounter vCounter = 3
+procedure Click_Submit(integer self, integer event, sequence parms)
+    sequence lTrick
+    sequence lUser
+
+    lUser = getText(getNameId("UserNameText"))
+    if length(lUser) = 0 then
+        showMessage( "No user name supplied.")
+        setFocus(getNameId("UserNameText"))
+    else
+        lTrick = reverse(lUser)
+        if equal(lTrick, getText(getNameId("PasswordText"))) then
+            closeWindow(0)
+        else
+            showMessage( "Invalid Password")
+            setFocus(getNameId("PasswordText"))
+            vCounter -= 1
+            if vCounter = 0 then
+                VOID = message_box("Too many attempts!", "Login", MB_ICONEXCLAMATION)
+                closeWindow(0)
+            end if
+        end if
+    end if
+end procedure
+registerRoutine("Click_Submit", routine_id("Click_Submit"))
+include w32Start.ew

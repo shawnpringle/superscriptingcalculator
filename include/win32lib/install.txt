@@ -1,0 +1,33 @@
+Installation Instructions.
+------------------------------
+
+Product: win32lib
+Version: 0.70.1
+
+How To Install:
+-----------------
+1. Create a folder. This is where the extracted files will be placed.
+   If you wish to overwrite your existing Win32lib, you can reuse the
+   folder already created for that.
+
+   (example:  mkdir c:\win32ib)
+
+2. Extract all the contents of the distribution ZIP file, keeping the
+   folder structure intact. That means that the files in the ZIP file
+   need to be extracted in the sub-folders as noted in the ZIP file.
+
+3. Ensure that the EUINC Environment Variable contains a reference to
+   the folder that now contains the extracted files.
+
+
+Post Installation
+--------------------
+To verify if it all worked, start a DOS command window and enter ...
+
+   c:
+   cd \win32lib\demo
+   exwc rundemos
+
+This should run the Demonstration Gateway program.
+
+

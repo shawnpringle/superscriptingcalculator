@@ -1,0 +1,60 @@
+include win32lib.ew
+without warning
+integer MainWin
+integer ChildWin
+
+atom TColor
+atom BColor
+
+TColor = Red
+BColor = White
+
+-- Create a window and get it's ID.
+MainWin =  createEx(Window, "Basic Window",0,10,20,200,100,0,0)
+ChildWin =  createEx(Window, "Child Window",MainWin,10,20,88,20,
+            {WS_CHILD,WS_CLIPSIBLINGS,WS_VISIBLE},0)
+
+
+procedure Paint_ChildWin(integer self, integer event, sequence parms)
+    sequence lSize
+    sequence lText
+    sequence lPos
+
+    -- Build the text to display.
+    lPos = getPointerPos()
+    lText = sprintf("%s %d %d", {getText(ChildWin), lPos[1], lPos[2]})
+
+    -- Resize the control to hold the text.
+    lSize = getTextExtent(ChildWin, lText)+4
+    setCtlSize(ChildWin, lSize[1], lSize[2])
+
+    -- Blank of the control with its BG Color
+    setWindowBackColor(ChildWin, BColor)
+
+    -- Draw its border
+    drawLines(ChildWin, {BrightWhite, {0,0,lSize[1]-1,0},{lSize[1]-1,lSize[2]-1},
+                         Black,{0,lSize[2]-1},{0,0}})
+
+    -- Set the text color and draw the text.
+    setTextColor(ChildWin, TColor)
+    wPuts({ChildWin, 2, 2 }, lText)
+
+end procedure
+setHandler(MainWin, w32HPaint, routine_id("Paint_ChildWin"))
+
+procedure Click_ChildWin(integer self, integer event, sequence parms)
+    if TColor = Red then
+        TColor = Blue
+        BColor = BrightCyan
+    else
+        TColor = Red
+        BColor = White
+    end if
+
+    Paint_ChildWin(self, w32HPaint, {})
+end procedure
+setHandler(ChildWin, w32HClick, routine_id("Click_ChildWin"))
+
+-- Start to application running, using
+WinMain( MainWin, Normal)
+

@@ -1,0 +1,19 @@
+include win32lib.ew
+without warning
+
+constant
+Main = create( Window, "Main", 0, Default, Default, 500, 500, 0),
+Name = create( LText, "", Main, 5,5, 470, 35, SS_NOPREFIX)
+
+procedure main_open(integer void1, integer void2, sequence null)
+object x
+x = getOpenFileName(Main,"",{})
+if sequence(x) then
+    setText(Name, x)
+end if
+end procedure
+setHandler(Main,{w32HActivate, w32HClick},routine_id("main_open"))
+
+
+WinMain(Main,Normal)
+

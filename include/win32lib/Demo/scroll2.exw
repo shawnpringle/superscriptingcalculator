@@ -1,0 +1,58 @@
+-- scroll2.exw
+without warning
+include win32lib.ew
+
+integer SimpleWin
+integer Vert_scroll
+integer Horz_scroll
+integer lister 
+integer EndOnly
+integer cnt
+
+-----------------------------
+procedure on_scroll (integer self, integer event , sequence parms)
+-----------------------------
+	integer hour, minute, second
+	sequence date_return
+               
+    if isChecked(EndOnly) and parms[2] != SB_ENDSCROLL then
+        return
+    end if
+    
+	cnt += 1
+	date_return = date ()
+	hour = date_return [4]
+	minute = date_return [5]
+	second = date_return [6]
+	addItem(lister, sprintf ("cnt=%d, pos=%d, Type=%d, Bar=%d, time=%2d:%2d:%2d", {cnt, parms[1], parms[2], parms[3],hour, minute, second}))
+	setIndex(lister,cnt)
+	
+end procedure
+
+-----------------------------
+procedure AppInit()
+-----------------------------
+    cnt = 0
+    
+    SimpleWin = create( Window, "Simple Window", 0, 0, 0, 400, 400,0 )
+    lister = create(List,"", SimpleWin, 70, 25, 300, 350,0)
+    EndOnly = create(CheckBox,"End", SimpleWin, 22, 35, 40, 25,0)
+    Vert_scroll = create (VScroll, "Vertical scroll", SimpleWin, 0, 0, 20, 370, 0)
+    Horz_scroll = create (HScroll, "Horizontal scroll", SimpleWin, 20, 0, 370, 20, 0)
+    
+    setScrollRange (Vert_scroll, 1, 12)
+    setScrollChange (Vert_scroll, 1, 3)
+    setScrollPos (Vert_scroll, 1)      
+    
+    setScrollRange (Horz_scroll, 1, 12)
+    setScrollChange (Horz_scroll, 1, 3)
+    setScrollPos (Horz_scroll, 1)
+    
+    setHandler({Vert_scroll, Horz_scroll}, w32HScroll, routine_id ("on_scroll"))
+end procedure
+
+-----------------------------
+-----------------------------
+AppInit()
+WinMain( SimpleWin, Normal )
+

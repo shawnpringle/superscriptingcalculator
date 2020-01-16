@@ -1,0 +1,25 @@
+without warning
+include win32lib.ew
+integer MainWin
+integer myPixMap
+atom bmh
+sequence lRect
+sequence lText
+
+MainWin = create(Window, "Text placed on a bitmap", 0, 0, 0, 500, 400, 0)
+bmh = loadBitmapFromFile("..\\demoresources\\java.bmp")
+myPixMap = subClassControl({Pixmap, 0}, bmh)
+
+lText = "Hello World!"
+setFont(myPixMap, "Times New Roman", 14, 0)
+lRect = getClientRect(myPixMap)
+lRect[1] = getTextHeight(myPixMap, lText)
+lRect[2] = getTextWidth(myPixMap, lText)
+-- Add text to lower righthand edge.
+wPuts({myPixMap, lRect[5] - lRect[2], lRect[6] - lRect[1]} , lText)
+
+procedure Painter(integer self, integer event, sequence parms)
+    copyBlt(self, 0, 0, myPixMap)
+end procedure
+setHandler(MainWin, w32HPaint, routine_id("Painter"))
+WinMain(MainWin, Normal)

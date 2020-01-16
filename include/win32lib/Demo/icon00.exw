@@ -1,0 +1,32 @@
+include std/dll.e
+include std/os.e
+include win32lib.ew
+without warning
+
+ constant
+    Win = create( Window, "Win", 0, Default, Default, 100, 100, 0 ),
+    Icn = create( Icon, "", Win, 35, 20, 32, 32, 0 )
+
+ constant
+    xExtractAssociatedIcon = registerw32Function(shell32,
+ "ExtractAssociatedIconA", {C_INT, C_POINTER, C_POINTER}, C_INT)
+
+ procedure init( integer self, integer event, sequence params )
+    atom lpiIconIndex, icon
+    atom s
+    atom memset
+
+    memset = w32new_memset()
+    s = w32acquire_mem(memset, "..\\demoresources\\word_3.txt")
+    lpiIconIndex = w32acquire_mem(memset,Word)
+
+    icon = w32Func( xExtractAssociatedIcon, { instance(),
+                    s,
+                    lpiIconIndex } )
+    setIcon( Icn, icon )
+    w32release_mem( memset )
+
+ end procedure
+ setHandler( Win,w32HOpen,routine_id("init") )
+
+ WinMain( Win, Normal )

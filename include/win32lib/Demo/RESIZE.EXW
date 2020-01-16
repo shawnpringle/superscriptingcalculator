@@ -1,0 +1,38 @@
+without warning
+include win32lib.ew
+
+constant MainWin = create(Window, "Main Window", 0, 0.2, 0.2, 0.6, 0.6, 0)
+sequence fldDims 
+fldDims = {
+            {Button, "&Close", 5, 5, 40, 20, 0, w32AUTOCLOSE},
+            {EditText, "Fld1", 0.1, 0.2, 0.6, 25, 1, 0},
+            {MleText, "Fld2", {w32AltEdge,-142}, 5, 140, 0.75, 1, 0}
+          }
+
+for i = 1 to length(fldDims) do
+    fldDims[i][2] = create(fldDims[i][1], fldDims[i][2], MainWin, 
+                fldDims[i][3],
+                fldDims[i][4],
+                fldDims[i][5],
+                fldDims[i][6],
+                fldDims[i][8]
+                )
+end for
+
+-- Auto Resizing of certain controls.
+procedure Resize_MainWin(integer self, integer event, sequence parms)
+    for i = 1 to length(fldDims) do
+        if fldDims[i][7] then
+            setRect(fldDims[i][2],
+                    fldDims[i][3],
+                    fldDims[i][4],
+                    fldDims[i][5],
+                    fldDims[i][6],
+                    0)
+        end if
+    end for
+    repaintWindow(self)
+end procedure
+setHandler(MainWin, w32HResize, routine_id("Resize_MainWin"))
+
+WinMain(MainWin, Normal)

@@ -1,0 +1,59 @@
+without warning
+include win32lib.ew
+
+constant main=create(Window,"Noisy Clicks",0,100,100,200,200,0),
+rA=create(Radio,"&A",main,10,10,60,25,0),
+rB=create(Radio,"&B",main,80,10,60,25,0),
+rC=create(Radio,"&C",main,150,10,60,25,0),
+subtn=create(Button,"&Focus",main,80,60,60,25,0),
+sub=create(Window,"Focus",main,120,120,320,200,0),
+ftxt=create(LText,"&Focus",sub,10,40,40,25,0),
+focus=create(EditText,"",sub,50,40,100,25,0), 
+btn=create(Button,"&Lookup",sub,180,40,60,25,0),
+lookup=create(Window,"Lookup",main,150,150,150,300,0),
+list=create(List,"",lookup,10,10,130,280,0)
+
+addItem(list,{"one","two","three"})
+
+-- Even this does not help
+--procedure oncloselookup(integer self, integer event, sequence params)
+-- setFocus(focus)
+--end procedure
+--setHandler(lookup,w32HClose,routine_id("oncloselookup"))
+
+procedure onsubtn(integer self, integer event, sequence params)
+openWindow(sub,Normal)
+setFocus(focus)
+end procedure
+setHandler(subtn,w32HClick,routine_id("onsubtn"))
+
+procedure onbtn(integer self, integer event, sequence params)
+openWindow(lookup,Normal)
+setFocus(list)
+end procedure
+setHandler(btn,w32HClick,routine_id("onbtn"))
+
+procedure onKeylookup(integer self, integer event, sequence params)
+if params[1] = VK_ENTER then
+setText(focus,"by key")
+setFocus(focus)
+closeWindow(lookup)
+end if
+end procedure
+setHandler(list,w32HKeyDown,routine_id("onKeylookup"))
+
+integer dbc dbc = 0        
+procedure onMouselookup(integer self, integer event, sequence params)
+if params[1] = LeftDoubleClick then
+    dbc = 1
+elsif params[1] = LeftUp and dbc = 1 then
+setText(focus,"by mouse") 
+setFocus(focus)
+closeWindow(lookup)
+dbc = 0
+end if
+end procedure
+setHandler(list,w32HMouse,routine_id("onMouselookup"))
+
+WinMain(main,Normal)
+

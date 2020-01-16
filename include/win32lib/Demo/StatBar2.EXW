@@ -1,0 +1,12 @@
+-- StatBar2.exw
+--
+-- puts a status bar with 3 parts into a window
+without warning
+include win32lib.ew
+
+constant SimpleWin =  create( Window, "Multi-part Status Bar", 0, 0, 0, 300, 100, 0 ),
+-- The status bar, with 3 parts:
+GStatus = create( StatusBar, "Ready", SimpleWin, 0, {{40},0.5,-1}, 0, 0, 0 )
+
+WinMain( SimpleWin, Normal)
+

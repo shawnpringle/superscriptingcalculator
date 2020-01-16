@@ -1,0 +1,495 @@
+-- ex12.exw
+--
+-- Demonstrate colored text
+
+include std/text.e
+include win32lib.ew
+without warning
+
+createForm({
+        "Text Window,width=600, height=420,bar=status, " &
+                 "events=KeyDown, BGColor=White",
+
+        "Pixmap, Canvas, BGColor=White"
+    })
+constant Canvas = getNameId("Canvas")
+
+-----------------------------------------------------------------------------
+-- Euphoria keywords and routines built in to the interpreter, ex.exe
+
+global constant keywords = {
+    "if", "end", "then", "procedure", "else", "for", "return",
+    "do", "elsif", "while", "type", "constant", "to", "and", "or",
+    "exit", "function", "global", "by", "not", "include",
+    "with", "without", "as"
+    }
+
+global constant builtins = {
+    "length", "puts", "integer", "sequence", "position", "object",
+    "append", "prepend", "print", "printf",
+    "clear_screen", "floor", "getc", "gets", "get_key",
+    "rand", "repeat", "atom", "compare", "find", "match",
+    "time", "command_line", "open", "close", "trace", "getenv",
+    "sqrt", "sin", "cos", "tan", "log", "system", "date", "remainder",
+    "power", "machine_func", "machine_proc", "abort", "peek", "poke",
+    "call", "sprintf", "arctan", "and_bits", "or_bits", "xor_bits",
+    "not_bits", "pixel", "get_pixel", "mem_copy", "mem_set",
+    "c_proc", "c_func", "routine_id", "call_proc", "call_func",
+    "poke4", "peek4s", "peek4u" }
+
+
+global constant library = {
+    "all_palette", "allocate", "allocate_low", "allocate_string",
+    "allow_break", "atom_to_float32", "atom_to_float64", "bits_to_int",
+    "bk_color", "bytes_to_int", "call_back", "check_break", "crash_message",
+    "current_dir", "cursor", "custom_sort", "define_c_func", "define_c_proc",
+    "dir", "display_image", "display_text_image", "dos_interrupt",
+    "draw_line", "ellipse", "float32_to_atom", "float64_to_atom",
+    "free", "free_low", "get", "get_active_page", "get_all_palette",
+    "get_display_page", "get_mouse", "get_position", "get_vector",
+    "graphics_mode", "int_to_bits", "int_to_bytes", "lock_memory",
+    "lower", "message_box", "mouse_events", "mouse_pointer",
+    "open_dll", "palette", "polygon", "read_bitmap", "save_bitmap",
+    "save_image", "save_screen", "save_text_image", "scroll",
+    "seek", "set_active_page", "set_display_page", "set_rand",
+    "set_vector", "sort", "sound", "text_rows", "tick_rate",
+    "upper", "use_vesa", "value", "video_config", "wait_key",
+    "where", "wildcard_file", "wildcard_match", "wrap" }
+
+
+
+-----------------------------------------------------------------------------
+-- Colors for syntax elements
+global constant NORMAL_COLOR = Black,
+                COMMENT_COLOR = Red,
+                KEYWORD_COLOR = Blue,
+                BUILTIN_COLOR = Magenta,
+                LIBRARY_COLOR = Purple,
+                STRING_COLOR = Green,
+                BRACKET_COLOR = {BrightRed, Orange, BrightBlue, Cyan, Green }
+
+-- character classes
+constant    DIGIT = Digit_CT,
+            OTHER = 0,
+            LETTER  = NameChar_CT,
+            BRACKET = User1_CT,
+            QUOTE   = User2_CT,
+            DASH = User3_CT,
+            WHITE_SPACE = White_CT
+
+
+-- set up character classes for easier line scanning
+-- (assume no 0 char)
+
+    w32SetCType("[](){}", BRACKET)
+    w32SetCType("\"'",  QUOTE)
+    w32SetCType('-',  DASH)
+
+sequence segment, segments
+sequence line               -- the line being processed
+integer segStart, segEnd    -- start and end of current segment of line
+integer color               -- the current color
+integer  bracketLevel
+bracketLevel = 0
+integer charHeight, charWidth
+
+-----------------------------------------------------------------------------
+procedure flushSeg(integer newColor)
+
+        -- if the color is changing, start a new segment
+
+        -- color changed?
+        if newColor != color then
+                -- build segment, and append it
+                segment = line[segStart..segEnd]
+                segments = append( segments, { color, segment }  )
+                segment = ""
+                segStart = segEnd+1
+                color = newColor
+        end if
+
+end procedure
+-----------------------------------------------------------------------------
+global function BuildColorLine(sequence pline)
+
+        -- color code a line of text. the text is broken up into segments in the
+        -- form { colorPair, text }
+
+        integer last, i, c
+        sequence word
+
+        line = pline
+        color = Black -- default color
+        segStart = 1
+        segEnd = 0
+        segments = {}
+        segment = ""
+
+        while 1 do
+
+            -- past end?
+            if segEnd = length( line ) then
+                    exit
+            end if
+
+            -- get the character
+            c = line[segEnd+1]
+
+            -- act on class of character
+            if w32CType(c,WHITE_SPACE) then
+                -- continue
+                segEnd = segEnd + 1
+
+            elsif w32CType(c,LETTER) then
+                last = length(line)
+                for j = segEnd + 2 to last do
+                    c = line[j]
+                    if not w32CType(c,LETTER) then
+                        last = j - 1
+                        exit
+                    end if
+                end for
+
+                word = line[segEnd+1..last]
+
+                if    find(word, keywords) then  flushSeg(KEYWORD_COLOR)
+                elsif find(word, builtins) then  flushSeg(BUILTIN_COLOR)
+                elsif find(word, library)  then  flushSeg(LIBRARY_COLOR)
+                else                              flushSeg(NORMAL_COLOR)
+                end if
+
+                segEnd = last
+
+            elsif w32CType(c, BRACKET) then
+
+                if find(c, "([{") then
+                    bracketLevel = bracketLevel + 1
+                end if
+
+                if  bracketLevel >= 1
+                and bracketLevel <= length(BRACKET_COLOR) then
+                    flushSeg(BRACKET_COLOR[bracketLevel])
+                else
+                    flushSeg(NORMAL_COLOR)
+                end if
+
+                if find(c, ")]}") then
+                    bracketLevel = bracketLevel - 1
+                end if
+
+                segEnd = segEnd + 1
+
+            elsif w32CType(c, DASH) then
+
+                -- next char also a dash?
+                if length( line ) > segEnd+1 then
+                    if w32CType(line[segEnd+2], DASH) then
+                        flushSeg(COMMENT_COLOR)
+                        segEnd = length(line)-1
+                        exit
+                    end if
+                end if
+
+                flushSeg(NORMAL_COLOR)
+                segEnd = segEnd + 1
+
+            elsif w32CType(c, QUOTE) then
+                i = segEnd + 2
+                while i < length(line) do
+
+                    -- end quote of same type?
+                    if line[i] = c then
+                        -- move past & exit
+                        i = i + 1
+                        exit
+
+                    elsif line[i] = '\\' then
+                        -- skip; it's an embedded code
+                        if i < length(line)-1 then
+                            i = i + 1 -- ignore escaped char
+                        end if
+                    end if
+
+
+                    i = i + 1
+
+                end while
+
+                -- output the string
+                flushSeg(STRING_COLOR)
+                segEnd = i - 1
+
+            else
+                flushSeg(NORMAL_COLOR)
+                segEnd = segEnd + 1
+
+            end if
+
+        end while
+
+        -- build final segment
+        segment = line[segStart..segEnd]
+        if length( segment ) != 0 then
+                segments = append( segments, { color, segment }  )
+        end if
+
+        return segments
+
+end function
+
+
+-----------------------------------------------------------------------------
+function readFile( sequence fName )
+
+    -- return a sequence of lines from the file
+    -- convert '\n' to ' '
+
+    integer handle
+    sequence out
+    object data
+
+    -- open the file
+    handle = open( fName, "r" )
+
+    -- initialize data
+    out = {}
+
+    while 1 do
+        -- read a line of text
+        data = gets( handle )
+
+        -- end of file?
+        if atom( data ) then
+            exit
+        end if
+
+        -- remove line feed
+        if data[length(data)] = '\n' then
+            data[length(data)] = ' '
+        else
+            data &= ' '
+        end if
+
+        -- add to data
+        out = append( out, data )
+
+    end while
+
+    -- close the file
+    close( handle )
+
+    -- return the text
+    return out
+
+end function
+
+-----------------------------------------------------------------------------
+-- read the file
+sequence fText , lFileName
+-----------------------------------------------------------------------------
+
+
+procedure BuildSegments()
+    -- place the text in the window
+    for i = 1 to length( fText ) do
+
+        -- "colorize" the text
+        fText[i] = BuildColorLine( fText[i] )
+
+    end for
+end procedure
+-----------------------------------------------------------------------------
+-- for moving up and down
+integer topLine
+topLine = 1
+-----------------------------------------------------------------------------
+procedure drawColorText(integer maxX, integer maxY)
+    atom hdc
+    integer col, row
+    sequence s, segs
+    sequence seg
+    integer lMaxLine
+
+    lMaxLine = (maxY - charHeight)
+
+    hdc =  assignFont(Canvas)
+
+    clearWindow(Canvas)
+
+    seg = {0, 0, 0, 0, White}
+    -- set row
+    -- place the text in the window
+    for i = topLine to length( fText ) do
+
+        -- start position
+        seg[2] = 4
+
+        -- display the segments, in color
+        for j = 1 to length( fText[i] ) do
+            seg[1] = fText[i][j][2]
+            seg[4] = fText[i][j][1]
+            -- display the text
+            textOut( hdc, seg)
+
+            -- advance the column by the text length
+            seg[2] += length(seg[1] ) * charWidth
+
+            if seg[2] > maxX then
+                exit
+            end if
+
+        end for
+
+        -- advance the row
+        seg[3] += charHeight
+
+        -- past end of window?
+        if seg[3] > lMaxLine then
+            -- done
+            exit
+        end if
+
+    end for
+    releaseDC(Canvas)
+end procedure
+
+
+-----------------------------------------------------------------------------
+procedure KeyDown_TextWindow( integer self, integer event, sequence parms )
+
+    integer key
+    integer shift
+    integer refresh
+    sequence lRect
+
+    -- clear refresh flag
+    refresh = 0
+    key = parms[1]
+    shift = parms[2]
+
+    -- key: up
+    if key = VK_UP then
+        -- don't scroll past top
+        if topLine > 1 then
+            -- move
+            topLine = topLine - 1
+            -- set redraw flag
+            refresh = 1
+        end if
+
+    -- key: down
+    elsif key = VK_DOWN then
+        -- don't move past end
+        if topLine < length( fText ) then
+            -- move
+            topLine = topLine + 1
+            -- set redraw flag
+            refresh = 1
+        end if
+
+    -- key: page up
+    elsif key = VK_PAGEUP then
+        -- don't move if at top
+        if topLine > 1 then
+            -- move
+            topLine = topLine - 20
+
+            -- too far?
+            if topLine < 1 then
+                -- clip
+                topLine = 1
+            end if
+
+            -- set redraw flag
+            refresh = 1
+        end if
+
+    -- key: page down
+    elsif key = VK_PAGEDOWN then
+
+        if topLine < length( fText ) then
+            topLine = topLine + 20
+            if topLine > length( fText ) then
+                topLine = length( fText )
+            end if
+            refresh = 1
+        end if
+
+    -- key: home
+    elsif key = VK_HOME then
+        -- don't move if already there
+        if topLine > 1 then
+            -- move
+            topLine = 1
+            -- set redraw flag
+            refresh = 1
+        end if
+
+    -- key: end
+    elsif key = VK_END then
+        -- don't move if already there
+        if topLine < length( fText ) then
+            -- move
+            topLine = length( fText )
+            -- set redraw flag
+            refresh = 1
+        end if
+
+    end if
+
+    -- is redraw flag set?
+    if refresh then
+        -- trigger an onPaint event
+        lRect = getClientSize(self)
+        drawColorText( lRect[3], lRect[4])
+        repaintFG( self )
+    end if
+
+
+end procedure
+registerRoutine("KeyDown_TextWindow", routine_id("KeyDown_TextWindow"))
+
+-----------------------------------------------------------------------------
+procedure Paint_TextWindow( integer self, integer event, sequence parms )
+
+    -- redraw the window
+    copyBlt(self,0,0,Canvas)
+
+end procedure
+registerRoutine("Paint_TextWindow", routine_id("Paint_TextWindow"))
+
+-----------------------------------------------------------------------------
+procedure Resize_TextWindow( integer self, integer event, sequence parms )
+    sequence lRect
+
+    lRect = getClientSize(self)
+    setCtlSize(Canvas, lRect[3], lRect[4])
+    -- redraw the window
+    drawColorText( lRect[3], lRect[4]-charHeight)
+    repaintFG(self)
+
+end procedure
+registerRoutine("Resize_TextWindow", routine_id("Resize_TextWindow"))
+
+-----------------------------------------------------------------------------
+procedure Open_TextWindow( integer self, integer event, sequence parms )
+    -- use fixed width font
+
+    setFont( Canvas, "Courier New", 10, Normal )
+    charHeight = getTextHeight(Canvas, "|")
+    charWidth = getTextWidth(Canvas, "M")
+    lFileName = command_line()
+    lFileName = lFileName[2]
+    if match(".exw", lower(lFileName)) = 0 then
+        lFileName &= ".exw"
+    end if
+    showMessage(lFileName)
+    fText = readFile( lFileName )
+
+    BuildSegments()
+
+end procedure
+registerRoutine("Open_TextWindow", routine_id("Open_TextWindow"))
+
+include w32Start.ew
+

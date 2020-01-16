@@ -1,0 +1,33 @@
+
+without warning
+include win32lib.ew
+
+integer Main_window, Horizontal_trackbar , hs, vs, Vertical_trackbar
+
+procedure on_horizontal_trackbar_scroll (integer id,
+    integer event, sequence params)
+    ? id & params
+end procedure
+
+procedure main_test ()
+    Main_window = create (Window, "trackbar scroll event bug",
+        0, 0, 0, 300, 300, WS_SCROLLBARS)
+    Horizontal_trackbar = create (HTrackBar, "",
+        Main_window, 0, 0, 200, 50, 0)
+    hs = create (HScroll, "",
+        Main_window, 0, 100, 200, 20, 0)     
+    Vertical_trackbar = create (VTrackBar, "",
+        Main_window, 210, 10, 40, 200, 0)
+    vs = create (VScroll, "",
+        Main_window, 250, 10, 20, 200, 0)     
+    setScrollRange(Horizontal_trackbar, -30, 30)
+    setScrollRange(Vertical_trackbar, 3, 150)
+    setScrollRange(hs, 1, 100)
+    setScrollRange(vs, 1, 100)
+    setHandler ({Vertical_trackbar, vs, Horizontal_trackbar,hs,Main_window}, w32HScroll,
+        routine_id ("on_horizontal_trackbar_scroll"))
+end procedure
+
+main_test ()
+WinMain (Main_window, Normal)
+

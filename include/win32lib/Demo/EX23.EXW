@@ -1,0 +1,48 @@
+-- ex23.exw
+--
+-- This show a customized 'Save As' dialog
+
+include win32lib.ew
+without warning
+
+-- Create the window
+createForm({
+"MainWin, Save file as example,left=Center,top=Center,width=200,bars=status",
+"Button, Save as..."
+         } )
+
+-----------------------------------------
+function MySaveFile(sequence Title, sequence SuggestedName, sequence DefExtention)
+    atom lOfn
+    sequence fName
+    integer fNamePtr
+    integer fExtPtr
+
+    lOfn = buildDefaultOfn(0, SuggestedName, {"All Files","*.*"},
+        or_bits(OFN_OVERWRITEPROMPT, OFN_HIDEREADONLY))
+    store(lOfn, ofnDefExt, DefExtention)
+    store(lOfn, ofnTitle, Title)
+    if w32Func(xGetSaveFileName, {lOfn}) then
+        -- get the name
+        fName = fetch( lOfn, ofnFile )
+        fNamePtr = fetch( lOfn, ofnFileOffset)
+        fExtPtr = fetch( lOfn, ofnFileExtension)
+    else
+        fName = ""
+        fNamePtr = 0
+        fExtPtr = 0
+    end if
+    w32release_mem(lOfn)
+
+    return {fName, fNamePtr, fExtPtr}
+end function
+
+procedure Click_Saveas(integer self, integer event, sequence parms)
+    sequence lResult
+
+    lResult = MySaveFile("New", "sample.eee", "txt")
+    showMessage(sprintf("%s (%d,%d)", lResult))
+end procedure
+registerRoutine("Click_Saveas", routine_id("Click_Saveas"))
+
+include w32Start.ew

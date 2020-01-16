@@ -1,0 +1,9 @@
+include win32lib.ew
+without warning
+
+constant w = create(Window, "MLE Test", 0, 0, 0, 400, 300, 0),
+         m = create(MleText, "", w, 10, 10, 200, 200, 0)
+         
+setText(m, "Line 1\nLine 2\nLine 3")
+
+WinMain(w, Normal)         

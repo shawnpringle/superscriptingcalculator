@@ -1,0 +1,25 @@
+without warning
+include win32lib.ew
+constant 
+    win = create(Window, "test", 0, Default, Default, 400, 200, 0),
+    edit = create(RichEdit, "", win, 10, 50, 300, 100, 0),
+    btn = create(PushButton, "Test", win, 10, 10, 80, 20, 0)
+    
+--content is taken from an rtf file verbatim, apart from adding extra backslashes.
+constant content = "{\\rtf1\\ansi\\ansicpg1252\\deff0\\deflang3081{\\fonttbl{\\f0\\fswiss\\fcharset0 Arial;}}\n" &
+"\\viewkind4\\uc1\\pard\\f0\\fs22 hello\\fs20\\par\n"&
+"this\\par\n"&
+"is\\par\n"&
+"a\\par\n"&
+"multi\\par\n"&
+"line\\par"&
+"\\b test.\\b0\\par\n}"
+
+procedure testproc(integer ID, integer Event, object params)
+repaintWindow(win)
+setText(win, getSelectedText(edit) )
+end procedure
+
+setHandler(btn, w32HClick, routine_id("testproc") )
+putStream( edit, StreamRTF, content )
+WinMain(win, Normal)

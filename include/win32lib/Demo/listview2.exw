@@ -1,0 +1,30 @@
+without type_check
+include Win32Lib.ew
+
+without warning
+with trace
+--with profile
+--------------------------------------------------------------------------------------------------------------
+constant Window1 = createEx( Window, "", 0, 0, 0, 0.999, 0.9, 0, 0 )
+constant ListView1 = createEx( ListView, 
+{{"Count",100,0},{"Phrases",2000,0}},Window1,0, 0 ,0.99, 0.9,or_all({LVS_REPORT,LVS_SHOWSELALWAYS}),0)
+
+
+sequence texto
+object bla
+
+setLVStyle(ListView1, {LVS_EX_CHECKBOXES,LVS_EX_FULLROWSELECT})
+texto = ""
+for i = 1 to 30 do
+    texto &= "1234567890"
+end for
+bla = addLVItem( ListView1, 0, {"",texto})
+
+texto = ""
+
+texto = getLVItemText(ListView1,1,2)  
+setText(Window1, {"Item has %d chars", length(texto)})
+WinMain( Window1,Normal )
+
+
+

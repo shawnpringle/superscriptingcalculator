@@ -1,0 +1,20 @@
+These are constants which can be used to trap events, and some related routines.
+
+const onActivate()   Occurs for Windows only and after the window is opened. 
+const onChange()   Value in a control is changed. 
+const onClick()   Invoked when the left mouse button is 'clicked' or a Button control is used. 
+const onClose()    A Window is closed. 
+const onDestroy()   The application is being closed. 
+const onDragAndDrop(int id, seq data_or_file_name )  Something has been dragged onto the control or window. 
+const onEvent(atom event, atom wParam, atom lParam )   An event (any type) has occured. 
+const onGotFocus()    A control (or Window) receives focus. 
+const onKeyDown(int keyCode, int shift )   Key is pressed. 
+const onKeyPress(int keyCode, int shift )   "Printable" key is pressed. 
+const onKeyUp(int keyCode, int shift )   Key is released. 
+const onLostFocus()    A Window or control loses focus. 
+const onMouse(int event, int x, int y, int shift )   Event triggered when a mouse action takes place. 
+const onOpen()    A Window is opened. 
+const onPaint(int x1, int y1, int x2, int y2 )    A portion or all of a Window needs to be redrawn. 
+const onResize(int style, int x, int y )    A Window is resized. 
+const onScroll(int position )   Scrollbar value has changed. 
+const onTimer()   A timer is triggered. 

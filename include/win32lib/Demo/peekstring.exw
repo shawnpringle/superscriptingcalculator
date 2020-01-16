@@ -1,0 +1,32 @@
+without warning
+include std/machine.e
+include win32lib.ew
+
+integer Win, TPath, Btn
+
+Win = create(Window, "Temporary File Path", 0, 0,0, 400, 200, 0)
+TPath = create(SleText, "NOTHING HERE YET", Win, 10, 10, 350, 25, 0)
+Btn  = create(Button, "Get Path", Win, 10, 55, 100, 25, 0)
+
+
+procedure Click_Btn(integer self, integer event, sequence parms)
+    atom addr
+    sequence temp_path
+    integer len
+ 
+    len = 255
+    addr = allocate(len)
+
+    if w32Func(xGetTempPath, {len, addr}) then
+        temp_path = w32peek_string(addr)
+    else
+        temp_path = ".\\"
+    end if
+
+    free(addr)
+
+    setText(TPath, temp_path)
+end procedure
+setHandler(Btn, w32HClick, routine_id("Click_Btn"))
+
+WinMain( Win, Normal)

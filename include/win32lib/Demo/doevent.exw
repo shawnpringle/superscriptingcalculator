@@ -1,0 +1,89 @@
+-- DoEvents example by Tone Skoda.
+include win32lib.ew
+without warning
+
+integer Main_window,
+        Instructions,
+        UpDown
+        
+integer closing
+integer direction direction = 1      
+integer counter   counter = 1
+
+Main_window = createEx(Window, "doEvents(0) Bug", 0, Default, Default, 400, 120, 0,0)
+Instructions = createEx(LText, "Press the CLOSE button to stop",
+                          Main_window, 5, 5, 360, 25, 0, 0)
+UpDown = createEx(Button, "Decrease", 
+                          Main_window, 5, 35, 360, 35, 0, 0)
+
+-------------------------------------
+procedure DoCounting()
+-------------------------------------
+    -- Initialise stuff
+    closing = 0
+                   
+    -- Keep counting until the close button pressed.
+    while not closing do
+        setText (Main_window, sprintf ("%d", counter))
+        counter += direction
+        
+        -- See if there are any windows events to deal with,
+        -- like the user pressing the close button.
+        doEvents (0)
+    end while
+end procedure
+
+-------------------------------------
+procedure Activate_Main_window(integer self, integer event, sequence parms)
+-------------------------------------
+    -- Start the counting loop.
+    DoCounting()
+end procedure
+
+-------------------------------------
+procedure Close_Main_window(integer self, integer event, sequence parms)
+-------------------------------------
+    -- Count the number of times the close button pressed.
+    closing += 1
+    
+    -- If this is the first time, then issue a warning
+    -- and reject this close attempt.
+    if closing = 1 then
+        setText(Main_window, "Okay, so you want to stop. Press CLOSE again.")
+        setText (UpDown, sprintf ("Last number reached: %d", counter))
+        -- Tells windows to ignore the close attempt.
+        returnValue(-1)
+    end if
+    
+end procedure   
+
+-------------------------------------
+procedure Click_UpDown(integer self, integer event, sequence parms)
+-------------------------------------
+    -- If I'm currently increasing then change to decrease, and visa versa.
+    if direction > 0 then
+        direction = -1
+        setText(self, "Increase")
+    else
+        direction = 1
+        setText(self, "Decrease")
+    end if
+              
+    -- If the close button has been pressed just the once, 
+    -- restart the counting loop.
+    if closing = 1 then
+        DoCounting()
+    end if
+end procedure
+             
+-- Set up what to do when the Close button is pressed.
+setHandler(Main_window, w32HClose, routine_id ("Close_Main_window"))
+
+-- Set up what to do when the window is first opened.
+setHandler(Main_window, w32HActivate, routine_id ("Activate_Main_window"))
+
+-- Set up what to do when the Up/Down button is pressed.
+setHandler(UpDown, w32HClick, routine_id ("Click_UpDown"))
+
+-- Start the App running.
+WinMain (Main_window, Normal)

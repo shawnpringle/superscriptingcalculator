@@ -1,0 +1,104 @@
+-- drawing2.exw
+-- by Roland Stowasser
+
+include Win32lib.ew
+without warning
+constant PolyTime = 2000
+
+integer vSpeed vSpeed = 100
+integer vRed vRed = 255
+integer vGreen vGreen = 255
+integer vBlue vBlue = 255          
+atom    vBGColor vBGColor = 0
+integer vMinimum vMinimum = 4
+integer vMaximum vMaximum = 20
+
+-- Controls
+integer WndMain
+integer BtnStart
+                    
+procedure Polygon()
+integer z
+sequence size, points
+integer height, width
+
+     z = rand(vMaximum)+vMinimum
+
+     size = getClientSize(WndMain)
+     height = size[4]
+     if height < 1 then
+        height = 1
+     end if
+     width  = size[3]
+     if width < 1 then
+        width = 1
+     end if
+
+     -- define array
+     points = {}
+
+     -- fill array
+     for a = 1 to z do
+         points &= rand(width)
+         points &= rand(height)
+     end for
+     
+     setPenColor( WndMain, rgb(rand(vRed),rand(vGreen),rand(vBlue)))
+     drawPolygon( WndMain, w32True, points)
+
+end procedure
+
+procedure Redraw_Pattern()
+     setBackColor(WndMain, vBGColor)
+     repaintWindow(WndMain)
+
+end procedure
+
+procedure WndMain_onClose (integer self, integer event, sequence params)
+     killTimer ( WndMain, PolyTime )
+end procedure
+
+procedure WndMain_onPaint (integer self, integer event, sequence params)
+     Polygon()
+     Polygon()
+     Polygon()
+end procedure
+
+procedure WndMain_onResize (integer self, integer event, sequence params)
+    Redraw_Pattern()
+end procedure
+
+procedure WndMain_onTimer (integer self, integer event, sequence params)
+    Redraw_Pattern()
+end procedure
+
+procedure BtnStart_onClick (integer self, integer event, sequence params)
+    if equal( getText(self), "Start") then
+        setTimer ( WndMain, PolyTime, vSpeed )
+        setText(self, "Stop")
+        Redraw_Pattern()
+    else        
+        killTimer ( WndMain, PolyTime )
+        setText(self, "Start")
+    end if
+end procedure
+
+
+function AppInit()
+    WndMain = createEx( Window, "Art Gallery", 0, Default, Default, 
+                    400, 300, 0, 0 )
+    BtnStart = createEx( PushButton, "Start", WndMain, 8, 8, 
+                    88, 28, 0, 0 )
+    
+    setHandler( WndMain, w32HPaint, routine_id("WndMain_onPaint"))
+    setHandler( WndMain, w32HClose, routine_id("BtnStart_onClose"))
+    setHandler( WndMain, {w32HResize,w32HClick}, routine_id("WndMain_onResize"))
+    setHandler( WndMain, w32HTimer, routine_id("WndMain_onTimer"))
+    setHandler( BtnStart, w32HClick, routine_id("BtnStart_onClick"))
+    return 0
+end function    
+
+if AppInit() = 0 then
+    WinMain( WndMain,Normal )
+end if    
+

@@ -1,0 +1,122 @@
+--  WalkDir: list all directories and files in a directory
+
+--  Dan Moyer  September 10, 2000
+
+--  Uses "walk_dir" *twice*; first to put into a list just the *files* 
+--  (not the directories)in the target directory; then used again to
+--  recursivly put all the directories and all their files in the same list
+
+
+--    "walk_dir" has two parts: the "walk_dir" function which 
+--	walks through a directory (or all subs, depending on last parameter:
+--	0 is just the named directory, 1 is recurse through all sub d's);
+--    and an associated USER CREATED FUNCTION which handles the results
+--	of the walk through. walk_dir links to the user supplied function
+--    with a statement like this:
+--    exit_code = walk_dir(TargetDirectory, routine_id("UsersFunction"), 0)
+--    of course, the user supplied function must reside ABOVE the walk_dir
+--    that calls it.  And you can use more than one walk_dir, to call more
+--    than one routine to do different things.
+
+--  REQUIRES "file.e" to be included (is already included in Win32Lib)
+
+--  RETURNS AS ELEMENTS OF ItemEntry: 
+--  		 D_NAME, D_ATTRIBUTES, D_SIZE, D_YEAR, D_MONTH,	D_DAY,
+--		 D_HOUR, D_MINUTE, D_SECOND
+
+--  eg, ItemEntry[D_NAME] contains a filename,
+--  and an attribute "d" signifies a directory
+
+
+without warning
+include std/filesys.e
+include win32lib.ew
+
+if setAppName("WalkDir") then abort(0) end if
+
+----------------------------------------------------------------
+--  DEFINE WHAT DIRECTORY TO LOOK AT:
+object TargetDirectory    
+TargetDirectory = getenv("WINDIR") -- gets pathname for Windows directory
+
+------------------------------------------------------------------
+-- CREATE THE WINDOW:
+constant 
+TheWindow   = create( Window, "Find all directories and files in Euphoria directory", 0, 100, 20, 640, 480, 0 )
+
+-- CREATE A BUTTON:
+constant ListAll = create( DefPushButton, "List All", TheWindow, 10, 10, 120, 30, 0 ),
+         DoSub   = create( CheckBox, "Subdirs?", TheWindow, 135, 10, 120, 30, 0),
+         DirName = create( EditText, TargetDirectory, TheWindow, 260, 10, 370, 30, 0)
+
+
+-- CREATE A LISTBOX TO PUT DIRECTORY INFO INTO:
+constant List1 = create( List, "", TheWindow, 40, 50, 550, 340, 0 )
+
+
+integer Stopped
+Stopped = 0
+-----------------------------------------------------------------------
+-- SET THE FONT STYLES IN THE BUTTON & LIST:
+setFont( ListAll, "Times New Roman", 12, Bold )
+setFont( List1, "Arial", 10, Normal )
+--------------------------------------------------------------------------
+--  ROUTINES:
+-------------------------------------------------------------------------
+
+-- NEXT, SHOWS ALL DIRECTORIES UNDER TOP DIRECTORY, AND ALL FILES IN THEM:
+function ShowFilesAndDirs(sequence path_name, sequence ItemEntry)
+sequence DirMarker
+
+    -- Let Windows get a chance.
+    doEvents(0)
+
+-- SET A MARKER TO SHOW IN LIST IF FOUND A DIRECTORY:
+  if equal(ItemEntry[D_ATTRIBUTES], "d") then
+     DirMarker = "\\"
+  else
+     DirMarker = ""
+  end if
+
+--  PUT EACH ITEM INTO A LISTBOX:
+   addItem( List1, path_name & "\\" & ItemEntry[D_NAME] & DirMarker )
+   return Stopped  -- keep going (return a non-zero to stop it)
+end function
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+--  CALLS THE ABOVE TWO FUNCTIONS, TO SHOW ALL FILES IN TARGET DIRECTORY
+--  AND ALL DIRECTORIES UNDER IT & THEIR FILES:
+with trace  
+procedure onClick_ListAll(integer self, integer event, sequence parms)
+integer exit_code
+sequence labeltext
+
+    if equal(getText(ListAll), "Stop") then
+        Stopped = 1
+        return
+    end if
+    
+    eraseItems(List1)
+    Stopped = 0
+    setText(ListAll, "Stop")
+    TargetDirectory = getText(DirName)
+-- shows all directories (& the files in them) under TargetDirectory
+--  (enabled by the "1" at end, in combination with its linked function): 
+    exit_code = walk_dir(TargetDirectory, routine_id("ShowFilesAndDirs"),
+          isChecked(DoSub) )
+
+    if exit_code != 2 then
+        setText(ListAll, "List All")
+    end if
+
+end procedure
+setHandler(ListAll, w32HClick, routine_id( "onClick_ListAll" ))
+
+procedure Close_TheWindow(integer self, integer event, sequence parms)
+    Stopped = 2
+    doEvents(0)
+end procedure
+setHandler(TheWindow, w32HClose, routine_id( "Close_TheWindow" ))
+
+--=============================================================
+WinMain( TheWindow, Normal )

@@ -1,0 +1,12 @@
+-- StatBar1.exw
+--
+-- puts a simple status bar into a window
+without warning
+include win32lib.ew
+
+constant SimpleWin =  create( Window, "Simple Status Bar", 0, 0, 0, 300, 100, 0 ),
+-- The status bar:
+GStatus = create( StatusBar, "Ready", SimpleWin, 0, 0, 0, 0, 0 )
+
+WinMain( SimpleWin, Normal)
+

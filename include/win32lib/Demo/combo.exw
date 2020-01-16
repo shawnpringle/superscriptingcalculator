@@ -1,0 +1,108 @@
+include win32lib.ew
+without warning
+
+constant
+    Win     = create(Window,"Test Combo", 0, 0, 0, 250, 200,0),
+    Stat    = create(StatusBar,"",Win , 0,0,0,0,0),
+    Lbl1    = create(LText, "&Items", Win, 10, 10, 100, 20,0),
+    Cmbo    = create(SortedCombo,"", Win, 10, 40, 100,190, 0),
+    ABtn    = create(PushButton,"&Add To List", Win, 130,10,92,20,0),
+    DBtn    = create(PushButton,"&Delete", Win, 130,35,92,20,0),
+    ItemCnt = create(LText, "&Test", Win, 130, 60, 110, 20, 0)
+
+
+-- Add an item, if its not already there.
+procedure onClick_ABtn(integer self, integer event, sequence parms)
+    sequence ctxt
+    integer lpos
+
+    -- Get the text to add.
+    ctxt = getText(Cmbo)
+    if length(ctxt) > 0 then
+        -- See if its already in the list.
+        lpos = findItem(Cmbo, ctxt, 1)
+        if lpos = 0 then
+            --No, so add it.
+            addItem(Cmbo, ctxt)
+            setText(Stat, sprintf("Added: '%s'", {ctxt}))
+            -- Update display of item count
+            setText(ItemCnt, sprintf("Items: %d", getCount(Cmbo)))
+            -- Return focus to Combo
+            setFocus(Cmbo)
+        else
+            setText(Stat,sprintf("Already in list: '%s'", {ctxt}))
+        end if
+    else
+        -- Nothing to add.
+        setText(Stat,"Please enter something to add.")
+    end if
+
+end procedure
+
+-- Delete an item.
+procedure onClick_DBtn(integer self, integer event, sequence parms)
+    sequence ctxt
+    integer lpos, lcnt , ldel
+
+    -- Get text to delete.
+    ctxt = getText(Cmbo)
+    if length(ctxt) > 0 then
+        -- See if its in the list.
+        lpos = findItem(Cmbo, ctxt, -1)
+        if lpos != 0 then
+            -- Yes, so delete it.
+            -- First, get how many items currently exist.
+            lcnt = getCount(Cmbo)
+            -- Next, delete the item.
+            ldel = deleteItem(Cmbo, lpos)
+            setText(Stat, sprintf("Deleted: '%s'", {ctxt}))
+            -- Update the item count display
+            setText(ItemCnt, sprintf("Items: %d", lcnt-1))
+            -- Now adjust the 'current' item index
+            -- If there was more than one item
+            if lcnt != 1 then
+                -- and I just deleted the last one
+                if lpos = lcnt then
+                    -- set the current to the new last item
+                    -- otherwise keep the current index
+                    lpos -= 1
+                end if
+                setIndex(Cmbo,lpos)
+            else
+                -- I just deleted the remaining item, so clear the display.
+                setText(Cmbo,"")
+            end if
+        else
+            setText(Stat,sprintf("Not in list: '%s'", {ctxt}))
+        end if
+    else
+        setText(Stat,"Enter the item to delete.")
+    end if
+end procedure
+
+-- Handler special keys in the combo.
+procedure keytrap(integer self, integer event, sequence parms)
+    if parms[1] = VK_ESCAPE then
+        -- Move to the first item.
+        setIndex(Cmbo,1)
+    elsif parms[1] = VK_ENTER then
+        -- Ignore the Enter key
+        returnValue(-1)
+    end if
+end procedure
+setHandler(getEdit(Cmbo), w32HKeyPress, routine_id("keytrap"))
+
+-- Show changes.
+procedure onChange_Cmbo(integer self, integer event, sequence parms)
+    setText(Stat, sprintf("%d, Selection '%s'", {event, getText(Cmbo)})  )
+end procedure
+
+setHandler(ABtn, w32HClick,  routine_id("onClick_ABtn"))
+setHandler(DBtn, w32HClick,  routine_id("onClick_DBtn"))
+setHandler(Cmbo, {w32HChange, w32HDropDown,w32HCloseUp}, routine_id("onChange_Cmbo"))
+
+addItem(Cmbo, {"Oranges","Pears","Bananas", "Mangoes","Pineapples","Rambutan"})
+setIndex(Cmbo, 1)
+setText(ItemCnt, sprintf("Items: %d", getCount(Cmbo)))
+
+WinMain(Win, Normal)

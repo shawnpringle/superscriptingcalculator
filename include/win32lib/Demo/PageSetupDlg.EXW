@@ -1,0 +1,36 @@
+-- PageSetupDlg
+-- Matt Lewis
+without warning
+include std/win32/msgbox.e
+include win32lib.ew
+
+constant
+Win = create( Window, "PageSetupDlg Demo", 0, CW_USEDEFAULT, CW_USEDEFAULT,
+        300, 300, 0),
+PS  = create( PushButton, "Page Setup", Win, 100, 100, 100, 30, 0 )
+
+function th( atom a )
+    return sprintf("%1.2f",a/1000 )
+end function
+
+procedure PS_onClick(integer self, integer event, sequence parms)
+    object page, x
+
+    page = getPageSetup()
+    if atom(page) then
+        return
+    end if
+
+    x = message_box( "Paper Size: " & th(page[1][1]) & " x " &
+                    th( page[1][2] ) & "\n" &
+                    "Margins:\n\n\t\tTop: " & th(page[2][2]) &
+                    "\n\n\tLeft: " & th(page[2][1]) &
+                    "\t\t\tRight: " & th(page[2][3]) &
+                    "\n\n\t\tBottom: " & th(page[2][4]),
+                    "Page Setup Details", MB_OK )
+
+end procedure
+setHandler(PS, w32HClick, routine_id( "PS_onClick" ))
+
+WinMain( Win, Normal )
+

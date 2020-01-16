@@ -1,0 +1,1 @@
+Move the folder this is contained in to your Programs Folder intact (with all subdirectories).  Euphoria 4.0 or higher must be installed and this is a Microsoft Windows program.

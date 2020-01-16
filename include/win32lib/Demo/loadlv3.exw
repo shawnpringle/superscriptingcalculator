@@ -1,0 +1,69 @@
+-- Demo of a user defined Notification Message Handler 
+
+object VOID
+include win32lib.ew
+include std/sort.e
+without warning
+--with trace
+constant w = createEx(Window,"test load", 0, 0, 0, 400, 0400, 0, 0),
+         lv = createEx(ListView, {"English","Digit", "Thai"}, w, 10, 10, 300, 150, LVS_REPORT , 0),
+         lv2 = createEx(ListView, {"English","Digit", "Thai"}, w, 10, 160, 300, 150, LVS_REPORT , 0)
+         
+             
+sequence theData theData = {}
+integer theDir theDir = 1
+
+theData = append(theData, {"One", "1", "neung"})
+theData = append(theData, {"Two", "2", "song"})
+theData = append(theData, {"Three", "3", "sam"})
+theData = append(theData, {"Four", "4", "si"})
+theData = append(theData, {"Five", "5", "ha"})
+theData = append(theData, {"Six", "6", "hok"})
+theData = append(theData, {"Seven", "7", "jet"})
+theData = append(theData, {"Eight", "8", "baht"})
+theData = append(theData, {"Nine", "9", "kow"})
+theData = append(theData, {"Ten", "10", "sip"})
+             
+
+loadLVInfo(lv, theData)
+loadLVInfo(lv2, theData)
+
+VOID = sendMessage(lv,LVM_SETTEXTCOLOR, 0, Green) 
+VOID = sendMessage(lv2,LVM_SETTEXTCOLOR, 0, Blue)
+
+integer oldval
+integer SORT_BY
+SORT_BY=0       
+
+function CS_byElement(sequence s1,sequence s2)
+    return compare(s1[SORT_BY],s2[SORT_BY])
+end function
+
+constant ByElement=routine_id("CS_byElement")
+
+function mylvclick(integer id, atom hWnd, atom wParam, atom lParam)
+  integer
+    lColumn,
+    lOwner
+
+    id = getId( fetch( lParam, NMHDR_hwndFrom ))  
+    if id = lv then
+        -- If top lv, then use my customer sorter.
+        lColumn = fetch( lParam, NMLISTVIEW_iSubItem ) + 1
+        SORT_BY=lColumn
+        theData=custom_sort(ByElement,theData)
+        VOID = sendMessage(id,WM_SETREDRAW,0,0)
+        loadLVInfo(id, theData)
+        VOID = sendMessage(id,WM_SETREDRAW,1,0)
+    elsif id = lv2 then
+        -- if bottom lv, use the built-in sorter.
+        return call_func(oldval, {id,hWnd,wParam,lParam})
+    end if
+
+    return kReturnNow
+end function 
+
+-- Tell win32lib about my handler for this type of message.
+oldval = setNotifyHandler( LVN_COLUMNCLICK, routine_id("mylvclick"))
+
+WinMain(w, 0)

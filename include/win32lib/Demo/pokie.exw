@@ -1,0 +1,142 @@
+---------------
+include win32lib.ew
+without warning
+
+integer IsLooping
+integer vPurse
+integer vPayOut
+
+
+integer vPurse_Fld
+integer vPayout_Fld
+integer vCard_Fld
+
+constant Patterns = {
+        {{3,3,3,3,3}, 160},
+        {{4,4,4,4}, 7},
+        {{1,1,1,1}, 8},
+        {{2,2,2,2}, 9},
+        {{3,3,3,3}, 10},
+        {{4,1,2,3}, 50},
+        {{3,2,1,4}, 50},
+        {{4,3,3}, 3},
+        {{4,1,2}, 2},
+        {{4,4,4}, 1}
+}
+------------------------------------------------
+procedure SpinWheels()
+------------------------------------------------
+    sequence lText
+    integer lChar
+    integer lPrevChar
+    integer lSize
+    integer lWinnings
+    atom lBet
+    sequence lPosWin
+    sequence lMsg
+    sequence lWinMsg
+    integer lPos
+    integer lNext
+    atom lTimer
+
+    lBet = 5
+    setText(vCard_Fld, "")
+
+    lMsg = ""
+    lWinMsg  = ""
+
+    IsLooping = w32True
+    lPosWin = repeat(0, 5)
+
+    lText = {rand(4),rand(4),rand(4),rand(4), rand(4)}
+    lNext = 0
+    lTimer = time() + 2
+    while IsLooping do
+        lPos = rand(length(lText)-lNext)
+        lText[lPos+lNext] = rand(4)
+        setText(vCard_Fld, lText + 166)
+        if time() >= lTimer then
+            lNext += 1
+            if lNext >= length(lText) then
+                exit
+            end if
+            lTimer = time() + 2
+        end if
+
+        doEvents(0)
+    end while
+
+    vPayOut = 0
+    for i = 1 to length(Patterns) do
+        lPos = match(Patterns[i][1], lText)
+        if lPos then
+            vPayOut = lPos * Patterns[i][2]
+            exit
+        end if
+    end for
+
+    if vPayOut = 0 then
+        lWinMsg = "Better luck next time."
+    elsif vPayOut > 99 then
+        lWinMsg = "BONUS!"
+    end if
+
+    vPurse += vPayOut
+    setText(vPurse_Fld, sprintf("$%d", vPurse))
+    setText(vPayout_Fld, sprintf("$%d %s", {vPayOut, lWinMsg}))
+end procedure
+
+------------------------------------------------
+global procedure Click_Action(integer self, integer event, sequence parms)
+------------------------------------------------
+    integer lAmount
+
+    if IsLooping = w32False then
+
+        if vPurse >= 1 then
+            vPurse -= 1
+            setText(vPurse_Fld, sprintf("$%d", vPurse))
+
+            showMessage( "Started")
+            setText(self, "&Stop")
+
+            SpinWheels()
+
+            setText(self, "&Start")
+            showMessage("Stopped")
+            IsLooping = w32False
+
+        else
+            showMessage("Sorry, but you have don't have enough more money left.")
+        end if
+    else
+        IsLooping = w32False
+    end if
+end procedure
+registerRoutine("Click_Action", routine_id("Click_Action"))
+
+global function main(sequence pArgs)
+
+    vPurse = 100
+    vPayOut = 0
+    IsLooping = w32False
+
+    createForm({
+        "Window, Pokie, at=(Center, Center), size=(300, 300), bar=status",
+        "Button, name=&Action, caption=&Start, at=( 20, 10), size=(60, 25)",
+        "EditText, name=Cards,  at=(20, 40), size=(150, 45), font=(Symbol, 24)",
+
+        "RText, Purse:,  at=(10, 160), size=( 80, 25)",
+        "LText, name=wn, caption=''$100'',at=(95, 160), size=(150, 25), flag=WS_BORDER",
+
+        "RText, Payout:, at=(10, 190),  size=(80, 25)",
+        "LText, name=po, caption=, at=(95, 190), size=(150, 25), flag=WS_BORDER"
+        })
+
+    vPurse_Fld = getNameId("wn")
+    vPayout_Fld = getNameId("po")
+    vCard_Fld = getNameId("Cards")
+    return 0
+end function
+
+include w32start.ew

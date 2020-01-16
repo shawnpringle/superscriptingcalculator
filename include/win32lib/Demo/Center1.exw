@@ -1,0 +1,8 @@
+-- Center1.exw
+--
+-- This opens a blank window, one quarter the size of the screen,
+-- centered in the screen.
+without warning
+include win32lib.ew
+createForm({"Window,Simple Window,at=(Center,Center),size=(0.25,0.25)"})
+include w32start.ew

@@ -1,0 +1,73 @@
+without warning
+include std/dll.e
+include Win32Lib.ew
+integer W
+sequence rect, imagesize
+integer Canvas 
+atom pic 
+
+
+procedure Draw_Image()
+    atom hwnd
+    integer top, left, right, bottom
+    integer VertInc
+    integer HorzInc
+                    
+    
+    -- Clear the canvas first.
+    setWindowBackColor(Canvas,Green)
+    
+    -- Show message
+    setTextColor(Canvas, Black)
+    wPuts({Canvas, 3,3}, "Click to change the image")
+    
+    -- This draws into the pixmap canvas area.
+    top = rand(floor(rect[4]/2)) + floor(rect[4]/4)
+    left = rand(floor(rect[3]/2)) + floor(rect[3]/4)
+    VertInc = rand(imagesize[2]*2)
+    HorzInc = rand(imagesize[1]*2)
+
+    bottom = rect[4] - imagesize[2]
+    right = rect[3] - imagesize[1]
+    while top < bottom and top > 0 and left < right and left > 0 do
+        transBlt(Canvas,left,top,pic)
+        top += imagesize[2]-VertInc
+        left += imagesize[1]-HorzInc
+    end while
+    
+    -- Force the window to be redrawn, without clearing it first.
+    hwnd = getHandle( W )
+    VOID = w32Func( xInvalidateRect, {hwnd, NULL, 0} )
+    VOID = w32Func(xSendMessage,{ hwnd, WM_PAINT, 0, 0 })
+    
+end procedure
+
+procedure Paint_W(integer self, integer event, sequence parms)
+    -- This copies the pixmap to the window whenever the window
+    -- needs refreshing.
+    copyBlt(self,0,0, Canvas)  
+end procedure
+
+procedure Click_W(integer self, integer event, sequence parms)
+    -- Draw a new image for the viewer's pleasure.
+    Draw_Image()
+end procedure                              
+
+procedure init()
+    W = create(Window,"Sprite Example", 0,0,0,800,600,0)
+    rect = getClientRect(W) 
+
+    Canvas = create(Pixmap,"",0, 0, 0, rect[3], rect[4], 0)
+    pic = loadBitmapFromFile("..\\demoresources\\sprite.bmp")
+    
+    imagesize = getCtlSize(pic)
+    setTransparentColor({0,0,0})
+    setHandler(W, w32HPaint, routine_id("Paint_W"))
+    setHandler(W, w32HClick, routine_id("Click_W"))
+    
+    Draw_Image()
+    WinMain(W,Normal)
+end procedure
+    
+init()
+

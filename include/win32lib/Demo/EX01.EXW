@@ -1,0 +1,32 @@
+-- ex01.exw v2.0 03/Sep/2003
+-- This demo program opens a (small) blank window.
+
+-- Use the library
+without warning
+include std/text.e
+include win32lib.ew
+
+
+-- Create a window and get it's ID.
+createForm({
+            "Basic Window : " & getUserName()    -- The window's name (and default caption)
+            }
+         )
+
+
+with trace
+procedure onKeyDown_MainWin(integer self, integer event, sequence parms)
+    integer key
+    integer shift
+    if parms[1] = WM_SYSCHAR then
+    trace(1)
+    key = parms[2]
+
+    if lower(key) = 'a'
+      then
+       event = 1
+   end if
+   end if
+end procedure
+setHandler(Screen, w32HEvent, routine_id("onKeyDown_MainWin"))
+include w32start.ew

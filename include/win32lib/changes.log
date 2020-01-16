@@ -1,0 +1,319 @@
+Win32lib v0.70.20 restructured
+
+Release 2 (2014-11-02)
+======================
+
+Corrected Win32Lib HTML Help files
+- loadForms does not exist. The correct function name is loadForm (without final s)
+  global function loadForm(sequence pName)
+- Partially added 3 degraded functions not documented
+  global function struct_SYSTEMTIME( integer year, integer month,
+  global function struct_TVHITTESTINFO( integer x, integer y, integer flags, atom hItem )
+  global function struct_PARAFORMAT(atom dwMask, integer wNumbering,
+  
+Switched internal functions to local instead of global
+  w32common.ew:function w32CurrentStructure()
+  w32common.ew:function w32NextStructure()
+  win32lib.ew:function UseColor(atom x)
+  win32lib.ew:function getTransparentColor()
+  win32lib.ew:procedure autoclose(integer self, integer event, sequence parms)
+  win32lib.ew:procedure ResolveDeferredHandlers()
+  
+Moved function from w32common.ew to win32lib.ew
+  w32common.ew:public function getLastError()
+
+Extracted many unused functions which are not referred to in the HTML documentation (w32trash.e)
+  SEQOP.E:global function read_file(sequence name)
+  SEQOP.E:global function remove_less_than(sequence seq, integer index)
+  SEQOP.E:global function remove_greater_than(sequence seq, integer index)
+  SEQOP.E:global function remove(sequence seq, object index)
+  SEQOP.E:global function remove_subscripts(sequence seq, object o)
+  SEQOP.E:global function members(sequence seq)
+  SEQOP.E:global function replace_all(sequence seq, object o1, object o2)
+  win32lib.ew:global function Current_Directory()
+  win32lib.ew:global procedure LimitText(integer id, integer pSize )  -- calls limitText
+  win32lib.ew:procedure Set_Directory(sequence x)
+  win32lib.ew:global procedure setSize(integer win, object w, object h)
+  win32lib.ew:function readXpm( sequence fName )
+  win32lib.ew:function setTooltipTimings(integer id,object timings)
+  win32lib.ew:procedure wDebug(sequence pData)
+  win32lib.ew:procedure w32release_all_mem()
+  w32common.ew:global function abs( object a )
+  w32common.ew:global function acquire_mem( atom pOwner, object pData )
+  w32common.ew:global function allot( object pDataType )
+  w32common.ew:global function allotted_handle(sequence pHandle)
+  w32common.ew:global function allotted_sofar()
+  w32common.ew:global function allotted_size()
+  w32common.ew:global function new_memset()
+  w32common.ew:global procedure manage_mem( atom pOwner, atom pAddr )
+  w32common.ew:global procedure release_all_mem()
+  w32common.ew:global procedure release_mem( atom pData )
+  w32common.ew:global function llSetAbort(integer i)
+  w32common.ew:global function get_bits(atom b32)
+  w32common.ew:global function signed_word( atom a )
+  w32common.ew:global function pack_word( integer low, integer high )
+  w32common.ew:global function lo_word( atom pData)
+  w32common.ew:global function hi_word( atom pData)
+  w32common.ew:global function shortInt( atom i )
+  w32common.ew:global function TextToNumber( sequence text)
+  w32common.ew:global function findKey( object key, sequence list )
+  w32common.ew:global function removeIndex( integer index, sequence list )
+  w32common.ew:global function removeItem( object item, sequence list )
+  w32common.ew:global function peek_string(atom a)
+  w32common.ew:global function address( atom addr, object offset )
+  w32common.ew:global function split(sequence pSource, object pDelim)
+  w32common.ew:global function lookup(object pItem, sequence pSource, sequence pTarget)
+  w32common.ew:global function CType( integer pChar, object pSet)
+  w32common.ew:global function GetCType( object pChar)
+  w32common.ew:global procedure SetCType( object pChar, object pSet)
+  w32common.ew:global type int(object x)
+  w32common.ew:global type seq(object x)
+  w32common.ew:global function trim(sequence pSource)
+  w32common.ew:global function iff( atom test, object ifTrue, object ifFalse )
+
+Release 1 (2014-10-30)
+======================
+
+Changed all euphoria include files to point to their std equivalent
+  example: replaced include file.e by include std/filesys.e
+
+Added one function ShellExec in win32lib.ew to get correct return codes because
+ShellExecute does not return original error codes
+
+Restructured include libraries to avoid cross calls:
+* before
+  37 include files
+  win32lib.ew includes routines from w32resources.ew
+  w32resources.ew includes routines from win32lib.ew
+
+* after
+  5 include files combined as described below (see also routines.doc):
+
+  1) w32common.ew includes routines from
+    w32version.ew
+    w32msgs.e
+        fCleanUp, fShowError, abortErr, warnErr, setWarning, attachCleanUp,
+        detachCleanUp, Init_UI_Msgs}
+    w32utils.e
+        w32removeIndex, removeFromCType, sanity_CType, setDecimalMark, w32abs,
+        w32average, w32bounds, w32CType, w32Encode, w32extract_formats,
+        w32findKey, w32findKeyEx, w32get_bits, w32GetCType, w32hi_word, w32iff,
+        w32index, w32index_by, w32insertElement, w32join, w32lo_word,
+        w32lookup, w32MaxWidth, w32MinSequenceSize, w32or_all, w32ordered_find,
+        w32pack_word, w32rand32, w32rectangle_delta, w32remainder,
+        w32removeItem, w32replaceItem, w32round, w32SetCType, w32shortInt,
+        w32signed_word, w32split, w32string, w32TextToNumber, w32to_string,
+        w32ToString, w32trim, w32trim_left, w32trim_right, w32unpack_dword,
+        addToCType
+    SERIES.E
+        current_number, define_series, get_series, next_number
+    w32def_series.ew
+        w32CurrentStructure, w32NextStructure
+    w32memory.ew
+        addVirtualField, check_array, devirtualise, fetchArray, fetchSize,
+        getArrayCount, inner_fetch, internal_fetch, internal_store, isFieldOf,
+        l_SafePeek, l_SafePeek4s, l_SafePeek4u, l_SafePoke, l_SafePoke4,
+        setPreprocessDataIn, setStartWithSize, stdElemAddr, virtualise,
+        w32acquire_handle, w32address, w32allot, w32allotted_buffer,
+        w32allotted_handle, w32allotted_length, w32allotted_size,
+        w32allotted_sofar, w32buffer_address, w32buffer_length, w32copy_field,
+        w32copy_struct, w32define_this_struct, w32define_union, w32ElemAddr,
+        w32fetch, w32from_memory, w32from_memoryEx, w32handle_to_memory,
+        w32llSetAbort, w32peek_string, w32peek_string16, w32peek2,
+        w32poke_words, w32realise, w32release_handle, w32set_memory,
+        w32specialise, w32store, w32to_memory, w32to_memoryEx, vPermMemSet,
+        l_MyAllocate, l_MyFreeMem, w32manage_mem, w32release_mem,
+        virtualise_blank, w32acquire_mem, w32new_memset
+    w32DLL.ew
+        linkDLL, linkFunc, linkProc, registerw32Function, registerw32Library,
+        registerw32Procedure, w32Func, w32Proc
+    w32comctl.ew
+    w32user.ew
+    w32comdlg.ew
+    w32gdi.ew
+    w32Kernel.ew
+        getLastError
+    w32Shell.ew
+    w32ole.ew
+        OleInitialize, OleUninitialize
+    w32winmm.ew
+    w32winspool.ew
+    w32advapi.ew
+        getUserName
+    w32tk.e
+        abs, acquire_mem, address, allot, allotted_handle, allotted_size,
+        allotted_sofar, CType, fetch, findKey, get_bits, GetCType, hi_word, iff,
+        int, llSetAbort, lo_word, lookup, manage_mem, new_memset, or_all,
+        pack_word, peek_string, release_all_mem, release_mem, removeIndex,
+        removeItem, seq, SetCType, shortInt, signed_word, split, store,
+        TextToNumber, trim
+    w32structures.ew
+    w32Keys.e
+    w32constants.ew
+        w32NewClass, w32NumClasses
+    options.e
+        getOpt
+    rttext.e
+        FormatMsg, setUserLanguage, UseText
+
+
+  2) win32lib.ew includes routines from
+
+    win32lib.ew
+        getHandle, getId, getMainWindow, validId, activateTabItems, addDIB,
+        addEuBmp, addIcon, AddIconToImageList, addItem, addLVItem, addStyle,
+        addToBand, addTVItem, addXpm, adjustBrightness, adjustCreateFont,
+        adjustShift, alignControls, ansiLower, ansiUpper, appendText, arShift,
+        assignFont, attachMenuHandle, attachPopup, autoclose, autoSelect, Beep,
+        bmpToMask, canFocus, captureMouse, centerControl, charToIndex,
+        checkContainersForTabs, checkPopup, childenum, classAutoSelect,
+        classDefaults, clear, clearRecents, clearWindow, clickPointerLeft,
+        clientToClient, ClientToScreen, closeApp, closeWindow, collapseItem,
+        colorValue, controlStyle, convDimension, convPctToPixel, copy,
+        copyTVChildren, create, createEx, createMenu, createMenuBar,
+        createMenuItem, createMonochromeDIB, createMouseTrap, createPixmap,
+        createTabItem, createWindow, cut, decodeREfont, defineMenuRadioGroup,
+        defineUserProperty, DefProcessing, deleteItem, deleteLine,
+        deleteLVColumn, deleteMouseTrap, deleteTVChildren, deleteUserProperty,
+        destroy, DetermineMainWindow, disableControlSet, distributeControls,
+        doEvents, dragPointerTo, drawText, drop_monitor, enableControlSet,
+        enableHandler, enableMouseTrap, eraseItems, eventLoop, expandItem,
+        expandTV, extractIcon, fDoBkGndErase, fDoCBEN_ENDEDIT, fDoChar,
+        fDoClose, fDoCommand, fDoCtlColor, fDoDestroy, fDoDestruction,
+        fDoDLGCODE, fDoDropFiles, fDoFindReplace, fDoKeys, fDoKillFocus,
+        fDoLVN_BEGINDRAG, fDoLVN_COLUMNCLICK, fDoLVN_GETDISPINFO,
+        fDoLVN_ITEMCHANGED, fDoMCN_SELCHANGE, fDoMCN_SELECT, fDoMENUSELECT,
+        fDoMouse, fDoNM_CLICK, fDoNM_RCLICK, fDoNotify, fDoPaint,
+        fDoRBN_HEIGHTCHANGE, fDoScroll, fDoSetFocus, fDoSize,
+        fDoSysColorChange, fDoTBN_GETBUTTONINFO, fDoTBN_QUERYDELETE,
+        fDoTBN_QUERYINSERT, fDoTCN_SELCHANGE, fDoTCN_SELCHANGING, fDoTimer,
+        fDoTTN_GETDISPINFO, fDoTVN_BEGINDRAG, fDoTVN_DELETEITEM,
+        fDoTVN_GETDISPINFO, fDoTVN_SELCHANGED, fDoUDN_DELTAPOS, fillRectangle,
+        filterMouseTrap, findChildren, findItem, findMenuBreaks, findParent,
+        findParentWindow, findText, findWindow, finishAppInternal, formatDate,
+        get_effects, get_proc_w32address, getActiveWindow, getAppName,
+        getAppState, getCaption, getCharacterAt, getCharacterCount,
+        getCharacterPosition, getCharExtent, getChildren, getClassName,
+        getClientPoint, getClientRect, getClientSize, getClipboard,
+        getColorDialog, getColumnHeadings, getControlInfo, getCount,
+        getCtlSize, getData, GetDefaults, getEdit, getFindText, getFocus,
+        getFontDialog, getFontDialogEx, getFontMetric, getFontSize, getFRText,
+        getHandler, getHandles, getHint, getHScrollPos, getHWND, getIdName,
+        getIndex, getItem, getKeyMasks, getKeyState, getLastMsg, getLEDs,
+        getLine, getLocalTime, getLVAllChecked, getLVAllText, getLVChecked,
+        getLVCount, getLVItem, getLVItemlParam, getLVItemText, getLVSelected,
+        getLVSelectedCount, getLVSelectedText, getMenuBar, getMenuPosn,
+        getMenuState, getMouseTrap, getMultIndices, getMultItems, getNameId,
+        getNameIdInContext, getNotificationData, getNumber, getParent,
+        getPointerPos, getPointerRelPos, getPosition, getRecent, getRect,
+        getReplaceText, getReturnValue, getRichText, getScrollChange,
+        getScrollPos, getScrollRange, getSelectedDate, getSelectedDateRange,
+        getSelectedText, getSelection, getSelectionFont, getSelf, getStream,
+        getStreamCallback, getStyleFlags, getSysColor, getSystemMetrics,
+        getSystemTime, getTabItem, getTagMouseTrap, getText, getTextExtent,
+        getTextHeight, getTextWidth, getThumbPos, getToday, getTVChildren,
+        getTVIndex, getTVitem, getTVParent, getTVSelectedText, getTVText,
+        getUserProperty, getValues, getVisibleLines, getVScrollPos,
+        getWheelScrollLines, getWindowInfo, getWindowRect, getWinVersion,
+        handleLV, hideControlSet, hitMouseTrap, hitTestLV, hitTestTT,
+        hitTestTV, idToIndex, ILAdd, ILAddIcon, ILAddMasked, indexToId,
+        indexToLine, IndicateDragging, InitCommonControls, initialize,
+        inMenuBar, insertItem, insertLVColumn, insertLVItem, insertMenu,
+        insertText, insertTextAt, Internal_expandTV, invokeHandler, isChecked,
+        isDropped, isEnabled, isHotKey, isMaximized, isMinimized,
+        isScreenPointIn, isTabKey, isTopLevelWindow, isVisible, killTimer,
+        libCleanUp, limitText, loadLVInfo, lvSortitems, makeFront,
+        makeStandardName, manageToolTip, menuCreate, MessageProcessor,
+        mixColors, moveZOrder, newColor, NewControl, newEvent, openDialog,
+        openWindow, parseImage, paste, playSound, popModal, popSelf, popup,
+        PrepareLVSort, print_format, pushModal, pushSelf, putStream,
+        putStreamCallback, queryFont, quitWindow, refreshWindow,
+        registerClass, registerControl, registerHotKey, registerMenu,
+        registerNotification, registerRoutine, registerTV, releaseAllResources,
+        releaseMouse, removeHandler, removeMenu, removeStyle, removeTVItem,
+        repaintFG, repaintRect, repaintWindow, resetFont, resetKeyboard,
+        resetReturnValue, resetUserProperty, resizeWidgets, returnValue, rgb,
+        ScreenToClient, sendMessage, setAcceleration, setAlignment, setAppName,
+        setAutoFocusLabels, setBackColor, setBackground, setBuddy, setBullet,
+        setCallback, setCheck, setClientRect, setClipboard, setColumn,
+        setColumnHeadings, setControlBlocks, setControlSet, setControlVisible,
+        setCreateFont, setCtlPosition, setCtlSize, setCursorInternal,
+        setDefaultProcessing, setDisableBg, setDragPointer, setEnable,
+        setEndAction, setErasePolicy, setEventLoop, setFindSel, setFocus,
+        setFont, setFRData, setFRMsgStrings, setHandler, setHandlerProtection,
+        setHint, setHintEx, setHintFont, setHintWidth, setHScrollPos, setId,
+        setIdle, setIdName, setImageList, setIndent, setIndex, setKbdInput,
+        setListHScroll, setLVAttr, setLVChecked, setLVImage, setLVInsert,
+        setLVItem, setLVItemEx, setLVItemlParam, setLVItemText, setLVStyle,
+        setMainWindow, setMaxDateRange, setMenuItemBitmaps, setMonthColor,
+        setMouseClick, setNotificationState, setNotifyHandler, setPaintPolicy,
+        setParent, setPenBkColor, setPenBkMode, setPenBrushColor, setPenColor,
+        setPenMode, setPenPos, setPenStyle, setPenWidth, setPixmap,
+        setPointerPos, setProtectedHandler, setReadOnly, setReBarAutoSizing,
+        setRecent, setREChangeNotification, setRect, setScrollChange,
+        setScrollPos, setScrollRange, setSelectedDate, setSelectedDateRange,
+        setSelectedText, setSelection, setSubFields, setSWStyle, setTabCodes,
+        setTabEnabled, setTabImage, setTabs, setTabStops, setTagMouseTrap,
+        setTCVisible, setText, setTextAlign, setTextColor, setTimer, setToday,
+        setToolBarSize, setTooltipTimings, setTVImages, setTVParent, setTVText,
+        setUserProperty, setVisible, setVScrollPos, setWindowBackColor,
+        setWindowRect, setWindowScrollRange, setWinMsgHandler, shellExec,
+        shellExecute, shellExecuteEx, showChars, showControlSet, showMessage,
+        showWindow, sizeControls, skipF10, startApp, statusbar_resize,
+        struct_LVCOLUMN, subClassControl, SubProc, tab_direction, textOut,
+        textRect, toggleItem, toolbar_resize, tv_release, undo, updateMouseTrap,
+        UseColor, useLogicalResolution, w32LastEventType, w32routine_id,
+        w32Sleep, wDebug, WinMain, wmCommand, WndProc, wPrint, wPrintf, wPuts,
+        zorderMouseTrap
+    w32file.ew
+        buildDefaultOfn, copyFile, createDirectory, deleteFile,
+        getCurrentDirectory, getFileInfo, getFullPathName, getOpenFileName,
+        getOpenFileNameEx, getPathFromIDList, getSaveFileName, getTempFile,
+        getTempPath, moveFile, selectDirectory, setCurrentDirectory,
+        setFileAttr, setSearchPaths, w32FileOpen, w32FindFile
+    w32forms.ew
+        createForm, extractArgs, getArgValue, getAutoSize, getDeferredHandlers,
+        getFormIds, loadForm, newUIObj, ResolveDeferredHandler,
+        ResolveDeferredHandlers, setDeferredHandlers, setRecent, setSWStyle,
+        w32MakeArgs
+    w32resources.ew
+        abortDoc, bitBlt, changeMousePointer, changePrinter, checkPrinter,
+        clean_release, codeToBytes, convPointsToLogical, copyBlt,
+        copyToBitmapFile, copyToTrueColorBitmapFile, createBitmap, createBrush,
+        createDIB, createMousePointer, createPen, default_printer_exit,
+        deleteObject, drawArc, drawBitmap, drawChord, drawEllipse, drawLine,
+        drawLines, drawPie, drawPolygon, drawRectangle, drawRoundRect, endDoc,
+        endPage, extractDC, EzCreateFont, findTrackedObject, floodFill, getDC,
+        getDefaultFontId, getDefaultPrinter, getDefaultPrinterName,
+        getFontPointSize, getIdFromDC, getPageSetup, getPageSetupEx, getPixel,
+        getPrintChoice, getPrinter, getPrinterName, getRandInt,
+        getTrackedObject, getTransparentColor, is_valid_printer,
+        isStockResource, loadBitmapFromFile, loadBitmapFromFile2, loadCursor,
+        loadIconFromFile, newPrinter, packScanLine, printRichText,
+        printRichTextPages, queryDevice, releaseAllResources, releaseDC,
+        releasePrinter, releaseResourcesForID, replaceObject, resetDC,
+        restoreMousePointer, restoreMousePointer_, setBitmap, setDefaultFont,
+        setFontWeight, setIcon, setMousePointer, setMousePointer_,
+        setPageMargins_9x, setPaperMargins_not9x, setPixel, setPrinterPointers,
+        setPrintJobProperty, setStartupFont, setTransparentColor, split_rgb,
+        startDoc, startPage, stretchBlt, textToBitmap, to_cursor, trackCursor,
+        trackObject, transBlt, updateHDC 
+    w32xpm.ew
+        convertToWords, createXpm, createXpmFromBmpFile, readXpm,
+        xpmConvertToNumber, xpmConvertToRGB, xpmToEuBmp, xpmToPixmap
+    compat01.ew
+        ClickPointerLeft, Current_Directory, DragPointerTo, getExtent,
+        getMousePos, getMouseRelPos, GetPointerPosn, getSize,
+        insertListViewColumn, LimitText, moveWindow, Set_Directory,
+        setPenPosition, setPenROP2, SetPointerPosn, setPosition, setSize
+    compat02.ew
+        fetch_CHARFORMAT, fetch_SYSTEMTIME, struct_CHARFORMAT, struct_CHARRANGE,
+        struct_EDITSTREAM, struct_FINDREPLACE, struct_FINDTEXTEX,
+        struct_GETTEXTEX, struct_LVBKIMAGE, struct_LVFINDINFO, struct_LVITEM,
+        struct_MENUITEMINFO, struct_PARAFORMAT, struct_REBARBANDINFO,
+        struct_SYSTEMTIME, struct_TEXTRANGE, struct_TOOLINFO,
+        struct_TVHITTESTINFO, struct_TVINSERTSTRUCT, struct_TVITEM,
+        w32release_all_mem
+
+  3) groupadv.ew, seqop.e and w32start.ew remain unchanged
+

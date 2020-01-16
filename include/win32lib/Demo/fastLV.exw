@@ -1,0 +1,146 @@
+include std/dll.e
+include std/sort.e
+without warning
+include win32lib.ew
+
+------------------------------------------------
+-- Controls IDs
+------------------------------------------------
+integer MainWin,
+        SB,
+        Viewer
+
+
+sequence vData   vData = {}
+integer vMaxData vMaxData = 5000
+
+function buildDummyData(integer pCount)
+    sequence lDate
+    sequence lAmount
+    sequence lChqNo
+    sequence lStatus
+    sequence lBank
+
+    for i = 1 to pCount do
+        lDate = sprintf("2001 %02d %02d", {rand(12), rand(28)})
+        lAmount = sprintf("%9.2f", rand(999999)/100)
+        lChqNo = sprintf("%6d", i)
+        lStatus = w32iff(rand(10) < 3, "R", " ")
+        lBank = sprintf("%5d", rand(9999)+10000)
+        vData = append(vData, {lChqNo, lDate, lAmount, lStatus, lBank})
+    end for
+    return vData
+end function
+
+vData = buildDummyData(vMaxData)
+
+atom
+     lMask,
+     Msg,
+     ilParam
+integer
+    lColumn,
+    lRow
+sequence lData
+
+function getdispinfo(integer id, atom hWnd, atom wParam, atom lParam)
+   id = getId( fetch( lParam, NMHDR_hwndFrom ))
+   if id != 0 then
+
+      lMask    = fetch( lParam, LVDISPINFO_LVITEMmask )
+      lColumn = fetch( lParam, LVDISPINFO_LVITEMiSubItem ) + 1
+      lRow    = fetch( lParam, LVDISPINFO_LVITEMiItem ) + 1
+      if lRow = 1 and lColumn = 1 then
+         ilParam=lParam
+      end if
+      if and_bits(lMask, LVIF_TEXT) then
+         if lRow <= vMaxData then
+            if lRow > length(vData) then
+               setText(SB, sprintf("%3.2f%% loaded", (100 * length(vData) )/ vMaxData))
+            end if
+            lData = vData[lRow][lColumn]
+            store(lParam, LVDISPINFO_LVITEMpszText, lData) 
+            store(lParam, LVDISPINFO_LVITEMcchTextMax, length(lData))
+         else
+           store(lParam, LVDISPINFO_LVITEMpszText, -1)
+           store(lParam, LVDISPINFO_LVITEMcchTextMax, -1)
+         end if
+      end if
+   end if
+   return kReturnNow
+end function
+
+integer SORT_BY
+SORT_BY=0
+
+function CS_byElement(sequence s1,sequence s2)
+   return compare(s1[SORT_BY],s2[SORT_BY])
+end function
+
+constant ByElement=routine_id("CS_byElement")
+
+function lvcolumnclick(integer id, atom hWnd, atom wParam, atom lParam)
+  integer
+    lColumn,
+    lOwner
+    id = getId( fetch( lParam, NMHDR_hwndFrom ))
+    if id != 0 then
+        lColumn = fetch( lParam, NMLISTVIEW_iSubItem ) + 1
+        SORT_BY=lColumn
+        vData=custom_sort(ByElement,vData)
+
+        VOID = sendMessage(id,WM_SETREDRAW,0,0)
+        store( ilParam, LVDISPINFO_LVITEMmask, 19)
+        store( ilParam, LVDISPINFO_LVITEMiSubItem, 0)
+        store( ilParam, LVDISPINFO_LVITEMiItem, 0)
+        VOID = sendMessage(id,WM_SETREDRAW,1,0)
+        VOID = w32Func( xInvalidateRect, {id, NULL, True} )
+
+        VOID = getdispinfo(id, hWnd, wParam, ilParam)
+        VOID = sendMessage(id, LVM_UPDATE, 0, 0)
+
+    end if
+    return kReturnNow
+end function
+
+------------------------------------------------
+procedure Activate_MainWin(integer self, integer event, sequence parms)
+------------------------------------------------
+    VOID = sendMessage(Viewer, LVM_SETITEMCOUNT, vMaxData, 0)
+    VOID = setNotifyHandler(LVN_GETDISPINFO, routine_id("getdispinfo"))
+    VOID = setNotifyHandler(LVN_SETDISPINFO , routine_id("getdispinfo"))
+    VOID = setNotifyHandler(LVN_COLUMNCLICK, routine_id("lvcolumnclick"))
+end procedure
+
+------------------------------------------------
+-- Application Initiation
+------------------------------------------------
+function AppInit()
+    integer lRC
+
+    lRC = 0
+
+    MainWin = createEx(Window, "", 0, 0, 0, 600, 400, 0, 0)
+
+    SB =  createEx( StatusBar, "", MainWin, 0,0,0,0, 0, 0)
+
+
+    Viewer =  createEx( ListView, {"Chq#","Date","Amount","Status","Bank"},
+                                    MainWin, 10,20,540, 310,
+                                    or_all({LVS_REPORT ,LVS_OWNERDATA}) ,
+                                    0)
+
+    setLVStyle(Viewer, {LVS_EX_FULLROWSELECT,
+                        LVS_EX_GRIDLINES,
+                        LVS_EX_HEADERDRAGDROP})
+
+    -- Link in the event handlers.
+
+    setHandler(MainWin, w32HActivate, routine_id("Activate_MainWin"))
+
+    return lRC
+end function
+
+if AppInit() = 0 then
+    WinMain( MainWin, Normal)
+end if

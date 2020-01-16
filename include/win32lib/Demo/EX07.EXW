@@ -1,0 +1,59 @@
+-- example7.exw
+--
+-- This creates two editable controls,
+-- and buttons to query their control's values
+
+include win32lib.ew            
+without warning
+
+classAutoSelect(EditText, w32True)
+
+-- Some examples of using alternate delimiters in a form definition.
+createForm({
+        -- Standard default comma delimiter.
+        "Get Data, bar=status"
+        ,
+        -- Alternate delimiters can be from these 12 characters  ; ` ~ | # / \ - _ @ ^ * 
+        -- And must be the first character in a control definition.
+        -- Use an alternate delimiter if a comma is actually some of the data.
+        "#CheckBox# Name=Check1# caption=checkbox# left=10# top=10# width=80# height=20"
+        ,
+        ";Button; name=Button1; caption=CheckBox Value; from=Check1; left=*+5; top=**"
+        ,
+        "/EditText/ name=Sle1/ from=Check1/ text=Parnell, D./ left=**/top=Button1+10/ width=*/ height=*/ " & 
+           "flags=ws_ex_right/ pointer=..\\DemoResources\\hand.cur"
+        ,
+        "|Button| name=Button2| caption=EditBox Value|left=Check1+5| top=Sle1*-2| width=Button1"
+            })
+
+constant
+    Check1 = getNameId("Check1"),
+    Sle1 = getNameId("Sle1")
+
+
+integer asv 
+asv = 0
+
+procedure ShowMsg(sequence pText)
+    showMessage( pText)
+    
+    asv = not asv
+    VOID = autoSelect(Sle1, asv)
+        
+end procedure
+
+procedure Click_Button1(integer self, integer event, sequence parms)    
+    ShowMsg("Checked: " & w32iff(isChecked(Check1), "Yes","No"))
+    setEnable(Sle1,1)
+    setEnable(Check1,0)
+end procedure
+registerRoutine("Click_Button1", routine_id("Click_Button1"))
+
+procedure Click_Button2(integer self, integer event, sequence parms)    
+    ShowMsg( getText(Sle1) )
+    setEnable(Sle1,0)
+    setEnable(Check1,1)
+end procedure
+registerRoutine("Click_Button2", routine_id("Click_Button2"))
+
+include w32Start.ew

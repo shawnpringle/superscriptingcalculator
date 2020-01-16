@@ -1,0 +1,25 @@
+include win32lib.ew
+without warning
+
+integer win
+integer lbl
+integer btn1
+integer stat
+procedure Click_Color(integer self, integer event, sequence parms)
+    setTextColor(lbl, {rand(255), rand(255),rand(255)})
+    repaintFG(lbl)
+end procedure
+
+procedure main()
+    win = create(Window, "Color Test", 0, 0, 0, 300, 100, 0)
+    btn1 = create(Button, "&Change Color", win, 10, 10, 150, 30, 0)
+    stat = create(StatusBar, "", win, 0, 0, 60, 0, 0)
+    lbl = create(Label, "The text which will change color.", stat, 5, 5, 200, 25, 0)
+
+    setHandler(btn1, w32HClick, routine_id("Click_Color"))
+    setWindowBackColor(lbl, BrightCyan)
+    WinMain(win, Normal)
+end procedure
+
+main()
+

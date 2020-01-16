@@ -1,0 +1,41 @@
+include win32lib.ew
+without warning
+global constant win1 = create( Window, "Test win",0, 200, 200, 400, 100,({WS_CAPTION, WS_SYSMENU}) )
+global constant xax = create( CText, "", win1, 2, 2, 300, 12,0 )
+global constant start = create( PushButton, "Start", win1, 16, 48, 60, 20, 0 )
+atom x_cur_pos,x_size,y_cur_pos,y_size,z_cur_pos,z_size,now
+integer line,code
+ 
+procedure on_click_start(integer id,integer event,sequence params)
+  x_cur_pos=1 
+  y_cur_pos=1 
+  z_cur_pos=1 
+  x_size=0.0125 
+  y_size=0.0125
+  z_size=0.0125 
+  line=0 
+  code=0
+  now=time()
+  while now+1 > time() do
+  
+  wPrintf( xax, "N: %06d G: %02d X:  %1.3f     Y:  %1.3f     Z:  %1.3f         ",
+  {line,code/100,x_cur_pos*x_size,y_cur_pos*y_size,z_cur_pos*z_size} )
+  
+  x_cur_pos+=1 
+  y_cur_pos+=1 
+  z_cur_pos+=1
+  line+=1 
+  code+=1 
+  end while
+  
+  end procedure
+  setHandler(start,w32HClick,routine_id( "on_click_start" ))
+ 
+procedure onPaint_xax( integer id, integer event, sequence params)
+  setPenBkMode( xax, OPAQUE)
+   end procedure
+   setHandler(xax,w32HPaint,routine_id( "onPaint_xax" ))
+ 
+WinMain( win1, Normal )
+ 
+ 

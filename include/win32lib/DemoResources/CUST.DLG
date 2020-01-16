@@ -1,0 +1,34 @@
+;; Cust.dlg
+;; This defines the customer input screen.
+
+Window, Customer Input, bar=status, flags=(new,ws_ex_toolwindow)
+Menu, Search
+MenuItem, caption=Customer, name=FindCustomer
+MenuItem, caption=Purchase Order, name=FindPO
+
+Label, N&umber ;;------------------ Customer Number
+	at=(5,10)
+EditText, name=CustNumber
+	left=**, top=*, width=20char
+        event=(keypress=LookupKey)
+        hint=Enter a customer number. Press RETURN to display existing data.
+
+Label, &Name ;;-------------------- Customer Name
+	left=**, top=*+4
+EditText, name=CustName
+	left=**, top=*, width=50char
+LText, Name=CurCustName,
+        left=**, top=*, width=50char
+
+Label, &Address ;;-------------------- Customer Name
+	left=**, top=*+4
+EditText, name=CustAddr
+	left=**, top=*+0, width=50char
+
+Button, name=Accept, caption=&Accept ;;----------------- Accept Button
+	left=**, top=*+10
+
+CancelButton, name=Cancel, caption=&Cancel ;;----------------- Cancel Button
+	left=*+4, top=**
+	flag=autoclose
+

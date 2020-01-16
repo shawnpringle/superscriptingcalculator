@@ -1,0 +1,695 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Type"
+content="text/html; charset=iso-8859-1">
+<meta name="GENERATOR" content="Microsoft FrontPage Express 2.0">
+<title>Frequently Asked Questions about EUPHORIA</title>
+</head>
+
+<body bgcolor="#FFFFFF">
+
+<p align="center"><a name="Top"><font color="#FF0000" size="5"><strong>Frequently</strong></font><font
+color="#00FF00" size="5"><strong> </strong></font><font
+color="#0080C0" size="5"><strong>Asked</strong></font><font
+color="#00FF00" size="5"><strong> </strong></font><font
+color="#008040" size="5"><strong>Questions</strong></font><font
+color="#00FF00" size="5"><strong> </strong></font><font
+color="#FF8000" size="5"><strong>about</strong></font><font
+color="#00FF00" size="5"><strong> </strong></font></a><font
+color="#8080FF" size="5"><strong>Win32Lib</strong></font></p>
+
+<p>&nbsp;</p>
+
+<p>1. <a href="#What is Win32Lib?">What is Win32Lib?</a><font
+color="#000000"> ( a Windows routines library )</font></p>
+
+<p>2. <a href="#What do I need to know to program for Windows?">What
+do I need to know to program for Windows?</a> (controls,
+attributes, events )</p>
+
+<p>3.<a href="#How do I make a program for Windows?"> How do I
+make a program for Windows?</a> (check the 240+ programs in the Demo folder; make controls, routines to
+handle events; or IDE)</p>
+
+<p>4. <a href="#How do I make a &quot;control&quot;?">How do I
+create a &quot;control&quot;?</a> (use the &quot;create&quot;
+function)</p>
+
+<p>5. <a
+href="#What are the &quot;attributes&quot; of a control?">What
+are the &quot;attributes&quot; of a control?</a> (any property,
+like size, color, location, etc)</p>
+
+<p>6. <a href="#How can I see or set an attribute of a control?">How
+can I see or set an attribute of a control?</a> (use appropriate
+function or procedure, many of which are listed in attribute.htm)</p>
+
+<p>7. <a href="#What is an &quot;event&quot;?">What is an
+&quot;event&quot;?</a> (any action able to be monitored by
+Windows)</p>
+
+<p>8. <a href="#How do I handle &quot;events&quot;?">How do I
+handle &quot;events&quot;?</a> (use setHandler procedure to create an event link)</p>
+
+<p>9. <a href="#What is an &quot;event link&quot;?">What is an
+&quot;event link&quot;?</a> (a connection between an event and a
+routine to handle the event)</p>
+
+<p>10. <a href="#How do I create an &quot;event link&quot;?">How
+do I create an &quot;event link&quot;?</a> By calling
+setHandler(CtrlName,EvntName,routine_id(&quot;hndlr_routine_name&quot;))</p>
+
+<p>11. <a href="#Where are the &quot;event links&quot; PLACED in the program?">
+Where are the &quot;event links&quot; PLACED in the program?</a>
+(either right after the handler routine, or at end of program)</p>
+
+<p>12. <a href="#How do I write into a window?">
+How do I write into a window?</a>
+(use the routines listed in font.htm and text.htm)</p>
+
+<p>13. <a href="#How do I draw in a window?">
+How do I draw in a window?</a>
+(use the routines listed in graphic.htm)</p>
+
+<p>14. <a href="#How can I write data to a file, and then retrieve it to write into a window?">
+How can I write data to a file, and then retrieve it to
+write into a window?
+</a> (use getData(), getValue() or specialised routines)</p>
+
+<p>15. <a href="#How can I use special keys like up/down arrows in windows?">
+How can I use special keys like up/down arrows in windows?
+</a> (link a handler to the w32HKetdown or w32HKeyboard event)</p>
+
+<p>16. <a href="#How do I create and use a TIMER?">
+How do I create and use a TIMER?
+</a> (use setTimer() and link a handler to the w32HTimer event)</p>
+
+
+<p>&nbsp;</p>
+
+<p>&nbsp;</p>
+
+<p>1. <a name="What is Win32Lib?"><strong>What is Win32Lib?</strong></a><strong>
+</strong><a
+href="#What do I need to know to program for Windows?">(next)</a>
+<a href="#Top">(top)</a></p>
+
+<p>Answer: Win32Lib is a library of routines which makes a large
+number of Windows programming elements easily available to the
+programmer. It was originally created by David Cuny, and later
+expanded by Derek Parnell, with contributions from Matthew Lewis
+and others. </p>
+
+<p>Using Win32Lib, you can create one or more windows, and a
+variety of other &quot;controls&quot; (like push-buttons, menus,
+text fields, etc.), as well as provide for the occurance of
+various common &quot;events&quot; (like clicking on a button,
+pressing a key, etc.).</p>
+
+<p><a href="#Top">(top)</a> <a
+href="#What do I need to know to program for Windows?">(next)</a></p>
+
+<p>&nbsp;</p>
+
+<p>2. <a name="What do I need to know to program for Windows?"><strong>What
+do I need to know to program for Windows?</strong></a><strong> </strong><a
+href="#How do I make a program for Windows?">(next)</a> <a
+href="#What is Win32Lib?">(prev)</a> <a href="#Top">(top)</a></p>
+
+<p>Answer: Programming for Windows is somewhat different than
+regular Dos programming in that Windows Programming is based on
+the use of &quot;<strong>controls</strong>&quot;, which have
+&quot;<strong>attributes</strong>&quot;, and, it is &quot;<strong>event</strong>&quot;
+oriented. There is also a<strong> </strong>defined<strong> main
+processing loop</strong>.</p>
+
+<p>A &quot;<strong>control</strong>&quot; is basically any
+standard visual element available to be included in the program
+from a pre-existing library of controls, or a non-visual element
+such as a timer. They include the main &amp; other windows, push
+buttons, list boxes, timers, etc. You can <em><strong>create</strong></em>
+them, <em><strong>query</strong></em> and <em><strong>change</strong></em>
+their <a href="#ATTRIBUTE">Attributes</a>, and <em><strong>respond</strong></em>
+to <a href="#EVENT">Events</a> which happen to them. </p>
+
+<p>An &quot;<strong>attribute</strong>&quot; is any property a
+control might have, such as the size or placement of the control,
+its font size, or font color, etc. Various routines are provided
+by Win32Lib to let you inspect and alter the attributes of
+controls. </p>
+
+<p>An &quot;<strong>event</strong>&quot; is any action that is
+available to be monitored by Windows (such as clicking on a
+button, or a timer reaching a preset count, etc.), which is then <strong>linked</strong>
+by the programmer to some <strong>routine</strong> created by the
+programmer to respond appropriatly to that event .</p>
+
+<p>The call to the <strong>main processing loop</strong>,
+&quot;WinMain&quot;, is placed at the <strong>very end of the
+program</strong>, after all the controls have been declared ,
+after all the routines you have written to handle all of the
+events you want to respond to in your program, and after all the
+event links.</p>
+
+<p><a href="#Top">(top)</a> <a
+href="#How do I make a program for Windows?">(next)</a></p>
+
+<p>&nbsp;</p>
+
+<p>3.<a name="How do I make a program for Windows?"><strong>How
+do I make a program for Windows?</strong></a> <a
+href="#How do I make a &quot;control&quot;?">(next)</a> <a
+href="#What do I need to know to program for Windows?">(prev)</a>
+<a href="#Top">(top)</a></p>
+
+<p>Answer: To make a program for Windows, you first define what
+you want it to do; then you:</p>
+
+<ol>
+    <li>Write &quot;include win32lib.ew&quot; (without the
+        quotes) at the beginning of your program ;</li>
+    <li>Establish the <em><strong>look</strong></em> of the
+        program by <strong>creating various &quot;controls&quot;</strong>
+        (windows, push-buttons, text fields, list boxes, menus,
+        etc) that would be employed by the program user to do
+        various things;</li>
+    <li>then you <em><strong>create routines </strong></em>(procedures
+        &amp; functions) to respond appropriately to the users
+        use of the controls;</li>
+    <li>then you create <em><strong>&quot;event links&quot;</strong></em>
+        to make the users use of a control in fact activate the
+        proper procedure or function;</li>
+    <li>then on the last line in your Windows program you write a
+        statement which creates the <em><strong>main program loop</strong></em>
+        (&quot;WinMain( your_window_name,
+        desired_window_style&quot; ) .</li>
+</ol>
+
+<p>Note: As an easier alternative to the above, there is an
+Integrated Development Environment program available from user
+contributions at RDS which utilizes Win32Lib to give Windows
+programmers the ability to easily create the visual elements of a
+Windows program by mouse clicks, like Visual Basic. It also
+allows event handlers to be easily created, and has a built-in
+editor.</p>
+
+<p>Example of a Windows program using Win32Lib:</p>
+
+<p>-- example4.exw<br>
+--<br>
+-- This opens a window with a single button.<br>
+-- Clicking the button closes the window.<br>
+<br>
+include win32lib.ew<br>
+<br>
+-- create a window, and a control (a button) in the window:<br>
+constant <br>
+TheWindow = create( Window, &quot;Close Window&quot;, 0, Default,
+Default, 200, 100, 0 ),<br>
+CloseButton = create( DefPushButton, &quot;Close Window&quot;,
+TheWindow, 40, 10, 120, 30, 0 )<br>
+<br>
+-- routine that accomplishes the desired action:<br>
+global procedure onClick_CloseButton()<br>
+closeWindow( TheWindow )<br>
+end procedure<br>
+<br>
+-- tell Windows when to do the action:<br>
+onClick[CloseButton] = routine_id(
+&quot;onClick_CloseButton&quot; )<br>
+<br>
+-- hand control over to Windows:<br>
+WinMain( TheWindow, Normal )<br>
+<br>
+</p>
+
+<p><a href="#Top">(top)</a> <a
+href="#How do I make a &quot;control&quot;?">(next)</a></p>
+
+<p>&nbsp;</p>
+
+<p><strong>4. </strong><a
+name="How do I make a &quot;control&quot;?"><strong>How do I
+create a &quot;control&quot;?</strong></a><strong> </strong><a
+href="#What are the &quot;attributes&quot; of a control?">(next)</a>
+<a href="#How do I make a program for Windows?">(prev)</a> <a
+href="#Top">(top)</a></p>
+
+<p>Answer: You make a &quot;control&quot; by using the
+&quot;create&quot; function. It has the form:<br>
+<br>
+constant your_control_name = create( <em><strong>class, title,
+parent, x, y, cx, cy, flags</strong></em>)</p>
+
+<p><em><strong>class</strong></em> is the kind of control you
+wish to create (Window, PushButton, Menu, etc).<br>
+<strong><i>title</i></strong> is the text that will appear in the
+object's caption.<br>
+<strong><i>parent </i></strong>is the name of the control this
+control belongs to. The parent of the main window is 0. <br>
+<strong><i>x</i></strong> and <strong><i>y</i></strong> specify
+the position of the object, and <strong><i>cx</i></strong> and <em><strong>cy</strong></em>
+specify the width and height. <br>
+<em><strong>flags</strong></em> are optional additional
+attributes; place a 0 here if you don't know anything else to
+put.<br>
+<br>
+Example:<br>
+The following will create a Window called <b>MyWindow</b>: </p>
+
+<pre>      -- create a window 
+      constant MyWindow = create( Window,         -- the class 
+                              &quot;My Window&quot;,        -- the caption      
+                              0,                  -- the parent 
+                              Default, Default,   -- x and y position 
+                              60, 40,             -- width and height 
+                              0 )                 -- no special flags 
+</pre>
+
+<p>The following will create a PushButton in <b>MyWindow</b>: </p>
+
+<pre>      -- create a pushbutton 
+      constant MyButton = create( PushButton,     -- the class 
+                                  &quot;Push Me!&quot;,     -- the caption      
+                                  MyWindow,      -- the parent 
+                                  10, 10,         -- x and y position 
+                                  60, 40,         -- width and height 
+                                  0 )             -- no special flags </pre>
+
+<p>There is a list of controls in RunDemos, under
+&quot;Constants&quot;, which allow a template for the creation of
+any of them to be copied to the clipboard, so you can paste it
+into your program.</p>
+
+<p><a href="#Top">(top)</a> <a
+href="#What are the &quot;attributes&quot; of a control?">(next)</a></p>
+
+<p>&nbsp;</p>
+
+<p><strong>5. </strong><a
+name="What are the &quot;attributes&quot; of a control?"><strong>What
+are the &quot;attributes&quot; of a control?</strong></a><strong>
+</strong><a
+href="#How can I see or set an attribute of a control?">(next)</a>
+<a href="#How do I make a &quot;control&quot;?">(prev)</a> <a
+href="#Top">(top)</a></p>
+
+<p>An &quot;<strong>attribute</strong>&quot; is any property a
+control might have, such as the size or placement of the control,
+its font size, or font color, etc. The text on a button or in a
+label is an attribute, as is the condition of a checkBox being
+checked in or not, or whether a control is visible or not, or
+whether it is enabled or not.</p>
+
+<p><a href="#Top">(top)</a> <a
+href="#How can I see or set an attribute of a control?">(next)</a></p>
+
+<p>&nbsp;</p>
+
+<p><strong>6. </strong><a
+name="How can I see or set an attribute of a control?"><strong>How
+can I see or set an attribute of a control?</strong></a><strong> </strong><a
+href="#What is an &quot;event&quot;?">(next)</a> <a
+href="#What are the &quot;attributes&quot; of a control?">(prev)</a>
+<a href="#Top">(top)</a></p>
+
+<p>Various routines are provided by Win32Lib to let you inspect
+and alter the attributes of controls. </p>
+
+<p>Examples:</p>
+
+<p>The following function gets the width and height of aButton:<br>
+sequence size<br>
+size = getCtlSize(aButton) -- size[1] = width of aButton, size[2]
+= height of aButton</p>
+
+<p>The following procedure sets a check mark in aCheckBox:<br>
+setCheck(aCheckBox, 1) -- a value of &quot;0&quot; would make the
+CheckBox NOT be checked.</p>
+
+<p><a href="#Top">(top)</a> <a
+href="#What is an &quot;event&quot;?">(next)</a></p>
+
+<p>&nbsp;</p>
+
+<p><strong>7. </strong><a name="What is an &quot;event&quot;?"><strong>What
+is an &quot;event&quot;?</strong></a><strong> </strong><a
+href="#How do I handle &quot;events&quot;?">(next)</a> <a
+href="#How can I see or set an attribute of a control?">(prev)</a>
+<a href="#Top">(top)</a></p>
+
+<p>An &quot;<strong>event</strong>&quot; is any action in an
+application which can be monitored by Windows, such as clicking
+on a button, or a timer reaching a preset count. Some other
+events are:<br>
+selecting an item in a listBox (onChange), closing or opening a
+window, dragging &amp; dropping a file or data, moving the mouse
+or clicking a mouse button, changing the size of a window, and
+moving a scrollbar button.</p>
+
+<p><a href="#Top">(top)</a> <a
+href="#How do I handle &quot;events&quot;?">(next)</a></p>
+
+<p>&nbsp;</p>
+
+<p><strong>8. </strong><a
+name="How do I handle &quot;events&quot;?"><strong>How do I
+handle &quot;events&quot;?</strong></a><strong> </strong><a
+href="#What is an &quot;event link&quot;?">(next)</a> <a
+href="#What is an &quot;event&quot;?">(prev)</a> <a href="#Top">(top)</a></p>
+
+<p>Answer: Events are handled by writing a<strong> statement</strong>
+which sets up a &quot;<strong>link</strong>&quot; between an
+&quot;<strong>event trap</strong>&quot; and some <strong>routine</strong>
+you have written to <strong>handle the event</strong>. The <strong>event
+handling routine</strong> you write must be placed <strong>before</strong>
+the <strong>event trap statement</strong>.</p>
+
+<p>There are now two ways to do this. The first, original way, is
+with an &quot;onSomeEvent&quot; <strong>link statement</strong>,
+and the second, newer way, is with a &quot;setHandler&quot; <strong>event
+handler</strong> statement using &quot;w32HsomeEvent&quot;
+constants. You can choose whichever method you wish, though
+eventually the &quot;onSomeEvent&quot; method may be phased out
+from Win32Lib.</p>
+
+<p><a href="#Top">(top)</a> <a
+href="#What is an &quot;event link&quot;?">(next)</a></p>
+
+<p>&nbsp;</p>
+
+<p>9. <a name="What is an &quot;event link&quot;?"><strong>What
+is an &quot;event link&quot;?</strong></a><strong> </strong><a
+href="#How do I create an &quot;event link&quot;?">(next)</a> <a
+href="#How do I handle &quot;events&quot;?">(prev)</a> <a
+href="#Top">(top)</a></p>
+
+<p>Answer: An &quot;<strong>event link</strong>&quot; is a 
+statement which establishes a connection between some
+pre-defined event and the routine which is intended to respond to
+the event "on behalf of" the control. The statement is a procedure 
+call to setHandler() with 3 arguments:</p>
+
+<ol>
+    <li>the first argument is the identifier of the control which is 
+				listening for an event to take place, or a sequence of such to 
+				assign the same handler to several controls..
+    <li>the second argument references some particular <strong>kind
+       of event</strong> which is innately recognized by the
+        Win32Lib library (such as &quot;w32HClick&quot; the mouse
+        on some control, &quot;w32HKeyPress&quot;, etc). Like for
+				 control identifiers, you can lump together several events
+				 in a single sequence;</li>
+    <li>the third argument references some routine previously
+        created in the program intended to do what you would want
+        to have happen when that event occured. </li>
+</ol>
+
+<p>Example: An event link might look like this:</p>
+
+<p>setHandler(CloseButton,w32HClick,routine_id(
+&quot;onClick_CloseButton&quot; )) </p>
+
+<p><a href="#Top">(top)</a> <a
+href="#How do I create an &quot;event link&quot;?">(next)</a></p>
+
+<p>&nbsp;</p>
+
+<p>10. <a name="How do I create an &quot;event link&quot;?"><strong>How
+do I create an &quot;event link&quot;?</strong></a><strong> </strong><a
+href="#Where are the &quot;event links&quot; PLACED in the program?">(next)</a>
+<a href="#What is an &quot;event link&quot;?">(prev)</a> <a
+href="#Top">(top)</a></p>
+
+<p>Answer: To create an &quot;event link&quot;, </p>
+
+<ol>
+    <li>Determine what <strong>kind of event</strong> you want to
+        make your program respond to (a click on a button,
+        selection of an item in a list, timer reaching a preset,
+        etc);</li>
+    <li>then look in the <strong>list of events</strong> in the
+        Win32Lib manual for the one you want to use
+        (w32HClick,w32HKeyPress,w32HChange, w32HOpen, etc);</li>
+    <li>write setHandler(</li>
+    <li>followed by the <strong>name of the control</strong>
+        which might be acted upon 
+		<li>followed by a comma, and then the <strong>event name</strong>,</li>
+    <li>write &quot;, routine_id&quot;;</li>
+    <li>write the <strong>name of the routine</strong> intended
+        to handle the occurance of the event, placed <strong>inside</strong>
+        <strong>parenthesis and *quotes*:</strong>
+        (&quot;routine_name&quot;);</li>
+		<li>write another closing parenthese &quot;)&quot;
+</ol>
+
+<p>It should look like this in general:</p>
+
+<p><font color="#FF0080"><strong>setHandler(ControlName,EventName,
+routine_id(&quot;event_handler_routine_name&quot;))</strong></font><strong>
+</strong></p>
+
+<p><strong>NOTE: </strong>it helps to make the
+&quot;event_handler_routine_name&quot; reference in some way to
+the event and the control, like this:</p>
+
+<p>setHandler(CloseButton,w32HClick,routine_id(
+&quot;onClick_CloseButton&quot; )) </p>
+
+<p><a href="#Top">(top)</a> <a
+href="#Where are the &quot;event links&quot; PLACED in the program?">(next)</a></p>
+
+<p>&nbsp;</p>
+
+<p>11. <a
+name=""><strong>Where
+are the &quot;event links&quot; PLACED in the program?</strong></a><strong>
+</strong><a href="#What is the &quot;setHandler&quot; procedure?">(next)</a>
+<a href="#Where are the &quot;event links&quot; PLACED in the program?How do I create an &quot;event link&quot;?">(prev)</a> <a
+href="#Top">(top)</a></p>
+
+<p>Answer: The &quot;event links&quot; <strong>must</strong> go <strong>AFTER</strong>
+the routine they point to. </p>
+
+<ol>
+    <li>They can be <strong>immediately after</strong>, so that
+        every event handling routine has its own event trap/link
+        right after it, (which is usually the easiest way to
+        remember to create both of them), or, </li>
+    <li>they <strong>can all be written near the end of the
+        program</strong>, just <strong>before</strong> the
+        WinMain main processing loop. This can be helpful in a
+        large program: after you have written a number of them in
+        your program but before you are finished with the
+        program, if you have consolidated them near the end, you
+        can go down to them quickly, find the one you may be
+        interested in, and then find its related routine by
+        highlighting the routine name &amp; doing a
+        &quot;search&quot; with your editor. </li>
+</ol>
+
+<p><strong>Example 1, routine and event link together:</strong></p>
+
+<p>-- a routine to handle clicking on the
+&quot;CloseButton&quot; button:<br>
+global procedure onClick_CloseButton(integer id,integer event,sequence params)<br>
+closeWindow( TheWindow )<br>
+end procedure<br>
+<br>
+-- an event link which tells Windows when to do what action on whom:<br>
+setHandler(CloseButton,w32HClick,routine_id(
+&quot;onClick_CloseButton&quot; ))</p>
+
+<p><strong>Example 2, all event links grouped together (</strong><em><strong>after</strong></em><strong>
+</strong>the routines they point to<strong>):</strong> </p>
+
+<p>&lt;begin&gt;<br>
+&lt;includes and control creation here&gt;</p>
+
+<p>procedure onOpen_Window1(integer id,integer event,sequence params)<br>
+-- do something<br>
+end procedure</p>
+
+<p>procedure onClick_StartDisplay(integer id,integer event,sequence params)<br>
+-- do something<br>
+end procedure</p>
+
+<p>&lt;all other procedures here&gt;</p>
+
+<p>--EVENTS TO RESPOND TO IN THIS PROGRAM:<br>
+----------------------------------------------------------<br>
+setHandler(Window1,w32HOpen,routine_id(&quot;onOpen_Window1&quot;)<br>
+setHandler(StartDisplay,w32HClick,
+routine_id(&quot;onClick_StartDisplay&quot;))<br>
+setHandler(StopDisplay,w32HClick,
+routine_id(&quot;onClick_StopDisplay&quot;))<br>
+setHandler(Window1,w32HTimer, routine_id(&quot;Window1_onTimer&quot;))<br>
+[setHandler(btnTestaSound,w32HClick,
+routine_id(&quot;onClick_btnTestaSound&quot;))</p>
+
+<p>-----------------------------------------------------------<br>
+-- MAIN PROCESSING LOOP: hand control over to Windows:<br>
+WinMain( Window1, Normal )</p>
+
+<p><a href="#Top">(top)</a> <a
+href="#How to write into a window?">(next)</a></p>
+
+<p>&nbsp;</p>
+
+<p>12. <a name="How to write into a window?">
+<strong>How to write into a window?</strong>
+<a href="#How do I draw in a window?">(next)</a>
+<a href="#Where are the &quot;event links&quot; PLACED in the program?">(prev)
+</a> <a ref="#Top">(top)</a></p>
+
+<p>Answer: The most basic way to do it is using wPuts(aWindowName,aText).
+ This will write aText in the upper left corner of the window the first time
+ wPuts() is used on the window. If wPuts() had been used already on the window,
+  it will pick up where it had left. If you want to move around a little, then
+	you have to write wPuts({aWindowName,aXposition,aYposition},aText). 
+	Positions are in pixels.<br>
+The above uses the default font and color for the control and no formatting. 
+Far more advanced possibilities are available. 
+<br><br>IMPORTANT NOTE: Writing text is just another way of drawing in a window. As a 
+consequence, it must be done at a time when the window is open. This is why 
+drawing text is done in response to an event. If something has to be drawn 
+before any user action, then link to the w32HActivate event for the window.<br> 
+However, the text you write as the caption of a control, or the contents of a 
+text edit field, label, etc do not need to be written inside an event handler. 
+They are part of the creation data for the controls, and the OS sees to it that they display when appropriate. 
+
+<br><br>Example:
+<pre>
+include win32lib.ew
+constant win=create(Window,"Writing",0,50, 50, 300, 300,
+  w32AUTOCLOSE) -- clicking the window will close it
+setWindowBackColor(win,Blue)
+-- handler called as soon as the window is open
+procedure onActivate_win(integer id,integer event,sequence params)
+setTextColor(win,Yellow)
+wPuts({win,40,100},"Hello World!")
+end procedure
+-- link event and routine for control
+setHandler(win,w32HActivate,routine_id("onActivate_win"))
+-- run program
+WinMain(win,Normal)
+</pre>
+  If you remove the <em>procedure</em>, <em>end procedure</em> and <em>setHandler</em> lines, nothing will
+ be written inside the window, but the "Writing" caption will still be there.
+
+<p>&nbsp;</p>
+
+<p>13. <a name="How to draw in a window?">
+<strong>How do I draw in a window?</strong>
+<a href="#How can I write data to a file, and then retrieve it to
+write into a window?">(next)</a>
+<a href="#How to write into a window?">
+(prev)</a> <a href="#Top">(top)</a></p>
+
+<p>Answer: You will have to supply the window name on which to draw,
+the bounding box for the shape you draw and a flag which says whether the shape is filled or not.
+ The bounding box is given as four integers:
+ <ol>
+<li>the upper left corner x
+<li>the upper left corner y
+<li>the lower right corner x
+<li>the lower right corner y
+ </ol>
+ , all in pixels and relative to the usable rectangle, aka client area, of the window.
+ Additional parameters may be required for some shapes, like an angle for a circular arc.
+<br><br>IMPORTANT NOTE: Drawing in a window must be done at a time when the window is open. This is 
+why drawing is done in response to an event. If something has to be drawn 
+before any user action, then link to the w32HActivate event for the window.
+
+<br><br>Example:
+<pre>
+include win32lib.ew
+constant win=create(Window,"Writing",0,50, 50, 300, 300,
+  w32AUTOCLOSE) -- clicking the window will close it
+setWindowBackColor(win,Blue)
+-- handler called as soon as the window is open
+procedure onActivate_win(integer id,integer event,sequence params)
+setPenColor(win,Yellow) -- line and borders color
+setPenBrushColor(win,Red) -- fill color
+drawRectangle(win,w32True,40,40,220,220) -- draw a large filled square
+end procedure
+-- link event and routine for control
+setHandler(win,w32HActivate,routine_id("onActivate_win"))
+-- run program
+WinMain(win,Normal)
+</pre>
+If you remove the <em>procedure</em>, <em>end procedure</em> and 
+	<em>setHandler</em> lines, nothing will be drawn on the window.
+
+<p>&nbsp;</p>
+
+<p>14. <a name="How can I write data to a file, and then retrieve it to
+write into a window?">
+<strong>How can I write data to a file, and then retrieve it to
+write into a window?</strong>
+<a href="#How can I use special keys like up/down arrows in windows?">(next)</a>
+<a href="#How to draw in a window?">
+(prev)</a> <a href="#Top">(top)</a></p>
+
+<p>Answer: Writing to files is done in the usual way, so the whole point is about
+how to retrieve and set control properties. attribute.htm lists the 
+routines provided by the library that do this. The most general ones 
+are getData() and getValue(). To set attributs according to data you retrieve from
+a file, use specialised routines like setIndex(), setText(), setCheck() and so on,
+ depending on the control you want to act upon. Note that setText() changes the caption of a ontrol.
+ This means the content of an edit field, but only the caption of a window.
+<br>Remember that, froù Windows' viewpoint, text drawn onto a window is simply 
+some funny graphics, not text. Text drawn into edit fields or RichEdit controls
+ is considered as text. 
+<br> Advanced controls known as RichEdit controls have special routines, putStream() 
+ and getStream() to transfer contents from control to file and back. 
+
+<p>&nbsp;</p>
+
+<p>15. <a name="How can I use special keys like up/down arrows in windows?">
+<strong>How can I use special keys like up/down arrows in windows?</strong>
+<a href="#How do I create and use a TIMER?">(next)</a>
+<a href="#How can I write data to a file, and then retrieve it to
+write into a window?">
+(prev)</a> <a href="#Top">(top)</a></p>
+
+<p>Answer: When keyboard keys are depressed and released, various events fire, 
+received by the control which has the keyboard focus, if any:
+<ul>
+<li>w32HKeydown: a key is being depressed. The params sequence for the event 
+holds the virtual key code for the key and its shift current state
+<li>w32HKeyUp: a key is being released. Same parameters, less used.
+<li>w32HKeyPress: A character has been entered. Parameter sequence is 
+{ASCII code, shift state, pressed/released flag}
+<li>w32HKeyboard: a complete key (combination was detected. This will give more 
+detailed info, including some that depends on the keyboard layout, like the raw scan code.
+</ul>
+The list of virtual key codes is to be found in w32Keys.e. For instance, you can 
+hit "down arrow" in various ways (grey key, numeric keypad with or without shift, etc).
+The Windows keyboard driver will sort it out and issue a VK_DOWN virtual key code.
+<br>The shift state is the sum of four flags indicating whether a shift, control, alt or win shift key is being depressed.
+<br>Just set a handler for the keyboard event and control you want to monitor, and decide on what to do based on the reported key.
+
+<p>&nbsp;</p>
+
+<p>16. <a name="How do I create and use a TIMER?">
+<strong>How do I create and use a TIMER?</strong>
+<a href="#What is the &quot;setHandler&quot; procedure?">(next)</a>
+<a href="#How can I use special keys like up/down arrows in windows?">
+(prev)</a> <a href="#Top">(top)</a></p>
+
+<p>Answer: Create a timer for a window by calling setTimer(window_name,timer_ID,,interval).
+timer_ID is an integer you choose. All timers for the same window must have different IDs.
+interval is the interval in milliseconds between firings of the w32HTimer event. It is an atom 
+that will be rounded down to an integer.
+<br>If a window is too busy when a timer event fires, it will discard the Windows message and the event won't fire. 
+<br>win32lib doesn't support high resolution timers, aka media timers, as of v0.70.3.
+You can add such support in your program, or consider enhancing the library and committing code.
+<br>When the  timer ticks, the window will reeive the w32HTimer event, with a 
+parameter sequence of {timer_ID}.
+<br>When done with the timer, call killTimer(windowname,timer_ID) to kill it. 
+
+<p><a href="#Top">(top)</a></p>
+</body>
+</html>

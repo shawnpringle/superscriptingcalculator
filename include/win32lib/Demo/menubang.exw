@@ -1,0 +1,34 @@
+-----------------
+include win32lib.ew
+without warning
+constant SimpleWin =  create( Window, "Simple Window", 0, 0, 0, 320,200, 0 ),
+         SB        =  create(StatusBar, "", SimpleWin, 0, {200,-1}, 0, 0, 0),
+         menu      =  create(Menu,"Options",SimpleWin,0,0,0,0,0),
+         menu1     =  create(MenuItem,"Cold",menu,0,0,0,0,0),
+         menu2     =  create(MenuItem,"Warm",menu,0,0,0,0,0),
+         menu3     =  create(MenuItem,"Hot",menu,0,0,0,0,0), 
+         sep1      =  create(MenuItem,"-", menu, 0, 0, 0, 0, 0),         
+         menu4     =  create(MenuItem,"Color",menu,0,0,0,0,0),
+         menucmd   =  create(Menu, "!BANG!", SimpleWin, 0, 0 ,0,0,0),
+         menucmd2  =  create(Menu, "!POW!", SimpleWin, 0, 0 ,0,0,0)
+
+---------------------------------
+procedure w32HClick_menu(integer self,integer event,sequence params)
+---------------------------------  
+    sequence text          
+    text = getText(self)
+    setText({SB,1}, text)
+    setText({SB,2}, "")
+end procedure
+---------------------------------
+procedure w32HClick_bang(integer self,integer event,sequence params)
+---------------------------------  
+    setText({SB,2}, "Immediate Action")
+end procedure
+
+setHandler({menucmd,menucmd2,menu1,menu2,menu3,menu4},w32HClick,routine_id("w32HClick_menu"))
+
+-- An example of chained event handlers.
+setHandler({menucmd,menucmd2},w32HClick,routine_id("w32HClick_bang"))
+
+WinMain(SimpleWin, Normal)

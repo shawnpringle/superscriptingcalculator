@@ -1,0 +1,88 @@
+--   ModalWin
+
+-- THIS EXAMPLE CREATES A MODAL WINDOW and writes a message into it
+
+-- a modal window  is used when you want to make it impossible to
+-- close the main window until the user first closes the modal window
+
+-- by Dan Moyer September, 2000
+
+-----------------------------------------------------------------
+include win32lib.ew
+without warning
+
+----------------------------------------------------------------
+-- CREATE THE MAIN WINDOW:
+
+constant
+TheWindow = create( Window, "Modal Window Demo", 0, 0, 0, 500, 400, 0 )
+
+-------------------------------------------
+-- CREATE A WINDOW TO MAKE MODAL (done later in "openWindow" statement):
+
+constant aModalWindow = create( Window, "This is a Modal Window", TheWindow, 50, 80, 400, 200, or_all({WS_DLGFRAME, WS_SYSMENU})  )
+constant MS = create(StatusBar, "", aModalWindow, 0,0,0,0,0)
+constant MB = create(DefPushButton, "", aModalWindow, 0, 0, 9, 150, 0)
+
+-- WS_SYSMENU Creates a window that has a window menu on its title bar.
+-- WS_DLGFRAME makes the border "3-D".
+
+-- THESE TWO WERE USED INSTEAD OF "0" IN ORDER TO MAKE SURE THAT
+-- NO MINIMIZE BUTTON WAS INCLUDED ON THE CAPTION BAR,
+-- because if it were, you could (at the time this was written)
+-- minimize the modal window, and then *close* the main,
+-- which isn't supposed to be able to happen.
+
+-------------------------------------------
+-- MAKE A BUTTON TO OPEN THE MODAL WINDOW:
+
+constant ModalButton = create( DefPushButton, "Open Modal Window", TheWindow, 120, 100, 200, 30, 0 )
+
+----------------------------------------------------------
+--  SET THE FONT STYLE AND SIZES ON THE BUTTON & IN THE WINDOW:
+
+setFont(ModalButton, "Arial", 10, Bold)
+setFont(aModalWindow, "Arial", 12, Bold)
+
+----------------------------------------------------------
+--  GET THE SIZE OF TEXT IN MODAL WINDOW, AS SET BY setFont, TO USE
+--  TO SPECIFY NEW LINE POSITIONS WHEN WRITING TO THE WINDOW:
+
+integer TheFontHeight -- the font height
+TheFontHeight = getFontMetric(aModalWindow,tmHeight)--in the window
+
+-----------------------------------------------------------
+-- MAKE THE 2ND WINDOW A MODAL WINDOW WHEN BUTTON IS CLICKED:
+
+procedure onClick_ModalButton(integer self, integer event, sequence params)
+  openWindow( aModalWindow, Modal ) -- THIS IS WHAT MAKES IT A MODAL WINDOW
+end procedure
+setHandler(ModalButton, w32HClick,  routine_id( "onClick_ModalButton" ))
+
+integer cnt cnt = 0
+procedure Click_MB(integer self, integer event, sequence params)
+    cnt += 1
+  setText(MS, sprintf("%d", cnt))
+end procedure
+setHandler(MB, w32HClick,  routine_id( "Click_MB" ))
+
+-----------------------------------------------------------------
+--  WRITE TO MODAL WINDOW:
+procedure onPaint_aModalWindow(integer self, integer event, sequence params)
+    setPosition(aModalWindow, 10, TheFontHeight)-- sets new position of text
+   wPuts(aModalWindow,"THIS IS A MODAL WINDOW.")
+    setPosition(aModalWindow, 10, 3*TheFontHeight)
+   wPuts(aModalWindow,"You have to close THIS window")
+    setPosition(aModalWindow, 10, 4*TheFontHeight)
+   wPuts(aModalWindow,"before you can close the main window!")
+
+end procedure
+
+-- tell Windows when to do the action
+setHandler(aModalWindow, w32HPaint, routine_id( "onPaint_aModalWindow" ))
+
+-----------------------------------------------------------------
+
+-- hand control over to Windows
+    WinMain( TheWindow, Normal )
+

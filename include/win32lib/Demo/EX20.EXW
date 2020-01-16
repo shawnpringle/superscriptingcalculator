@@ -1,0 +1,30 @@
+-- ex20.exw
+--
+-- Demonstrate popup menus
+without warning
+include win32lib.ew
+createForm({
+        "Window, Popup Menus,width=200,height=100,event=Mouse,hint=Press right button to see menu",
+        "Popup, Popup",
+            "MenuItem,Item 1,event=click=menu",
+            "MenuItem,Item 2,event=click=menu",
+            "MenuItem,Item 3,event=click=menu",
+            "MenuItem,Item 4,event=click=menu"
+     })
+
+-- right clicking the window brings up the popup
+global procedure Mouse_PopupMenus( integer self, integer event, sequence parms)
+    if parms[1] = RightDown then
+        popup( getNameId("Popup"), parms[2]-5, parms[3]-5 )
+    end if
+end procedure
+registerRoutine("Mouse_PopupMenus", routine_id("Mouse_PopupMenus"))
+
+-- menu selection routine
+global procedure menu(integer self, integer event, sequence parms)
+    -- show the picked menu
+    showMessage(sprintf("The selected item was '%s'",{getText(self)}))
+end procedure
+registerRoutine("menu", routine_id("menu"))
+
+include w32Start.ew

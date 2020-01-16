@@ -1,0 +1,23 @@
+include win32lib.ew
+without warning
+constant w = create(Window, "test f1", 0, 0, 0, 400, 130, 0)
+constant s = create(StatusBar, "", w, 0, 0, 0, 0, 0)
+constant e1 = create(EditBox, "", w, 5, 5, 200, 25, 0)
+constant e2 = create(EditBox, "", w, 5, 45, 200, 25, 0)
+
+integer cnt cnt = 0
+procedure onKeyDown_Screen(integer self, integer event, sequence parms)
+    if parms[1] != VK_F1 then
+        return
+    end if
+    if parms[2] != 0 then
+        return -- One of the 'shift' keys was down.
+    end if
+
+    -- Do F1 processing.
+    cnt += 1
+    setText(s, cnt)
+end procedure
+setHandler(Screen, w32HKeyDown, routine_id("onKeyDown_Screen"))
+
+WinMain(w, Normal)

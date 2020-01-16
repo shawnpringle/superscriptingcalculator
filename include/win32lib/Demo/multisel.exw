@@ -1,0 +1,43 @@
+include Win32Lib.ew
+without warning
+
+--  Window Window1
+global constant Window1 = create( Window, "Window1", 0, Default, Default, 400, 300, 0 )
+global constant List2 = create( List, "List2", Window1, 44, 20, 150, 120, LBS_MULTIPLESEL )
+addItem(List2, "1")
+addItem(List2, "2")
+addItem(List2, "3")
+addItem(List2, "4")
+addItem(List2, "5")
+addItem(List2, "6")
+addItem(List2, "7")
+addItem(List2, "8")
+addItem(List2, "9")
+global constant PushButton3 = create( PushButton, "Select 3 and 5", Window1, 44, 156, 120, 30, 0 )
+global constant PushButton4 = create( PushButton, "Deselect 3 and 5", Window1, 172, 156, 120, 30, 0 )
+
+constant LB_SETSEL = #0185
+-- Sets one or more items on or off in a multiple-selection list box.
+-- If onoff is 1, the item is highlighted, if 0 it is deselected.
+procedure setMany(integer id, sequence idx, integer onoff)
+    atom VOID
+    idx -= 1
+    for i = 1 to length(idx) do
+        VOID = sendMessage( id, LB_SETSEL, onoff, idx[i] )
+    end for
+end procedure
+
+procedure PushButton3_onClick (integer id,integer event,sequence params)
+  setMany(List2, {3, 5}, 1)
+end procedure
+setHandler(PushButton3,w32HClick,routine_id("PushButton3_onClick"))
+
+
+procedure PushButton4_onClick (integer id,integer event,sequence params)
+  setMany(List2, {3, 5}, 0)
+end procedure
+setHandler(PushButton4,w32HClick,routine_id("PushButton4_onClick"))
+
+
+WinMain( Window1, Normal )
+

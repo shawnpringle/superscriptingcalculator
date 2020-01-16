@@ -1,0 +1,52 @@
+-- start demo --
+include std/win32/msgbox.e
+include std/os.e
+include win32lib.ew
+
+without warning
+atom proghwnd
+
+proghwnd =  setAppName("kick2 app")
+
+constant
+    Win = create( Window,"kick_self",0,Default,Default,300,100,0),
+    Show = create( LText,"I'm the first.",Win,5,5,280,20,WS_BORDER)
+
+
+procedure check_self(integer self, integer event, sequence parms)
+    sequence fnd    
+    sequence cn
+    if proghwnd != 0 then 
+        cn = getClassName(Win)
+        fnd = findWindow(cn, getText(Win))
+        if not equal(fnd, {0,0}) then
+            Beep(MB_ICONEXCLAMATION)
+            -- just to test, lets see/report this instance for 3 seconds...
+            setVisible(Win, w32True)
+            setText(Show,"...another instance found,  so good-bye.")
+            sleep(3)
+            setText(Show, cn)
+            sleep(3)
+            closeWindow(Win)
+            setText(Show,"went past closeWindow()")
+        end if
+    end if
+end procedure
+
+procedure goto_first_instance(integer self, integer event, sequence parms)
+    setText(Show,"Being destroyed...")
+    sleep(1)
+    if proghwnd != 0 then 
+      -- give 'desktop' time to re-paint
+      sleep(1)
+      -- set focus to first instance
+      makeFront({proghwnd})
+    end if
+end procedure
+
+setHandler(Win, w32HActivate, routine_id("check_self"))
+setHandler(Win, w32HDestroy, routine_id("goto_first_instance"))
+
+WinMain( Win, Normal )
+-- end demo --
+

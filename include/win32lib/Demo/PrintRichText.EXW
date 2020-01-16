@@ -1,0 +1,122 @@
+without warning
+include win32lib.ew
+
+constant
+Win = create( Window, "RichEdit Demo", 0, 0, 0, 800, 680, 0 ),
+SB = create( StatusBar, "", Win, 0, 0, 0, 0, 0),
+RE = create( RichEdit, "", Win , 10, 30, 780, 590, ES_NOHIDESEL),
+PR = create( PushButton, "Print", Win, 0, 0, 50, 25, 0)
+
+
+procedure LoadText()
+    sequence rich
+    atom fn, c
+    fn = open( "..\\demoresources\\pages.rtf", "r" )
+    if fn != -1 then
+        rich = {}
+        c = 0
+        while c != -1 do
+            c = getc( fn )
+            rich &= c
+        end while
+
+        close( fn )
+
+
+        rich = rich[1..length(rich)-1]
+        -- Select all the existing text
+        setIndex(RE, {1,0})
+        -- Replace the selection with the file data.
+        putStream( RE, StreamRTF , rich )
+    end if
+
+
+end procedure
+             
+function RP_Callback(integer pAction, sequence pParms)
+    object lResponse
+    sequence lPageSize
+    integer lPos
+    sequence lPageHdr
+    sequence lFooter
+    integer lFooterWidth
+    integer lFooterHeight    
+    integer lActual
+    integer fromPage, toPage
+
+    lResponse = w32RP_Cancel
+    
+    lActual = pParms[5][1]
+    lFooter = pParms[5][2]
+    if pAction = w32RP_Build then
+        if remainder(pParms[1], 2) = 0 then
+            -- Even pages
+            return {1.5,0.5,-0.5, -1, w32InchScale}
+        else
+            -- Odd pages
+            return {0.5,0.5,-1.5, -1, w32InchScale}
+        end if
+    elsif pAction = w32RP_Output then
+        lPageHdr = sprintf(" Page %d", pParms[1])
+        showMessage(lPageHdr)
+        if lActual = w32False then
+            return w32RP_Skip
+        end if
+                  
+        -- Test for out of requested page range.
+        fromPage = pParms[5][3][1]
+        toPage = pParms[5][3][2]
+        if (fromPage >0 and pParms[1] < fromPage) or (toPage >0 and pParms[1] > toPage) then
+            return w32RP_Skip
+        end if
+        
+        -- Page Header
+        lPageSize = pParms[4]
+        if remainder(pParms[1], 2) = 0 then
+            -- Even pages
+            lPos = lPageSize[1] - getTextWidth(Printer, lPageHdr)
+        else
+            -- Odd pages
+            lPos = 0
+        end if        
+        wPuts( {Printer, lPos,5}, lPageHdr )
+        
+        -- Page Footer
+        lFooterWidth = getTextWidth(Printer, lFooter)
+        lFooterHeight = getTextHeight(Printer, lFooter)
+        setPenColor(Printer, Black)
+        drawLine( Printer, 0, lPageSize[2]  - floor(lFooterHeight*2.5), lPageSize[1], lPageSize[2]  - floor(lFooterHeight*2.5))
+        wPuts( {Printer,floor( (lPageSize[1] - lFooterWidth) / 2), lPageSize[2] - lFooterHeight*2}, lFooter )
+        
+        return w32RP_Print
+    end if
+    
+    return lResponse
+end function
+
+procedure PR_onClick(integer self, integer event, sequence parms)
+    sequence lPrintSpec
+    sequence lFooter
+
+    showMessage("")
+    lPrintSpec = getPrinter()
+    
+    if length(lPrintSpec) > 0 then
+        abortDoc()
+
+        lFooter = date()
+        lFooter = sprintf("%02d/%02d/%4d %02d:%02d:%02d", {
+                       lFooter[3], lFooter[2], lFooter[1] + 1900, 
+                       lFooter[4], lFooter[5], lFooter[6]})
+        printRichTextPages(RE, "RichText Printer Test", routine_id("RP_Callback"), {w32True, lFooter, lPrintSpec})
+        releasePrinter()
+        showMessage(getText(SB) & " done.")
+    end if
+
+end procedure
+setHandler(PR, w32HClick, routine_id( "PR_onClick" ))
+
+
+LoadText()
+    
+WinMain( Win, Normal )

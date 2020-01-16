@@ -1,0 +1,22 @@
+include win32lib.ew   
+without warning
+constant
+win = create(Window, "win", 0, Default, Default, Default, Default, 0),
+lv = create(ListView, {{"column1",400,0}, "column2","column3"}, win, 0, 60, 1000, 1000, or_all({LVS_REPORT,LVS_SHOWSELALWAYS}))
+               
+VOID = setAutoFocusLabels(w32True)
+constant
+lblx = create(LText, "&Name", win, 5, 5, 40, 25, 0),
+fldx = create(EditBox, "", win, 5,30, 120, 25, 0)
+    
+    integer iconMale, iconFemale
+    iconMale = addIcon(loadBitmapFromFile("..\\demoresources\\male.ico"))
+    iconFemale = addIcon(loadBitmapFromFile("..\\demoresources\\female.ico")) 
+
+VOID = addLVItem(lv, 0, {"abcdefghijklmn", "22222222","12345678901234567890"})
+VOID = addLVItem(lv, 0, {"abcdefghijklmn", "22222222","12345678901234567890"})
+VOID = addLVItem(lv, 0, {"abcdefghijklmn", "22222222","12345678901234567890"})
+VOID = addLVItem(lv, 0, {"abcdefghijklmn", "22222222","12345678901234567890"})
+WinMain(win, Maximized)
+
+

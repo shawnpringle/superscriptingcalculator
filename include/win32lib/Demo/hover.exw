@@ -1,0 +1,49 @@
+without warning
+include win32lib.ew
+
+integer w, img
+integer bstate
+sequence bm, bsize
+
+w = create(Window, "Hover Bitmap", 0, 0, 0, 400, 400, 0)
+VOID = setSearchPaths("..\\demoresources\\")
+bstate = 0
+bm = {loadBitmapFromFile("happy.bmp"),
+      loadBitmapFromFile("java.bmp")}
+
+bsize = {getSize(bm[1]), getSize(bm[2])}
+
+img = create(Bitmap, "", w, 150, 150, 40, 40, 0)
+
+procedure w_Activate(integer self, integer event, sequence params)
+    bstate = 1
+    setBitmap(img, bm[bstate])
+end procedure
+
+procedure w_Mouse(integer self, integer event, sequence params)
+    integer x,y
+    integer newstate
+
+
+    x = params[2]
+    y = params[3]
+
+    if (x < 150 or x > bsize[bstate][3]+150) or
+       (y < 150 or y > bsize[bstate][4]+150) then
+        newstate = 1
+    else
+        newstate = 2
+    end if
+
+    if newstate = bstate then
+        return
+    end if
+
+    setBitmap(img, bm[newstate])
+    bstate = newstate
+end procedure
+
+setHandler(w, w32HActivate, routine_id("w_Activate"))
+setHandler(w, w32HMouse,    routine_id("w_Mouse"))
+
+WinMain(w, Normal)

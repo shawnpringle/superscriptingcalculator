@@ -1,0 +1,270 @@
+  LIST OF WIN32LIB EXAMPLE PROGRAMS TO RUN UNDER RunDemos
+ 
+  DON'T CHANGE THIS FILE UNLESS YOU UNDERSTAND THE FOLLOWING!
+
+ NOTE: As of March xx, 2002, this file can be edited
+       from within RunDemos, & doesn't need to be hand edited.
+
+  File Purpose:
+  This file is a STRUCTURED list of all the example programs for Win32Lib,
+    for use by the examples gateway program, RunDemos;
+    it is read by RunDemos to populate lists in tab folders which
+    provide the user with the opportunity to run or view those examples.
+ 
+  IF YOU MESS THIS FILE'S STRUCTURE UP, RunDemos WON'T RUN RIGHT!
+ 
+  File Structure:
+  LINES IN THIS FILE STARTING WITH A SPACE ARE IGNORED, AS ARE BLANK LINES;
+  lines starting with -- are the names FOR THE TABS in the tab folders;
+  in any other line, text before 1st = is an EXAMPLE FILE NAME minus extent;
+  text after first = is the DESCRIPTION for that example.
+ 
+  Adding new examples or folders:
+      DON'T start a line for an additional example or folder with a space,
+      and DO place EACH ADDITION on a SEPARATE line.
+   To add a NEW EXAMPLE,
+    add it somewhere with all the existing examples for that tab name,
+    with the example file name minus its extent first, followed by a colon,
+    then followed by a description of the example, no longer than a line.
+   To add a NEW TAB FOLDER NAME,
+    enter two dashes at the beginning of a line,
+    followed by the desired tab folder name;
+    the actual tab folder name will be what you place there,
+     plus the word, "examples".
+   To DELETE an example, just delete it from this file
+ 
+ DEMOS LIST:
+ 
+--Numbered
+1=Simple Window
+2=text in window
+3=button in window, no action
+4=button closes window
+5=two buttons, with message boxes
+6=list box with items, button extracts info
+7=single line edit box, check box, and status bar
+8=makes menu for window
+9=displays fonts in window
+10=horizontal scroll bar
+11=colored lines
+12=colored text
+13=Simple timer
+14=icon & bitmap in window
+15=many controls in one window
+16=Tiles Bitmaps In Window, & Changes Control's Font
+17=Demonstrate hand-built bitmaps
+18=game demo: connect
+19=game demo: black box
+20=popup menus: right clicking window brings up the popup
+21=tab controls
+22=Sample LOGIN form
+23=Customised "Save As" routine
+--Named
+Generic=Menus, File dialogs, Printer,Toolbars, & Tooltips
+ComboBoxEx=combo with images
+ListTreeView=TreeView & ListView
+MonthCalendar=Monthly Calendar Demo
+PageSetupDlg=Printer Page Setup Dialog
+ReBar=ReBar is toolbar, can add other controls to it
+RichEdit=enter & edit text, with formatting & embedded ole
+ToolBar=tool bar
+Tooltip=descriptive messages popup when mouse over control
+UpDown=arrow buttons increment or decrement a value
+combo=ComboBox Selections
+PRETEND=A skeleton of an 'arcade' type of game.
+FlatToolBar=Flat ToolBar
+--More
+RtClick=right click selects item from list box
+Wstyles=shows various styles of windows
+ModalWin=makes a window which must be closed before main can
+CenterIt=centers a modal window inside a main window
+MsgBox=shows how to put a Message Box in your program
+WrtLabel=writes text to label, and erases it
+WalkDir=finds all directories and files in a directory
+FindFile=finds what directory a file is in
+tvedit=Edit Treeview
+grouptab=Group Tabbing
+menubang=Command Menus
+menuchk=Check Mark Menus
+F:\win32lib\Demo\display=Simple Display Window
+C:\EUPHORIA\win32lib_v006006\Demo\setParent=Shows how to shuffle menu items between m
+--May 2002
+selectFolder=Selecting a Folder
+drawtext=Draw Text with word wrap
+GetMfiles=Get Multiple Files
+tooltip_dynamic=Dynamic Tooltips
+--Utilities
+eucompress=Compresses a Euphoria program
+--May 2003
+www=Invoke a WEB page
+BkGnd16=Tiled bitmap test
+Buttons5=Aa couple of push buttons.
+Advanc=Low level API calls to do Scaling of images
+Center1=Create a centered window.
+clock=Simple Caption Clock
+clock2=More advanced looking clock. Popup menu example too.
+gradfil=Gradient Fill
+destroy=Button to destory window
+mletext=Multiple Line Edit Box
+findstr=Find Strings
+getfiles= Get multiple files from a dialog form
+getfocus= Test for focus 'memory'
+HOV= Test for mouse position and shape
+hover= Mouse hover testing
+kick2= Self-Detection test
+KM= Memory allocation speed
+listdemo= Demo filling a List control with file lines.
+listsync= A method to keep a set of lists synchronized.
+ListViewStyles= Examples of various ListView styles
+ListViewStyles2= Examples of various ListView styles
+lostfocus= Get Focus Test
+Menu08= Popup Menu Demo
+multisel= Demo of Muliple List item selection
+notify= Exmples of clicking on Label Text
+openfile= Demo of Open File dialog
+parsexpm= XPM demo
+progressbar= Progress Bar demo
+radios= Radio Button demo
+BitMap14= Bitmap examples (bitmap buttons)
+Scramble=User Input examples
+scroll= Scroll bar usage
+scroll2= Scroll Bar Usage
+shexec=Calling external programs.
+showtext=
+splash=
+StatBar1=
+StatBar2=
+tabcontrol=
+pokie=
+wprint=
+doevent=
+ListViewEdit=
+F1Key=
+loadlv2=
+loadlv1=
+loadlv3=
+clientarea=
+pretendsave=
+ListTreeView2=
+boxes=
+swin=
+colorlabel=
+colorlbl=
+appselect=
+virt_lv=
+trackbar=
+MakeMult=
+tabCnt=
+tabListView=
+wscroll=
+lvcol=
+simplelist=
+dosbox=
+translbl=
+richedit2=
+setvis=
+colorbtn=
+rt=
+drawing2=
+idle=
+focus=
+lvicon=
+tabclick=
+childw=
+listpop=
+ctrlq=
+click=
+TranslatedIdeText=
+window=
+MultiDialog=Demo of loadForm() routine.
+mwheel=
+childw2=
+hintwidth=
+childw3=
+life=
+visibility=
+colorlabel2=
+--MAY25 2003
+getClientRect=
+colors=
+lvheadings=
+--June 1, 2003
+bitmap=
+treeview=
+biglistview=
+smalllv=
+fileprop=
+getfile=
+--June 8 2003
+treeview2=
+saveas=
+simple_flatToolBar=
+--February 2004
+apidemo=
+backcolor=
+bigdots=
+BitMap10=
+BitmapPrint=
+child4=
+childw1=
+destroy2=
+dicethrow=
+display=
+dots=
+drawRecTest=
+EditBoxes=
+fastLV=Demo of a Virtual Listbox.
+focus2=
+handlers=
+hexes=
+icon00=How to get the icon associated with a file.
+imageview=
+initfocus=
+listview=
+listview2=
+listview3=
+listviewbox=
+listwin=Get a list of all the current windows and controls.
+long=Use of very long RTF files
+lvicons=
+lvsetindexcoba=
+modaltab=
+password=A simple password and verification test
+peekstring=
+playsounds=
+prompter=Example of the InputForm control type.
+pw2=
+randdots=
+rclick=
+rolling_die_2=
+scroller=
+setinitfocus=
+setmouse=
+showfile=
+sprite=
+tabcontrol2=
+TabItemDelete=
+tesrtf=
+treeview3=
+tvSave=
+twowin=
+wordcatcher=
+wordlist=
+--June 2004
+--June 2004
+fullscreen=
+listtabs=
+mle_write=
+popupwindow=
+printerlines=
+RESIZE=
+resizebmp=
+richedit1=
+SCROLL3=
+SETFOCUS=
+simple_list=
+TABCOLOR=
+timer=
+tvchecked=
+bitmap3=
+BitmapText=

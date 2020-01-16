@@ -1,0 +1,29 @@
+without warning
+include win32lib.ew
+
+global function main(sequence pArgs)
+
+    createForm({
+        -- N.B. Caption is enclosed in quotes to avoid attempts to convert
+        -- it to a number (it starts with  some digits).
+    "Window, (32-bit Scroll Test), bar=status",
+    "HScroll, HScroller, size=(480, 25), bgcolor=Cyan"
+    })
+
+
+    setWindowScrollRange( getNameId("HScroller"), 0, -power(2,30), power(2,30)-1 , #1000000 )
+    return 0
+end function
+
+
+global procedure Scroll_HScroller( integer self, atom event, sequence params )
+	atom pos
+	atom pos2
+
+	pos = getThumbPos( self )
+	showMessage( sprintf("getScrollInfo: %d / %08x %08x", {pos, pos, params[1]}))
+
+end procedure
+registerRoutine("Scroll_HScroller", routine_id("Scroll_HScroller"))
+
+include w32Start.ew

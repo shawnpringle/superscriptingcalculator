@@ -1,0 +1,73 @@
+--------SPLASH EXAMPLE ---------
+include win32lib.ew
+without warning
+
+integer v_Splash
+integer v_SBM
+
+-- Include this if you want the user to be able to close the splash window manually.
+global procedure Click_Splash(integer self, integer event, sequence parms)
+    destroy(self)
+end procedure
+registerRoutine("Click_Splash", routine_id("Click_Splash"))
+
+global procedure Activate_Main(integer self, integer event, sequence parms)
+    atom timeout
+
+    -- Set 4 seconds as the minimum time for a splash window display.
+    timeout = time() + 4
+
+    -- Draw the stuff on the splash screen.
+    setBitmap(v_SBM, "java.bmp")
+
+    -- Move it back into view
+    setRect(v_Splash, Center, Center, 200, 230, 1)
+
+    -- For example, begin initialising the main window's stuff...
+    VOID = create(Button, "One", self, 5, 5, 50, 50, 0)
+    VOID = create(Button, "Two", self, 5, 65, 50, 50, 0)
+
+    -- Wait til countdown has elapsed or splash screen is down.
+    while timeout > time() and isVisible(v_Splash) do
+        doEvents(0)
+    end while
+
+    -- Show the main window now by adding the border and standard controls
+    -- then resizing it.
+    addStyle(self, WS_TILEDWINDOW)
+    setRect(self, 0, 0, 170, 350, w32True)
+
+    -- Get rid of splash screen.
+    destroy(v_Splash)
+
+end procedure
+registerRoutine("Activate_Main", routine_id("Activate_Main"))
+
+
+global function main(sequence pArgs)
+
+    VOID = setSearchPaths("..\\demoresources\\")
+    createForm({
+        -- Create a main window with no dimensions and out of view
+        "Window, Main, size=(0, 0), flags=(new, WS_POPUP)"
+        })
+
+    createForm({
+        -- Create a window with no dimensions
+        "Window, Splash, flags=(new, WS_POPUP, WS_BORDER, WS_VISIBLE)," &
+                "BGColor=(#80,#90,#20), event=click,size=(0,0) ",
+        -- Put some logo stuff etc on the splash window.
+        "Bitmap, name=SBM, at=( 10, 10), size=(200, 200), flag=ws_border",
+        -- Using an alternate delimiter as comma is used in the text string
+        ";LText;© 1912, MacroHard; at=( 5; 210); font=(Courier New;11)"
+        })
+
+    v_Splash = getNameId("Splash")
+    v_SBM = getNameId("SBM")
+
+    return 0
+end function
+
+include w32start.ew
+
+

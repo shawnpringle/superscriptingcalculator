@@ -1,0 +1,245 @@
+without warning
+include std/win32/msgbox.e
+include win32lib.ew
+
+constant App="Word Scramble Puzzle Wizard",
+	 Ver="Ver 0.1a",
+	 CrLf={'\r','\n'}
+
+sequence FileName
+
+integer Main_Win
+integer WGWords_Combo
+object WGWords_Editbox
+
+sequence WORD_LIST
+atom NumWords
+atom ListSize
+
+
+-- CONTROL EVENTS --
+----------------------------------
+global procedure Click_AddWord(integer self, integer event, sequence parms)
+----------------------------------
+ sequence TheWord
+   TheWord = getText(WGWords_Combo)
+   for i = 1 to length(TheWord) do
+      if TheWord[i] <'A' or TheWord[i] >'z' or
+	 TheWord[i] >'z' and TheWord[i] <'a' then TheWord = "" exit end if
+   end for
+   if not find(TheWord,WORD_LIST) and not equal(TheWord,"") and not equal(TheWord," - WORD LIST - ") then
+      WORD_LIST &= {TheWord}
+      NumWords = length(WORD_LIST)
+      ListSize = NumWords*20+20
+      if ListSize > 200 then ListSize = 200 end if
+
+      setCtlSize(WGWords_Combo,202,ListSize)
+      addItem(WGWords_Combo,WORD_LIST[NumWords])
+      setText(WGWords_Combo,"")
+      setFocus(WGWords_Combo)
+      showMessage( sprintf("'%s' added.  Words in list: %d", {TheWord,NumWords}))
+   end if
+end procedure
+registerRoutine("Click_AddWord", routine_id("Click_AddWord"))
+
+-- Remove Button --
+----------------------------------
+global procedure Click_RemoveWord(integer self, integer event, sequence parms)
+----------------------------------
+sequence TheWord
+atom TheIndex
+   if NumWords !=0 then
+      TheIndex = getIndex(WGWords_Combo)
+      TheWord = getItem(WGWords_Combo,getIndex(WGWords_Combo))
+      if TheIndex != 1 then
+	   WORD_LIST = w32removeItem(TheWord, WORD_LIST)
+	   NumWords = length(WORD_LIST)
+	   ListSize = NumWords*20+20
+	   if ListSize<40 then ListSize=40
+	   elsif ListSize>200 then ListSize=200
+	   end if
+	   if deleteItem(WGWords_Combo,getIndex(WGWords_Combo)) then end if
+	   setCtlSize(WGWords_Combo,202,ListSize)
+	   setText(WGWords_Combo,"")
+       showMessage( sprintf("'%s' removed. Words in list: %d", {TheWord,NumWords}))
+     end if
+   end if
+   setFocus(WGWords_Combo)
+end procedure
+registerRoutine("Click_RemoveWord", routine_id("Click_RemoveWord"))
+
+----------------------------------
+global procedure KeyPress_EditWord(integer self, integer event, sequence parms)
+----------------------------------
+   if parms[1] = 13 then
+      VOID = invokeHandler(getNameId("Add Word"), w32HClick, {})
+      -- Tell Windows to ignore keystroke.
+      returnValue(-1)
+   end if
+end procedure
+registerRoutine("KeyPress_EditWord", routine_id("KeyPress_EditWord"))
+
+----------------------------------
+global procedure KeyPress_AddWord(integer self, integer event, sequence parms)
+----------------------------------
+
+    if parms[1] = 13 or
+      (parms[2]=AltMask and (parms[1]='a' or parms[1]='A'))  then
+        VOID = invokeHandler(getNameId("Add Word"), w32HClick, {})
+       setFocus(WGWords_Combo)
+   end if
+end procedure
+registerRoutine("KeyPress_AddWord", routine_id("KeyPress_AddWord"))
+
+----------------------------------
+global procedure KeyPress_RemoveWord(integer self, integer event, sequence parms)
+----------------------------------
+    if parms[1] = 13 then
+        VOID = invokeHandler(getNameId("Remove Word"), w32HClick, {})
+        setFocus(WGWords_Combo)
+    end if
+end procedure
+registerRoutine("KeyPress_RemoveWord", routine_id("KeyPress_RemoveWord"))
+
+-- Build Button --
+----------------------------------
+global procedure Click_BuildPuzzle(integer self, integer event, sequence parms)
+----------------------------------
+    showMessage( getText(self) & " not implemented")
+end procedure
+registerRoutine("Click_BuildPuzzle", routine_id("Click_BuildPuzzle"))
+
+-- MENU EVENTS --
+-- File menu --
+----------------------------------
+global procedure Click_New(integer self, integer event, sequence parms)
+----------------------------------
+    showMessage( getText(self) & " not implemented")
+end procedure
+registerRoutine("Click_New", routine_id("Click_New"))
+
+----------------------------------
+global procedure Click_Open(integer self, integer event, sequence parms)
+----------------------------------
+    showMessage( getText(self) & " not implemented")
+end procedure
+registerRoutine("Click_Open", routine_id("Click_Open"))
+
+----------------------------------
+global procedure Click_Close(integer self, integer event, sequence parms)
+----------------------------------
+    showMessage( getText(self) & " not implemented")
+end procedure
+registerRoutine("Click_Close", routine_id("Click_Close"))
+
+----------------------------------
+global procedure Click_Save(integer self, integer event, sequence parms)
+----------------------------------
+    showMessage( getText(self) & " not implemented")
+end procedure
+registerRoutine("Click_Save", routine_id("Click_Save"))
+
+----------------------------------
+global procedure Click_SaveAs(integer self, integer event, sequence parms)
+----------------------------------
+    showMessage( getText(self) & " not implemented")
+end procedure
+registerRoutine("Click_SaveAs", routine_id("Click_SaveAs"))
+
+-- Options Menu --
+----------------------------------
+global procedure Click_ClearWordList(integer self, integer event, sequence parms)
+----------------------------------
+   eraseItems(WGWords_Combo)
+   setCtlSize(WGWords_Combo,202,40)
+end procedure
+registerRoutine("Click_ClearWordList", routine_id("Click_ClearWordList"))
+
+
+----------------------------------
+global procedure Click_About(integer self, integer event, sequence parms)
+----------------------------------
+
+    VOID = message_box(  CrLf &
+			   "Word Scramble Puzzle Creator" & CrLf &
+			   " created by ..." & CrLf &
+			   "     Chris Bensler" & CrLf &
+			   CrLf &
+			   " using ..." & CrLf &
+			   sprintf("     Win32Lib version %d.%d Patch#%d, %s", Win32LibVersion),
+			   "About... " & App & " " & Ver,        -- title
+			   MB_ICONINFORMATION+MB_TASKMODAL )   -- icon
+end procedure
+registerRoutine("Click_About", routine_id("Click_About"))
+
+
+-- Ensure focus is on the combo box when the window is opened.
+----------------------------------
+global procedure Activate_MainWin(integer self, integer event, sequence parms)
+----------------------------------
+    setFocus(WGWords_Combo)
+end procedure
+registerRoutine("Activate_MainWin", routine_id("Activate_MainWin"))
+
+-- MAIN WINDOW EVENTS --
+----------------------------------
+global function main(sequence pArgs)
+----------------------------------
+
+    WORD_LIST   = { " - WORD LIST - " }
+    ListSize    = 40
+    NumWords    = 1
+    FileName    = "Untitled.wsp"
+
+    createForm({
+        "Window, name=Main Win, Word Scramble Wizard,size=(220,170)," &
+            "flags=(new,WS_SYSMENU,WS_DLGFRAME), bar=status",
+
+    -- Menus --
+        "Menu, &File",
+            "MenuItem, &New",
+            "MenuItem, &Open",
+            "MenuItem, &Close, enable=No",
+            "MenuItem, -",
+            "MenuItem, &Save, enable=No",
+            "MenuItem, Save &As ..., enable=No",
+            "MenuItem, -",
+            "MenuItem, E&xit, flag=AutoClose",
+        "Menu, &Options",
+            "MenuItem, &Clear Word List",
+            "MenuItem, &Build Puzzle",
+        "Menu, &Help",
+            "MenuItem, &About ...",
+
+    -- Controls --
+        "Group, at=(-2,-6),size=(218,104)",
+            "Button, &Add Word,    at=(  8,15), size=( 95,22)",
+            "Button, &Remove Word, at=(115,15), size=( 95,22)",
+            "SortedCombo, WGWords, at=(  8,45), size=(202,40)",
+            "Button, &Build Puzzle,at=(  8,75), size=(202,22)"
+
+            })
+
+    Main_Win = getNameId("Main Win")
+    WGWords_Combo = getNameId("WGWords")
+
+    setText(Main_Win,FileName & " - " & App)
+    addItem(WGWords_Combo," - WORD LIST - ")
+
+    -- Combo boxes are 'subclassed' by win32lib and its child is the editbox.
+    WGWords_Editbox = findChildren(WGWords_Combo)
+    for i = 1 to length(WGWords_Editbox) do
+        if WGWords_Editbox[i][2] = EditText then
+            WGWords_Editbox = WGWords_Editbox[i][1]
+            exit
+        end if
+    end for
+    setHandler(WGWords_Editbox, w32HKeyPress, routine_id("KeyPress_EditWord"))
+
+    return 0
+end function
+
+-- DO IT! --
+include w32start.ew
+
+

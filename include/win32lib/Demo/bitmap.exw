@@ -1,0 +1,25 @@
+include win32lib.ew
+
+without warning
+procedure Click_cvrbmp(integer self, integer event, sequence p)
+    closeApp()
+end procedure
+registerRoutine("Click_cvrbmp", routine_id("Click_cvrbmp"))
+
+global function main(sequence pArgs)
+    sequence bitmapsize
+
+    VOID = setSearchPaths("..\\demoresources\\")
+    createForm({
+        "Window, Welcome to the world of bitmaps, name=MainWin, at=(Default, Default), size=(0,0)," &
+            "flags=(WS_DLGFRAME,WS_POPUP,WS_CAPTION)",
+        "Bitmap, largetiles.bmp, name=cvrbmp, at=(0,0), size=(0,0)"
+            -- & ", flag=ss_notify"
+        })
+
+    bitmapsize = getCtlSize(getNameId("cvrbmp"))
+    setClientRect(getNameId("MainWin"), bitmapsize[1], bitmapsize[2])
+
+    return 0
+end function
+include w32Start.ew

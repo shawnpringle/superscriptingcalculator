@@ -1,0 +1,31 @@
+without warning
+include win32lib.ew
+VOID = setSearchPaths("..\\demoresources\\")
+----------------------------------------------------------------------
+createForm({"Window, Sample",
+            "ListView,name=The List, at=(10, 10), size=(100, 100), flag=LVS_ICON",
+            "PushButton,Change Icon, at=(150, 130), size=(80, 25)"
+            })
+
+integer xIcon1, xIcon2, CurrIcon, idx
+xIcon1 = addIcon(extractIcon("icon01.ico"))
+xIcon2 = addIcon(extractIcon("icon02.ico"))
+CurrIcon = xIcon1
+constant text = {"Hello", "Goodbye"}
+
+constant MyList = getNameId("The List")
+idx = addLVItem(MyList, CurrIcon, text[CurrIcon])
+
+global procedure Click_ChangeIcon(integer self, integer event, sequence parms)
+    if CurrIcon = xIcon1 then
+        CurrIcon = xIcon2
+    else
+        CurrIcon = xIcon1
+    end if
+                                                               
+    setLVItem(MyList, LVIF_IMAGE, idx , 0, 0, 0,  0, CurrIcon, 0)
+    setLVItem(MyList, LVIF_TEXT, idx , 0, 0, 0,  text[CurrIcon], 0, 0)
+end procedure
+registerRoutine("Click_ChangeIcon", routine_id("Click_ChangeIcon"))
+include w32start.ew
+

@@ -1,0 +1,74 @@
+-- Demo of bulk loading a listview 
+-- with a customized sorting routine.
+object VOID
+include win32lib.ew
+include std/get.e
+include std/sort.e
+without warning
+
+constant w = createEx(Window,"test load", 0, 0, 0, 400, 0400, 0, 0),
+         lv = createEx(ListView, {"English","Digit", "Thai"}, w, 10, 10, 300, 300, LVS_REPORT , 0),
+         bt = createEx(Button, "English", w, 10, 340, 60, 25, 0, 0)
+         
+             
+sequence theData theData = {}
+integer theDir theDir = 1
+
+theData = append(theData, {"One", "1", "neung"})
+theData = append(theData, {"Two", "2", "song"})
+theData = append(theData, {"Three", "3", "sam"})
+theData = append(theData, {"Four", "4", "si"})
+theData = append(theData, {"Five", "5", "ha"})
+theData = append(theData, {"Six", "6", "hok"})
+theData = append(theData, {"Seven", "7", "jet"})
+theData = append(theData, {"Eight", "8", "baht"})
+theData = append(theData, {"Nine", "9", "kow"})
+theData = append(theData, {"Ten", "10", "sip"})
+             
+
+loadLVInfo(lv, theData)
+                                   
+
+------------------------------------------------
+function mysort(object p1, object p2)
+------------------------------------------------
+    object l1,l2
+    
+    if theDir = 1 then
+        l1 = p1[1]
+        l2 = p2[1]
+        
+    elsif theDir = 2 then
+        l1 = value(p1[2])
+        l1 = l1[2]
+        
+        l2 = value(p2[2])
+        l2 = l2[2]
+    else
+        l1 = p1[3]
+        l2 = p2[3]
+    
+    end if
+
+    return compare(l1, l2)
+end function
+    
+constant bttext = {"English", "Digit", "Thai"}
+------------------------------------------------
+procedure onClick_bt(integer self, integer event, sequence parms)
+------------------------------------------------
+    theData = custom_sort(routine_id("mysort"), theData)
+    loadLVInfo(lv, theData)
+    
+    theDir += 1
+    if theDir = 4 then
+        theDir = 1
+    end if
+    
+    setText(bt, bttext[theDir])
+    
+end procedure
+setHandler(bt, w32HClick, routine_id("onClick_bt"))
+
+
+WinMain(w, 0)

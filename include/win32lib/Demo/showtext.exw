@@ -1,0 +1,80 @@
+include win32lib.ew
+include std/filesys.e
+include std/io.e
+without warning
+
+--with trace
+object VOID
+VOID = classDefaults(Window, {{CCwinstyle,0}})
+constant win = create(Window, "Show Text Test", 0, 0, 0, 400, 430, 0),
+         SB = create(StatusBar, "", win, 0,0, 0,0,0),
+         fName = create(EditText,"", win, 5, {w32AltEdge,-30}, 300 , 20, 0),
+         fTextArea = create(MleText, "", win, 5,5, w32Edge, {w32Edge,-35},
+                    {WS_CHILD,
+                     WS_VISIBLE,
+                     WS_HSCROLL, -- Remove this if you want word wrap
+                     WS_VSCROLL,
+                     WS_BORDER,
+                     ES_LEFT,
+                     ES_MULTILINE,
+                     ES_READONLY}
+                     )
+
+setWindowBackColor(fTextArea, getSysColor(COLOR_INFOBK))
+setFont(fTextArea, "Courier New", 12, Normal)
+
+procedure LoadFile(integer id, integer event,sequence params)
+    sequence filename
+    integer fh
+    object dirinfo
+    sequence data
+
+    if params[1] != VK_RETURN then
+        return
+    end if
+    returnValue(-1)
+
+    filename = getText(fName)
+    if length(filename) = 0 then
+        setText(SB, "I require a file name first.")
+        return
+    end if
+
+    dirinfo = dir(filename)
+    if equal(dirinfo, -1) then
+        setText(SB, sprintf("File '%s' not found.", {filename}))
+        return
+    end if
+
+    if dirinfo[1][D_SIZE] > 32000 then
+        setText(SB, sprintf("File '%s' is larger than 32000 bytes.", {filename}))
+        return
+    end if
+
+    fh = open(filename, "rb")
+    if fh <= 0 then
+        setText(SB, sprintf("Unable to open file '%s'.", {filename}))
+        return
+    end if
+
+
+    data = get_bytes(fh, dirinfo[1][D_SIZE])
+
+    setText(fTextArea, data)
+
+    close(fh)
+
+    setText(SB, "File loaded.")
+end procedure
+setHandler(fName,w32HKeyPress,routine_id("LoadFile"))
+
+procedure fName_resize(integer id, integer event, sequence params)
+    setCtlSize( fTextArea, w32Edge, {w32Edge, -35})
+    setRect( fName ,5, {w32AltEdge,-30}, 300 , 20, w32True)
+end procedure
+setHandler(win,w32HResize,routine_id("fName_resize"))
+
+
+setText(fName, "... type in a file name here ...")
+setHint(fName, "Enter a file name and press return to see its contents.")
+WinMain(win,0)

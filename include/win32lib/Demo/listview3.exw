@@ -1,0 +1,18 @@
+include win32lib.ew
+
+constant Win =
+create( Window, "Listview on TabControl Problem",0,1,1,550,500,0),
+ tc = create(TabControl,"",Win,20,40,500,500,0 ),
+ tab1 = create(TabItem,"tab 1",tc, 0, 0, 0, 0, 0 ),
+ lv1 = create( ListView,{"column 1","column 2","column 3"},tab1,5,30,450,300,
+    or_all({LVS_REPORT,LVS_SHOWSELALWAYS})),
+ tab2 = create(TabItem,"tab 2",tc, 0, 0, 0, 0, 0 ),
+ lv2 = create( ListView,{"column 1","column 2","column 3"},tab2,5,30,450,300,
+    or_all({LVS_REPORT,LVS_SHOWSELALWAYS}))
+
+VOID = addLVItem( lv1, 0, {"apple juice","orange juice","grapefruit juice"})
+VOID = addLVItem( lv2, 0, {"apples","oranges","grapefruits"})
+
+WinMain(Win,Normal)
+-----------
+

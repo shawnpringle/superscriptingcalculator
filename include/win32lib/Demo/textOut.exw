@@ -1,0 +1,40 @@
+without warning
+include win32lib.ew
+integer win
+sequence NameFld
+sequence AddressFld
+integer AgeFld
+atom WeightFld
+procedure Paint_win(integer self, integer event, sequence parms)
+      atom hdc
+      integer H
+      integer W
+
+      hdc = getDC(win)
+      H = getTextHeight(win, "|")
+      W = 4
+      textOut(hdc,{"   Name:", W, 0 * H, Black, White, OPAQUE})
+      textOut(hdc,{"Address:", W, 1 * H})
+      textOut(hdc,{"    Age:", W, 2 * H})
+      textOut(hdc,{" Weight:", W, 3 * H})
+
+      W = getTextWidth(win, "_") * 10
+      textOut(hdc,{NameFld, W, 0 * H, Blue, BrightWhite, OPAQUE})
+      textOut(hdc,{AddressFld, W, 1 * H})
+      textOut(hdc,{sprintf("%d",AgeFld), W, 2 * H})
+      textOut(hdc,{sprintf("%6.2f", WeightFld), W, 3 * H})
+      releaseDC(win)
+
+end procedure
+
+procedure init()
+    win = create(Window, "textOut Demo", 0, 0, 0, 400, 400, 0)
+    NameFld = "Derek"
+    AddressFld = "Melbourne"
+    AgeFld = 50
+    WeightFld = 97.4
+    setHandler(win, w32HPaint, routine_id("Paint_win"))
+end procedure
+
+init()
+WinMain(win, Normal)

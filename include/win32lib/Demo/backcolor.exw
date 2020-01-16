@@ -1,0 +1,84 @@
+include win32lib.ew
+without warning
+constant mainWindow = create(Window, "Test", 0, Default, Default, 400, 300, 0)
+constant pixmap1 = create(Pixmap, "", mainWindow, 0, 0, 200, 150, 0)
+constant drawButton = create(PushButton, "&Draw on pixmap", mainWindow, 10, 10, 100, 30, 0)
+constant drawnText = create(EditBox, "Test Words", mainWindow, 120, 10, 150, 30, 0)
+with trace
+
+procedure BuildPicture()
+    sequence lText
+    sequence lTextSize
+    sequence lPMRect
+    integer lTextLeft
+    integer lTextTop
+    integer lRVal
+    integer lBoxLeft
+    integer lBoxTop
+    integer lBoxWidth
+    integer lBoxHeight
+    integer lFontSize
+
+    lPMRect = getRect(pixmap1)
+    lBoxWidth = floor(lPMRect[3]/2)
+    lBoxHeight = floor(lPMRect[4]/2)
+    lBoxLeft = rand(lPMRect[3]-lBoxWidth)
+    lBoxTop = rand(lPMRect[4]-lBoxHeight)
+    lFontSize = rand(19) + 8
+
+    setFont(pixmap1, "Arial", lFontSize , Normal)
+
+    -- Clear pixmap to cyan
+    setBackColor(pixmap1, Cyan)
+
+    -- Draw a white box with an inner border.
+    setPenColor(pixmap1, BrightWhite)
+    drawRectangle(pixmap1, w32True, lBoxLeft, lBoxTop,
+                            lBoxLeft+lBoxWidth,
+                            lBoxTop+lBoxHeight)
+    setPenColor(pixmap1, BrightCyan)
+    drawRectangle(pixmap1, w32False, lBoxLeft+2, lBoxTop+2,
+                            lBoxLeft+lBoxWidth-2,
+                            lBoxTop+lBoxHeight-2)
+
+    -- Draw some red words
+    lText = getText(drawnText)
+    lTextSize = getTextExtent(pixmap1, lText)
+    lRVal = lPMRect[3]-lTextSize[1]
+    if lRVal < 1 then
+        lTextLeft = 0
+    else
+        lTextLeft = rand(lRVal)
+    end if
+    lTextTop = rand(lPMRect[4]-lTextSize[2])
+    setPenColor(pixmap1, Parchment)
+    drawRectangle(pixmap1, w32True, lTextLeft-1, lTextTop-1,
+                                 lTextLeft+lTextSize[1]+2,
+                                 lTextTop+lTextSize[2]+2)
+    setPenColor(pixmap1, Gray)
+    drawRectangle(pixmap1, w32False, lTextLeft-1, lTextTop-1,
+                                 lTextLeft+lTextSize[1]+2,
+                                 lTextTop+lTextSize[2]+2)
+    if lFontSize > 14 then
+        setTextColor(pixmap1, Black)
+        wPuts({pixmap1, lTextLeft+1,lTextTop+1}, lText)
+    end if
+    setTextColor(pixmap1, BrightRed)
+    wPuts({pixmap1, lTextLeft,lTextTop}, lText)
+
+    -- Repaint the button in case the pixmap covered it.
+    repaintWindow(mainWindow)
+end procedure
+
+procedure drawButton_onClick(integer self, integer event, sequence parms)
+    BuildPicture()
+end procedure
+setHandler(drawButton,w32HClick, routine_id("drawButton_onClick"))
+
+procedure Paint_mainWindow(integer self, integer event, sequence parms)
+    copyBlt(mainWindow, 10,50, pixmap1)
+end procedure
+setHandler(mainWindow, w32HPaint,routine_id("Paint_mainWindow"))
+
+BuildPicture()
+WinMain(mainWindow, Normal)

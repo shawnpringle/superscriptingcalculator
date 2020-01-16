@@ -1,0 +1,19 @@
+include win32lib.ew
+without warning
+
+constant MainWindow = create(Window,"CW",0, 0, 0, 400, 400, 0),
+  cwin = createEx(LText, "", MainWindow, 10, 10, 200, 45, 0, 0)
+  
+  setFont(cwin, "Arial", 12, Bold)
+
+procedure Painter(integer self, integer event, sequence parms)
+      setWindowBackColor(cwin, BrightWhite)
+      setPenColor(cwin, BrightRed)      
+      setTextColor(cwin, BrightBlue)
+      drawRectangle(cwin, 0,1,1,198,44)
+      wPuts({cwin,3,3}, "Hi There") 
+      
+end procedure
+setHandler(MainWindow, w32HPaint, routine_id("Painter"))
+
+WinMain(MainWindow, 0)

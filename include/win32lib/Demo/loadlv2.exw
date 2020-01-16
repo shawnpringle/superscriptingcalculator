@@ -1,0 +1,33 @@
+-- Demo of bulk loading a listview 
+-- with setting the sorting attributes for built-in sorting.
+object VOID
+include win32lib.ew
+include std/sort.e
+without warning
+
+constant w = createEx(Window,"test load", 0, 0, 0, 400, 0400, 0, 0),
+         lv = createEx(ListView, {"English","Digit", "Thai"}, w, 10, 10, 300, 300, LVS_REPORT , 0)
+         
+sequence theData theData = {}
+
+theData = append(theData, {"One", "1", "neung"})
+theData = append(theData, {"Two", "2", "song"})
+theData = append(theData, {"Three", "3", "sam"})
+theData = append(theData, {"Four", "4", "si"})
+theData = append(theData, {"Five", "5", "ha"})
+theData = append(theData, {"Six", "6", "hok"})
+theData = append(theData, {"Seven", "7", "jet"})
+theData = append(theData, {"Eight", "8", "baht"})
+theData = append(theData, {"Nine", "9", "kow"})
+theData = append(theData, {"Ten", "10", "sip"})
+             
+
+loadLVInfo(lv, theData)
+
+-- Set the attributes to use the built-in sorting.                                   
+VOID = setLVAttr( lv, {{kLVColTypes, {'i','n','i'}},
+                       {kLVSortSeq, {1, 1, 1}}    
+                      })
+
+
+WinMain(w, 0)

@@ -1,0 +1,186 @@
+------------------------------------------------
+-- grouptab.exw
+--
+-- A Demo of how to do Group Tabbing.
+--  This will cause focus to shift to the control that last had focus
+--  in the next Group when Down is pressed.
+------------------------------------------------
+without warning
+include win32lib.ew
+
+------------------------------------------------
+procedure KeyDown_Screen(integer self, integer event, sequence parms)
+------------------------------------------------
+-- This gets invoked for every event that the application receives.
+-- However, we are only interested in KEYDOWN events. Some of
+-- these we wish to use and prevent Windows from seeing them.
+
+    integer nextgroup
+    integer inc
+    object nextcid
+    integer lParent
+    integer lGrandParent
+    integer lMainWin
+    sequence lKeyState
+    sequence lKids
+    integer lEnd
+    integer lStart
+
+    if parms[1] != VK_DOWN and parms[1] != VK_UP then
+        return
+    end if
+    
+    lParent = findParent(self)        
+    lMainWin = findParentWindow(self)
+    lGrandParent = findParent(lParent)
+    
+    if lGrandParent = 0 then
+        lGrandParent = lMainWin
+    end if
+        
+    if parms[1] = VK_DOWN then
+        -- Move to the focus item inside the next group on my level.
+
+        -- Get all my parent's siblings.
+        lKids = getControlInfo(lGrandParent, CONTROLINFO_group)
+        if lGrandParent = lParent then
+            lKids = lParent & lKids
+        end if
+        
+        -- Find my parent in its sibling list
+        nextgroup = find(lParent, lKids)
+
+        -- Direction depends on the Shift key state.
+        if and_bits(parms[2], ShiftMask) = 0 then
+            inc = 1
+        else
+            inc = -1
+        end if
+
+        if inc > 0 then
+            lEnd  = length(lKids)
+        else
+            lEnd = 1
+        end if
+        
+        lStart = nextgroup
+        nextcid = 0
+        while lStart != lEnd do
+            lStart += inc
+            if getControlInfo(lKids[lStart], CONTROLINFO_type) = Group then
+                nextcid = lKids[lStart]
+                exit
+            end if
+        end while
+
+        if nextcid = 0 then
+            lEnd = nextgroup
+            if lStart = 1 then
+                lStart = length(lKids) + 1
+            else
+                lStart = 0
+            end if
+            while lStart != lEnd do
+                lStart += inc
+                if getControlInfo(lKids[lStart], CONTROLINFO_type) = Group then
+                    nextcid = lKids[lStart]
+                    exit
+                end if
+            end while
+        end if            
+
+        if nextcid != 0 then            
+            nextcid = getUserProperty(nextcid, "infocus")
+            if length(nextcid) > 0 then
+                setFocus(nextcid[1])
+            end if
+        end if
+
+    elsif parms[1] = VK_UP then
+        -- If my parent is a group, then move to my grandparent's focus item.
+        nextcid = getUserProperty(lGrandParent, "infocus")
+        if length(nextcid) > 0 then
+            setFocus(nextcid[1])
+        end if
+    end if
+
+    -- Hide this Key press from Windows.
+    returnValue(0)
+
+    return
+end procedure
+
+------------------------------------------------
+procedure GotFocus_Box(integer self, integer event, sequence parms)
+------------------------------------------------
+    -- Remember which control has currently got focus in each group.
+    setUserProperty( findParent(self), "infocus", self)
+end procedure
+
+-- Set initial focus and handlers for all children inside groups.
+------------------------------------------------
+procedure SetMyHandler(integer pID)
+------------------------------------------------
+    sequence lKids
+    integer lSet
+
+    lKids = getControlInfo(pID, CONTROLINFO_group)
+    lSet = 0 
+    for i = 1 to length(lKids) do
+        if getControlInfo(lKids[i], CONTROLINFO_type) != Group then
+            if lSet = 0 then
+                -- The first non-group child has initial focus.
+                setUserProperty( pID, "infocus", lKids[i])
+                lSet = 1
+            end if
+            setHandler(lKids[i], w32HGotFocus, routine_id("GotFocus_Box"))
+        else
+            SetMyHandler(lKids[i])
+        end if
+    end for
+end procedure
+
+------------------------------------------------
+-- Application Initiation
+------------------------------------------------
+
+global function main(sequence pArgs)
+
+    createForm({
+        "Window, Group Tabbing Demo,hint=DOWN - UP keys to navigate, at=(0, 0), size=(600, 450), bar=status",
+
+        "Group, Group 1, at=(5,  5), size=(170, 350)",
+           "EditText, at=(5, 25), size=(100,  35)",
+           "EditText, at=(5, 75), size=(100,  35)",
+           "Group, Group 11, at=(15,125), size=(100, 200)",
+                "EditText,   at=(5, 25),  size=(85,  35)",
+                "EditText,   at=(5, 75),  size=(85,  35)",
+
+        "Group , parent=Group Tabbing Demo, Group 2, at=(185,  5), size=(170, 350)",
+            "EditText,       at=(5, 25), size=( 100,  35)",
+            "EditText,       at=(5, 75), size=( 100,  35)",
+            "EditText,       at=(5,125), size=( 100,  35)",
+            "RadioButton, AA,at=(5,170), size=( 100,  25)",
+            "RadioButton, BB,at=(5,195), size=( 100,  25)",
+
+        "Group, parent=Group Tabbing Demo , Group 3, at=(365,  5), size=(170, 350)",
+            "EditText,  at=(5, 25), size=( 100,  35)",
+            "EditText,  at=(5, 75), size=( 100,  35)",
+            "EditText,  at=(5,125), size=( 100,  35)",
+            "EditText,  at=(5,175), size=( 100,  35)",
+
+        "window, name=Group Tabbing Demo, pragma=Parent",
+        "Button,    Btn1, at=(550,  5), size=(  40,  25), Initial=yes",
+        "Button,    Btn2, at=(550, 55), size=(  40,  25)",
+        "Button,    Btn3, at=(550,105), size=(  40,  25)",
+        "RadioButton,  C, at=(550,145), size=(  40,  25)"
+        })
+
+    -- Link in the event handlers.
+    
+    setHandler(Screen, w32HKeyDown, routine_id("KeyDown_Screen"))
+    SetMyHandler(getNameId("Group Tabbing Demo"))
+    return 0
+end function
+
+include w32start.ew

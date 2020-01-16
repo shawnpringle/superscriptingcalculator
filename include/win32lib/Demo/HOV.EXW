@@ -1,0 +1,84 @@
+without warning
+include win32lib.ew
+
+constant
+
+ Pointer = createMousePointer( 5, 1, {
+"       xxx       ",
+"      x...x      ",
+"      x...x      ",
+"      x...x      ",
+"      x...x      ",
+"      x...x      ",
+"   .xxx...xxx    ",
+"   x..x...x..xxx ",
+" xxx..x...x..x..x",
+"x..x..x...x..x..x",
+"x..x..x...x..x..x",
+"x..x..x...x.....x",
+"x...............x",
+"x...............x",
+"x..............x ",
+" x............x  ",
+"  x...........x  ",
+"   x..........x  ",
+"   x..........x  ",
+"   x..........x  ",
+"   xxxxxxxxxxxx  ",
+"   xxxxxxxxxxxx  "} )
+
+
+
+
+integer vCurrentState
+integer mt
+sequence bm, bsize
+vCurrentState = 0
+
+
+constant
+MainWin = create(Window, "Demo ", 0, 0, 0, 125, 150, 0),
+img = create(Bitmap, "",MainWin, 50, 50, 25, 25, SS_NOTIFY)
+setMousePointer( img, Pointer )
+setHint(img, "Go to Rapid Development's web site")
+VOID = setSearchPaths("..\\demoresources\\")
+bm = {loadBitmapFromFile("1.bmp"),
+      loadBitmapFromFile("1a.bmp")}
+
+bsize = {getSize(bm[1]), getSize(bm[2])}
+
+---------------------------------------------------
+procedure w_Activate(integer self, integer event, sequence params)
+---------------------------------------------------
+    vCurrentState = 1
+    setBitmap(img, bm[vCurrentState])
+end procedure
+
+---------------------------------------------------
+procedure w_Mouse(integer self, integer event, sequence params)
+---------------------------------------------------
+    integer lDesiredState
+
+    if self = img then
+        lDesiredState = 2
+    else
+        lDesiredState = 1
+    end if
+    if vCurrentState != lDesiredState then
+        vCurrentState = lDesiredState
+        setBitmap(img, bm[vCurrentState])
+    end if
+end procedure
+
+---------------------------------------------------
+procedure onClick_img(integer self, integer event, sequence params)
+---------------------------------------------------
+    shellExecute( "open", "http://www.rapideuphoria.com", Default )
+end procedure
+
+setHandler(MainWin, w32HActivate, routine_id("w_Activate"))
+setHandler({MainWin, img}, w32HMouse,    routine_id("w_Mouse"))
+setHandler(img, w32HClick, routine_id("onClick_img"))
+
+WinMain(MainWin, Normal)
+

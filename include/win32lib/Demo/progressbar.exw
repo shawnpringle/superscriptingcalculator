@@ -1,0 +1,47 @@
+include win32lib.ew
+-- progress bar styles
+constant
+    PBS_SMOOTH          = 1,
+    PBS_VERTICAL        = 4
+
+without warning
+  constant
+      Win   = createEx(Window,"Timer Window",0,Default,Default,200,100,0,0),
+      Gauge = createEx(LText,"", Win, 5, 5, 180, 20, 0, 0),
+      PBar  = createEx(ProgressBar,"",Win,5,40,180,20,PBS_SMOOTH,0),
+      Timer = 1
+
+  procedure tick( integer self, integer event, sequence parms )
+      -- advance the progress bar by 5 ticks
+      integer curpos
+      sequence currange
+
+      -- Get the allowable range of values
+      currange = getScrollRange( PBar )
+      -- Get the current position
+      curpos = getScrollPos( PBar )
+
+      -- Move to the next position, if it is beyond the
+      -- end of the bar, reset it.
+      curpos += 5
+      if curpos > currange[2] then
+        curpos = 0
+      end if
+
+      -- Show the new position
+      setScrollPos( PBar,  curpos )
+      -- Update the digital display too.
+      setText(Gauge, sprintf("%d%% (%d)",
+                     {floor(100*curpos/currange[2]),curpos}))
+
+  end procedure
+  setHandler(Win, w32HTimer, routine_id( "tick" ))
+
+  -- Set the max range for the bar
+  setScrollRange(PBar, 0, 60)
+
+  -- tick once per second
+  setTimer( Win, Timer, 1000 )
+
+  WinMain( Win, Normal )
+

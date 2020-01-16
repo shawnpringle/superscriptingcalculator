@@ -1,0 +1,183 @@
+-- ex17.exw
+--
+-- Demonstrate hand-built bitmaps
+
+include win32lib.ew
+without warning
+createForm({
+        "Tile Window, width=240, height=260," &
+                  "events=click,bgcolor=Black,tooltip=Click to change the pattern" ,
+        "PIXMAP,Canvas,bgcolor=Cyan"
+    })
+constant Canvas = getNameId("Canvas")
+
+sequence vPrevSize vPrevSize = {-1,-1}
+-- the bitmap tiles
+constant Block = textToBitmap( {
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxx xxxxxxxxxx",
+    "xxxxxxxxxx   xxxxxxxxx",
+    "xxxxxxxxxxx xxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xx xxxxxxxxxxxxxxxx xx",
+    "x   xxxxxxxxxxxxxx   x",
+    "xx xxxxxxxxxxxxxxxx xx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxx  xxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxx xxxxxxxxxx",
+    "xxxxxxxxxx   xxxxxxxxx",
+    "xxxxxxxx       xxxxxxx",
+    "xxxxxxxxxx   xxxxxxxxx",
+    "xxxxxxxxxxx xxxxxxxxxx"} )
+
+constant Question = textToBitmap( {
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxx xxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxx xxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxx  xxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxx xxx",
+    "xxxxxxxxxxxxxxxxx   xx",
+    "xxxxxxxxxxxxxxxxxx xxx",
+    "xxxxxxxxxxxxxxxxxxxxxx"} )
+
+constant Check = textToBitmap( {
+    "xxxxxxxxxxxxxxxxxxx xx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxx xxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxx xxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx" } )
+
+constant Mine = textToBitmap( {
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxx       xxxxxxxx",
+    "xxxxx  xxxxxxx  xxxxxx",
+    "xxxx x     x xxx xxxxx",
+    "xxx x        x xx xxxx",
+    "xx x     x  x xxxx xxx",
+    "xx x      xx x xxx xxx",
+    "x x  x  x   xxxxxxx xx",
+    "x xx     x x x xxxx xx",
+    "x x  x x  x xxxxxxx xx",
+    "x xxx x xx xxxxxxxx xx",
+    "x xxx x  xxxxxxxxxx xx",
+    "x x x xxx xxxxxxxxx xx",
+    "x xxxx xxxxxxxxxxxx xx",
+    "xx x xxxxxxxxxxxxx xxx",
+    "xx xxxxxxxxxxxxxxx xxx",
+    "xxx xxxxxxxxxxxxx xxxx",
+    "xxxx xxxxxxxxxxx xxxxx",
+    "xxxxx  xxxxxxx  xxxxxx",
+    "xxxxxxx       xxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx" } )
+
+constant bmpWidth = 23,
+         bmpHeight = 23
+
+function pick( sequence s )
+    -- return a random item from the sequence
+    return s[ rand(length(s)) ]
+end function
+
+procedure RedrawCanvas( integer win)
+    -- tile the bitmaps randomly across the window
+    atom bmp
+    sequence extent
+    integer lResized
+
+    -- get the window size
+    lResized = w32False
+    extent = getClientSize( win )
+    -- Calc new size to be an exact # of tiles.
+    extent[3] = bmpWidth * (1 + floor(extent[3]/bmpWidth))
+    extent[4] = bmpHeight * (1 + floor(extent[4]/bmpHeight))
+    if extent[3] > vPrevSize[1] then
+        if extent[4] > vPrevSize[2] then
+            lResized = w32True
+        else
+            extent[4] = vPrevSize[2]
+            lResized = w32True
+        end if
+    elsif extent[4] > vPrevSize[2] then
+            extent[3] = vPrevSize[1]
+            lResized = w32True
+    end if
+
+    if lResized then
+        setCtlSize(Canvas, extent[3], extent[4])
+        -- fill with the bitmaps
+        for i = 0 to extent[3] by bmpWidth do
+            for j = 0 to extent[4] by bmpHeight do
+                if i >= vPrevSize[1] or j >= vPrevSize[2] then
+
+                        -- pick a random bitmap
+                        bmp = pick( {Block,Question,Check,Mine} )
+
+                        -- draw it
+                        drawBitmap( Canvas, bmp, i, j )
+                end if
+            end for
+        end for
+
+        vPrevSize = extent[3..4]
+    end if
+    repaintFG(win)
+
+end procedure
+
+procedure Paint_TileWindow( integer self, integer event, sequence parms)
+    copyBlt(self,0,0,Canvas)
+end procedure
+registerRoutine("Paint_TileWindow", routine_id("Paint_TileWindow"))
+
+procedure Click_TileWindow( integer self, integer event, sequence parms)
+    -- Force a new set of shapes
+    vPrevSize = {-1,-1}
+    RedrawCanvas(self)
+end procedure
+registerRoutine("Click_TileWindow", routine_id("Click_TileWindow"))
+
+procedure Resize_TileWindow( integer self, integer event, sequence parms)
+    RedrawCanvas(self)
+end procedure
+registerRoutine("Resize_TileWindow", routine_id("Resize_TileWindow"))
+
+include w32Start.ew

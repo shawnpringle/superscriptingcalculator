@@ -1,0 +1,410 @@
+-- eucompress.exw
+-- by David Cuny, Wolfgang Fritz, and Derek Parnell
+
+without warning
+include std/get.e
+include std/filesys.e
+include std/text.e
+include std/sequence.e
+include win32lib.ew
+
+integer vSilentRunning
+
+vSilentRunning     = w32False
+
+sequence vInFile, vOutFile
+vInFile = ""
+vOutFile = ""
+integer PB
+integer PL
+sequence vQuotes
+vQuotes = {}
+constant
+    Q = -2, P = -1,
+    filter = { "Euphoria Files", "*.e;*.ew;*.ex;*.exw", "All Files", "*.*" }
+
+object line
+
+constant ops = { '(', '{', '[', '=', '>', ',', '/', '+',
+                 ')', '}', ']', '!', '<', '.', '&', '-' }
+
+function tokenise_quotes(sequence s)
+    -- This takes quoted strings out of the line, replacing them with LF
+    -- and storing them in vQuotes. This will later be used to restore
+    -- the quoted strings into the line.
+
+    integer last, cur, low
+    integer lquote
+
+    vQuotes = {}
+    cur = find('"', s)
+    if cur = 0 then
+        return s
+    end if
+
+    lquote = '"'
+    low = cur
+    cur += 1
+    last = length(s)
+
+    while 1 do
+        if cur > last then
+            exit
+        end if
+
+        if s[cur]= '"' then
+            if lquote != 0 then
+                -- check for \" combination inside a quoted string.
+                if    (s[cur-1] != '\\')
+                  or ( cur >= 3 and s[cur-2] = '\\')
+                then
+                    lquote = 0
+                    -- At end of quoted string
+                    -- Copy the string and store it.
+                    vQuotes = append(vQuotes, s[low + 1 .. cur - 1])
+                    --Replace it with a LF token
+                    s[low] = Q
+                    s[low + 1 .. last - cur + low ] = s[cur + 1 .. last]
+                    -- adjust the string size
+                    last -= (cur - low)
+                    -- adjust the new starting scan position
+                    cur = low
+                end if
+            else
+                lquote = '"'
+                low = cur
+            end if
+        end if
+
+        cur += 1
+    end while
+
+    return s[1 .. last]
+
+end function
+
+function compress_ops(sequence s)
+    integer last, cur, lnext
+    sequence lrep
+
+    last = length(s)
+    if last = 0 then
+        return s
+    end if
+
+    -- Check for each possible operation symbol
+    for i=1 to length(ops) do
+        cur = find(ops[i] ,s)
+        if cur != 0 then
+            -- There's at least one of the little darlings
+            lrep = {}
+            while cur != 0 do
+                -- remove any preceding whitespace
+                if (cur > 1) and find(s[cur - 1] ,"\t ") then
+                    s[cur - 1 .. last - 1] = s[cur .. last]
+                    last -= 1
+                    cur -= 1
+                end if
+
+                -- remove any following whitespace
+                if (cur < last) and find(s[cur + 1] ,"\t ") then
+                    s[cur + 1 .. last - 1] = s[cur + 2 .. last]
+                    last -= 1
+                end if
+
+                s[cur] = P -- Mark the spot
+
+                lnext = find(ops[i] ,s)
+                if lnext != 0 then
+                    lrep &= cur
+                    cur = lnext
+                else
+                    s[cur] = ops[i]
+                    exit
+                end if
+            end while
+
+            for j = 1 to length(lrep) do
+                s[lrep[j]] = ops[i]
+            end for
+        end if
+    end for
+
+    return s[1 .. last]
+end function
+
+function compress(sequence s, object c)
+    sequence lResult
+    integer x
+    integer i,j
+
+    if atom(c) then
+        c ={c}
+    end if
+
+    lResult = repeat(0, length(s))
+    i = 1
+    x = 0
+    while i <= length(s) do
+        if find(s[i],c) then
+            j = i+1
+            while (j <= length(s)) and find(s[j],c) do
+                j += 1
+            end while
+            if j <= length(s) then
+                if i != 1 then
+                    x += 1
+                    lResult[x] = c[1]
+                end if
+            end if
+            i = j-1
+        else
+            x += 1
+            lResult[x] = s[i]
+        end if
+        i += 1
+    end while
+    return lResult[1..x]
+end function
+
+function restore_quotes(sequence s)
+    integer cur, lnext, last, newsize, len
+
+    -- Note, not all of the quoted string might be restored, as
+    -- some might have disappeared with the comments.
+
+    cur = find(Q, s)
+    if cur != 0 then
+        lnext = 1
+        last = length(s)
+        newsize = 0
+        for i = 1 to length(vQuotes) do
+            newsize += (1 + length(vQuotes[i]))
+        end for
+        s &= repeat(0, newsize)
+        while cur != 0 do
+            len = length(vQuotes[lnext]) + 1
+            s[cur + 1 + len .. last + len] = s[cur + 1 .. last]
+            s[cur] = '"'
+            s[cur + 1 .. cur + len - 1] = vQuotes[lnext]
+            s[cur + len] = '"'
+            lnext += 1
+            last += len
+            cur = find(Q, s)
+        end while
+        return s[1 .. last]
+    else
+        return s
+    end if
+
+
+end function
+
+procedure compress_file()
+    integer pos, in, out, quoted, linecnt, linesout
+    integer bytesin, bytesout, PBfactor
+    sequence file, outfile, dirinfo
+    atom OrigSize, NewSize
+    sequence lFullOutFile
+    object lDir
+    sequence lInputPath
+
+
+    if not vSilentRunning then
+        vInFile = getOpenFileName( 0, "", filter )
+
+        if not length(vInFile) then
+            return
+        end if
+        lDir = reverse(vInFile)
+        lDir = lDir[find('\\', lDir) .. length(lDir)]
+        lInputPath = reverse(lDir)
+        lDir = dir(vInFile)
+    else
+        if vInFile[length(vInFile)] != '\\' then
+            vInFile &= '\\'
+        end if
+        lInputPath = vInFile
+        lDir = dir(vInFile & "*.*")
+
+        if vOutFile[length(vOutFile)] != '\\' then
+            vOutFile &= '\\'
+        end if
+
+    end if
+
+    for i = 1 to length(lDir) do
+        if not vSilentRunning then
+            showMessage("")
+            setScrollPos(PB, 0)
+        end if
+
+        vInFile = lDir[i][D_NAME]
+        if not vSilentRunning then
+            vInFile = getOpenFileName( 0, "", filter )
+
+            if not length(vInFile) then
+                return
+            end if
+        end if
+
+        if not find('d', lDir[i][D_ATTRIBUTES]) then
+            in = open( lInputPath & lDir[i][D_NAME], "r" )
+
+            if length(vOutFile) = 0 then
+                vOutFile = getSaveFileName( 0, "", filter)
+            end if
+
+            if vSilentRunning then
+                lFullOutFile = vOutFile & vInFile
+            else
+                lFullOutFile= vOutFile
+            end if
+            out = open(lFullOutFile  , "w" )
+
+            if find(-1, {in, out} ) then
+                warnErr("Unable to open " & lFullOutFile)
+                if in != -1 then
+                    close(in)
+                end if
+                if out != -1 then
+                    close(out)
+                end if
+                return
+            end if
+
+            if not vSilentRunning then
+                dirinfo = dir(vInFile)
+                if dirinfo[1][D_SIZE] > 32000 then
+                    PBfactor = 1000
+                else
+                    PBfactor = 1
+                end if
+
+                setScrollRange( PB, 0, floor(dirinfo[1][D_SIZE] / PBfactor))
+                setScrollPos(PB, 0)
+
+                showMessage(sprintf("%s  --> %s",{vInFile, vOutFile})
+                   )
+            else
+                printf(1, "... %s\n",{vInFile})
+            end if
+
+            line = "\n"
+            linecnt = 0
+            linesout = w32iff(isChecked(PL), -1, 0)
+            bytesin = 0
+            bytesout = 0
+            while sequence(line) do
+
+                -- Remove trailing linefeed
+                if line[length(line)] = 10 then
+                    line = line[1 .. length(line) - 1]
+                end if
+
+                -- Tokenise quoted strings
+                if find('"', line) then
+                    quoted = w32True
+                    line = tokenise_quotes(line)
+                else
+                    quoted = w32False
+                end if
+
+                -- Remove any comments
+                pos = match("--", line)
+                if pos then
+                    line = line[1 .. pos - 1]
+                end if
+
+                -- replace strings of whitespace with a single space.
+                if length(line) > 0 then
+                    line = compress(line, " \t")
+                end if
+
+                -- remove spaces around operators.
+                if length(line) > 0 then
+                    line = compress_ops(line)
+
+                    -- restore any quoted strings (still remaining)
+                    if quoted then
+                        if find(Q, line) != 0 then
+                            line = restore_quotes(line)
+                        end if
+                    end if
+
+                    puts(out, line)
+                    bytesout += (2 + length(line))
+                end if
+
+                if length(line) > 0
+                or isChecked(PL) then
+                    puts(out, "\n")
+                    linesout += 1
+                end if
+
+                -- Process the next line.
+                line = gets( in )
+                if not vSilentRunning then
+                    if sequence(line) then
+                        linecnt += 1
+                        bytesin += (1 + length(line))
+                    end if
+                    setScrollPos(PB, floor(bytesin / PBfactor))
+                end if
+
+                doEvents(0)
+
+            end while
+
+            close(in)
+
+            close(out)
+
+            if not vSilentRunning then
+                showMessage(sprintf("Lines in %d, out %d:  Bytes in %d, out %d (%3.1f%%)",
+                                {linecnt, linesout, bytesin, bytesout,
+                                (100 * bytesout / bytesin)}))
+            end if
+        end if
+    end for
+    vInFile = ""
+    vOutFile = ""
+end procedure
+
+global procedure Click_Compress(integer self, integer event, sequence parms)
+    compress_file()
+end procedure
+registerRoutine("Click_Compress", routine_id("Click_Compress"))
+
+global function main(sequence vCmdLine)
+    createForm({
+        "Window, Euphoria Source Compression Utiltity, size=(0.9, 0.25), bars=status",
+        "Button, &Compress , at=(5, 5)",
+        "Button, &Exit,      at=(5,35), width=**, flag=AUTOCLOSE",
+        "CheckBox, Preserve Line Count, at=(74, 35)",
+        "ProgressBar, name=Progress, at=(25, 65), size=(0.75, 25)"
+        })
+
+    PB = getNameId("Progress")
+    PL = getNameId("Preserve Line Count")
+    for i = 3 to length(vCmdLine) do
+        if equal(lower(vCmdLine[i]), "-p") then
+            setCheck(PL, 1)
+        elsif length(vInFile) = 0 then
+            vInFile = vCmdLine[i]
+        elsif length(vOutFile) = 0 then
+            vOutFile = vCmdLine[i]
+        end if
+    end for
+
+    if length(vInFile) != 0 then
+        vSilentRunning = w32True
+        compress_file()
+        return 1
+    end if
+
+    return 0
+end function
+
+include w32start.ew
+

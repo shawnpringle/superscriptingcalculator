@@ -1,0 +1,47 @@
+--  Clicking with mouse works fine
+--  Tabbing between radios will trigger a click event for
+--    the radio button that is not selected.
+
+--  Expected behavior:  tabbing between radios should only trigger 
+--    a w32HGotFocus event, not a click event.
+
+include win32lib.ew
+without warning
+object VOID
+constant
+  Win = create(Window,"test",0,Default,Default,350,210,0),
+  Bmp = create(Bitmap,"",Win,40,5,25,25,0),
+  Rad = { create(Radio,"1.bmp",Win,10,50,55,18,0),
+          create(Radio,"1a.bmp",Win,70,50,60,18,0) },
+  aList = create(List, "", Win, 160, 10, 155, 180,0),
+  BmpImage = {"1.bmp","1a.bmp"}
+          
+VOID = setTabStops(Win, Rad)
+  ------------------------------
+integer xx xx = 0
+procedure handleBmpRads(integer self, integer event, sequence parms)
+    sequence msg
+    xx += 1
+  if event = w32HClick then
+    msg = "clicked"
+    setBitmap( Bmp, "..\\demoresources\\" & BmpImage[find(self,Rad)] )
+  elsif event = w32HGotFocus then
+    msg = "focus"
+  end if
+  
+  msg = sprintf("%3d Control %d got %s",{xx,self, msg})
+  addItem(aList, msg)
+  setIndex(aList, getCount(aList))
+end procedure
+setHandler( Rad, {w32HClick,w32HGotFocus}, routine_id("handleBmpRads") )
+
+  ------------------------------
+
+procedure initControls(integer self, integer event, sequence parms)
+  setCheck(Rad[1],w32True)
+end procedure
+setHandler( Win, w32HOpen, routine_id("initControls") )
+
+  ------------------------------
+  WinMain(Win,Normal)
+  ------------------------------       

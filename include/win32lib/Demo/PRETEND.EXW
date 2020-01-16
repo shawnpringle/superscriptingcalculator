@@ -1,0 +1,489 @@
+-- pretend.exw
+-- defender-style demo video game for Win32Lib
+-- (c) 1999 David Cuny
+
+-- currently, the only things you can do are go up and down (arrow key),
+-- or fire an ineffective missile (space bar)
+
+-- to do:
+-- fix mountain display logic
+-- add game logic
+
+-----------------------------------------------------------------------------
+include win32lib.ew
+include std/sort.e
+
+without warning
+
+
+-----------------------------------------------------------------------------
+-- the game graphics
+constant
+
+Missile = xpmToPixmap( {
+    "2 2 2 2",
+    "       c None",
+    "X      c #ffffff",
+    "XX",
+    "XX" } ),
+
+Mutant = xpmToPixmap( {
+    "16 12 4 1",
+    "       c None",
+    "b      c #8888ff",
+    "r      c #FF3366",
+    "G      c #00AA00",
+    "      bbbr      ",
+    "    rrbbbrrr    ",
+    "   GrrbbbrrrG   ",
+    "  GGr  rr   GG  ",
+    "  GGr  rr   GG  ",
+    "  GGrrrrrrrrGG  ",
+    "   GGrrrrrrGG   ",
+    "    GGGrrGGG    ",
+    "    GG rr GG    ",
+    "   GG  rr  GG   ",
+    "  GG   rr   GG  ",
+    " GG    rr    GG " } ),
+
+Lander = xpmToPixmap( {
+    "16 12 4 1",
+    "       c None",
+    "y      c #ffaa00",
+    "g      c #88ff88",
+    "G      c #009900",
+    "      yyyy      ",
+    "    GGyyyyGG    ",
+    "   GGGGggGGGG   ",
+    "  GGG  gg  GGG  ",
+    "  GGG  gg  GGG  ",
+    "  GGGggggggGGG  ",
+    "   GGGggggGGG   ",
+    "    GGGGGGGG    ",
+    "    GG GG GG    ",
+    "   GG  GG  GG   ",
+    "  GG   GG   GG  ",
+    " GG    GG    GG " } ),
+
+Ship1 = xpmToPixmap( {
+    "22 7 4 1",
+    "       c None",
+    "x      c #777777",
+    "p      c #ff66ff",
+    "o      c #cccccc",
+    "   x                  ",
+    "  xxx                 ",
+    " xxxxx                ",
+    "xxxxxxxxxxxxxxpp      ",
+    "xxxxxxxxxxxxxxxxxxxoo ",
+    "ppppppxxooxxxxxxxxxooo",
+    " pppppxxoo            " } ),
+
+Ship2 = xpmToPixmap( {
+    "22 7 4 1",
+    "       c None",
+    "x      c #777777",
+    "p      c #ff66ff",
+    "o      c #cccccc",
+    "                  x   ",
+    "                 xxx  ",
+    "                xxxxx ",
+    "      ppxxxxxxxxxxxxxx",
+    " ooxxxxxxxxxxxxxxxxxxx",
+    "ooxxxxxxxxxxooxxpppppp",
+    "            ooxxpppppp" } ),
+
+Man = xpmToPixmap( {
+    "6 10 4 1",
+    "       c None",
+    "y      c #ffaa00",
+    "p      c #cc00cc",
+    "P      c #ff44ff",
+    "  pp  ",
+    "  yP  ",
+    " yPPP ",
+    " PPPP ",
+    " PPPP ",
+    " PPPP ",
+    "  pp  ",
+    "  pp  ",
+    "  pp  ",
+    "  pp  " } )
+
+
+
+-----------------------------------------------------------------------------
+-- the game counts
+constant
+    RefreshRate = 50,
+    WinWide = 300,
+    WinHigh = 300,
+    WorldWide   = WinWide * 10,
+    Peaks   = 20,
+    Mutants = 20,
+    Landers = 10,
+    Men     = 30
+
+integer
+    shipX,          -- ship x position
+    shipY,          -- ship y position
+    shipDX,         -- ship's x direction
+    shipDY          -- ship's y direction
+
+
+    shipX       = floor( WinWide/2 )
+    shipY       = 100
+    shipDX      = 10
+    shipDY      = 0
+
+
+sequence mountains
+    mountains = {}
+
+-----------------------------------------------------------------------------
+-- sprite data structures
+
+constant
+    Class       = 1,
+    Live        = 2,
+    X           = 3,
+    Y           = 4,
+    DX          = 5,
+    DY          = 6,
+    Timer       = 7,
+    NewSprite   = repeat( 0, 7 )
+
+sequence sprites, sprite
+    sprites = {}
+
+
+
+-----------------------------------------------------------------------------
+-- the gui
+constant
+Win     = create( Window, "Pretender", 0, Default, Default, WinWide, WinHigh+26, 0 ),
+Buffer  = create( Pixmap, "", 0, 0, 0, WinWide, WinHigh, 0 )
+
+
+-----------------------------------------------------------------------------
+procedure initialize(integer self, integer event, sequence parms)
+
+    integer halfHigh
+    sequence peaks
+
+    -- create the sprites
+    sprites = {}
+    for i = 1 to Mutants+Landers+Men do
+
+        -- create a new sprite
+        sprite = NewSprite
+
+        -- default attributes
+        sprite[Live]    = 1
+        sprite[X]       = rand( WorldWide )
+        sprite[Y]       = rand( WinHigh )
+        sprite[DX]      = 0
+        sprite[DY]      = 0
+        sprite[Timer]   = 0
+
+
+        -- what class object is this?
+        if i < Mutants then
+            sprite[Class]   = Mutant
+            sprite[DX]      = rand( 3 ) - 2
+            sprite[DY]      = rand( 3 ) - 2
+
+        elsif i < Mutants+Landers then
+            sprite[Class]   = Lander
+            sprite[DX]      = rand( 3 ) - 2
+            sprite[DY]      = rand( 3 ) - 2
+
+        else
+            sprite[Class]   = Man
+            sprite[Y]       = WinHigh - 10
+            sprite[DY]      = 0
+
+        end if
+
+        -- store it
+        sprites = append( sprites, sprite )
+
+
+    end for
+
+
+    -- create the mountain peaks
+    peaks = {}
+    halfHigh = floor( WinHigh/2 )
+    for i = 1 to Peaks do
+        -- place a mountain randomly, height is less than half the screen
+        peaks = append( peaks, { rand( WorldWide ),
+                                 WinHigh - rand( halfHigh ) - 8 } )
+    end for
+
+    -- sort the mountains in x order
+    peaks = sort( peaks )
+
+    -- create the line segments for the mountains
+    mountains = {}
+    for i = 1 to Peaks - 1 do
+        -- make a line segment from two adjacent points
+        mountains = append( mountains, peaks[i] & peaks[i+1] )
+    end for
+
+    -- the first peak wraps to the last peak
+    mountains = append( mountains,
+                        peaks[Peaks] & ( peaks[1] + {WorldWide, 0 } ) )
+
+    -- set the timer to go off once a second
+    setTimer( Win, 1, RefreshRate )
+
+    -- set the window background color
+    setWindowBackColor( Win, Black )
+
+end procedure
+setHandler(Win, w32HOpen, routine_id( "initialize" ))
+
+
+
+
+-----------------------------------------------------------------------------
+procedure drawBackground()
+
+    -- clear the pixmap
+    setPenColor( Buffer, Black )
+    drawRectangle( Buffer, 1, 0, 0, WinWide, WinHigh )
+
+    -- move the line segments, and render them
+    setPenColor( Buffer, Green )
+
+    for i = 1 to length( mountains ) do
+
+        -- add to x values
+        mountains[i][1] -= shipDX
+        mountains[i][3] -= shipDX
+
+        -- does the line segment wrap?
+        if mountains[i][1] > WorldWide then
+            mountains[i][1] -= WorldWide
+            mountains[i][3] -= WorldWide
+
+        elsif mountains[i][3] < 0 then
+            mountains[i][1] += WorldWide
+            mountains[i][3] += WorldWide
+
+        end if
+
+        -- is the line segment visible in window?
+        -- if mountains[i][3] < WinWide then
+
+            -- render it
+            drawLine( Buffer, mountains[i][1], mountains[i][2],
+                        mountains[i][3], mountains[i][4] )
+
+        -- end if
+
+    end for
+
+end procedure
+
+
+-----------------------------------------------------------------------------
+procedure moveSprites()
+
+    -- handle the sprite logic
+
+    sequence keep
+
+    -- handle the sprites
+    for i = 1 to length( sprites ) do
+
+        -- get sprite
+        sprite = sprites[i]
+
+        -- decrement the life of the missile
+        if sprite[Class] = Missile then
+            -- decrement the timer
+            sprite[Timer] -= 1
+
+            -- ran out of time?
+            if sprite[Timer] = 0 then
+                -- kill it
+                sprite[Live] = 0
+            end if
+        end if
+
+
+        if sprite[Live] then
+
+            -- move along the x axis
+            sprite[X] += sprite[DX] - shipDX
+            if sprite[X] < 0 then
+                sprite[X] += WorldWide
+            elsif sprite[X] > WorldWide then
+                sprite[X] -= WorldWide
+            end if
+
+            -- move along the y axis
+            if sprite[Class] != Man then
+
+                -- add velocity
+                sprite[Y] += sprite[DY]
+
+                -- reached top or bottom?
+                if sprite[Y] > WinHigh - 10 then
+                    sprite[Y] = WinHigh - 10
+                    sprite[DY] = - rand( 2 )
+
+                elsif sprite[X] < 0 then
+                    sprite[X] = 0
+                    sprite[DY] = rand( 2 )
+
+                end if
+            end if
+
+            -- is the sprite visible?
+            if sprite[X] < WinWide then
+                -- display sprite
+                transBlt( Buffer, sprite[X], sprite[Y], sprite[Class] )
+            end if
+
+            -- update it
+            sprites[i] = sprite
+
+        end if
+    end for
+
+    -- remove the dead sprites
+    keep = {}
+    -- go through each sprite
+    for i = 1 to length( sprites ) do
+        -- still alive?
+        if sprites[i][Live] then
+            -- add to the "keep" list
+            keep = append( keep, sprites[i] )
+        end if
+    end for
+
+    -- replace list
+    sprites = keep
+
+
+end procedure
+
+-----------------------------------------------------------------------------
+procedure moveShip()
+
+    -- calculate new ship position
+    shipY += shipDY
+
+    if shipY < 10 then
+        shipY = 10
+    elsif shipY > WinHigh - 10 then
+        shipY = WinHigh - 10
+    end if
+
+    -- draw the ship in the center of the screen
+    transBlt( Buffer, shipX, shipY, Ship1 )
+
+
+end procedure
+
+-----------------------------------------------------------------------------
+procedure Tick( integer self, integer event, sequence parms )
+
+    sequence s
+
+    drawBackground()
+    moveSprites()
+    moveShip()
+
+    -- draw the screen
+    copyBlt( Win, 0, 0, Buffer )
+
+end procedure
+setHandler(Win, w32HTimer, routine_id( "Tick" ))
+
+
+-----------------------------------------------------------------------------
+procedure KeyDown( integer self, integer event, sequence parms)
+   integer key
+   integer shift
+
+    -- handle key presses
+    key = parms[1]
+    shift = parms[2]
+
+
+    if key = VK_UP then
+        -- move ship up
+        shipDY = -4
+
+    elsif key = VK_DOWN then
+        -- move ship down
+        shipDY = 4
+
+    elsif key = VK_LEFT then
+        -- move ship back
+        shipX += -1
+
+    elsif key = VK_RIGHT then
+        -- move ship forward
+        shipX += 1
+
+    elsif key = VK_SPACE then
+        -- for now, just shoot missiles
+
+        -- create a new sprite
+        sprite = NewSprite
+
+        -- set up attributes
+        sprite[Class]   = Missile
+        sprite[Live]    = 1
+        sprite[X]       = shipX+60      -- magic number. gotta fix
+        sprite[Y]       = shipY+6       -- below the ship
+        sprite[DX]      = shipDX+5      -- move faster than ship
+        sprite[DY]      = 0             -- don't move up or down
+        sprite[Timer]   = 20            -- disappear in 20 moves
+
+        -- add it to the sprites
+        sprites = append( sprites, sprite )
+
+
+    end if
+end procedure
+setHandler(Win, w32HKeyDown,  routine_id( "KeyDown" ))
+
+
+-----------------------------------------------------------------------------
+procedure KeyUp( integer self, integer event, sequence parms)
+    integer key
+    integer shift
+
+    key = parms[1]
+    shift = parms[2]
+    -- handle key presses
+
+    if find(key ,{VK_UP,VK_DOWN}) then
+        -- stop moving
+        shipDY = 0
+    end if
+
+end procedure
+setHandler(Win, w32HKeyUp,  routine_id( "KeyUp" ))
+
+
+-----------------------------------------------------------------------------
+procedure Paint( integer self, integer event, sequence parms)
+
+    -- display the bitmap in the window
+    copyBlt( Win, 0, 0, Buffer )
+
+end procedure
+setHandler(Win, w32HPaint,  routine_id( "Paint" ))
+
+
+
+WinMain( Win, Normal )
+
+

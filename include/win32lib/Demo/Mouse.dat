@@ -1,0 +1,22 @@
+These are events triggered by various mouse actions:
+
+-- Win32Lib names for mouse events    
+    MOUSE_MOVE          = WM_MOUSEMOVE
+    LEFT_DOWN           = WM_LBUTTONDOWN
+    RIGHT_DOWN          = WM_RBUTTONDOWN
+    LEFT_UP             = WM_LBUTTONUP
+    RIGHT_UP            = WM_RBUTTONUP
+    LEFT_DOUBLECLICK    = WM_LBUTTONDBLCLK
+    RIGHT_DOUBLECLICK   = WM_RBUTTONDBLCLK
+    
+    MouseMove           = MOUSE_MOVE
+    LeftDown            = LEFT_DOWN
+    RightDown           = RIGHT_DOWN
+    LeftUp              = LEFT_UP
+    RightUp             = RIGHT_UP
+    LeftDoubleClick     = LEFT_DOUBLECLICK
+    RightDoubleClick    = RIGHT_DOUBLECLICK
+    
+    WM_MOUSEWHEEL       = #20A, -- mouse wheel moved
+    
+    func setMouseClick(object pTimeDelta, object pXDelta, object pYDelta)    Sets/gets the mouse click detection parameters. 

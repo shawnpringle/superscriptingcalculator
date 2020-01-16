@@ -1,0 +1,70 @@
+without warning
+include win32lib.ew
+
+integer Win
+sequence Boxes
+sequence Btns
+sequence Labels
+
+integer vChar
+
+vChar = 255
+------------------------------------------------
+procedure onClick_Btn(integer self, integer event, sequence parms)
+------------------------------------------------
+    integer pos
+    
+    pos = find(self, Btns) 
+    setFocus(Boxes[ pos ])
+        
+end procedure
+
+procedure IgnoreReturn(integer self, integer event, sequence parms)
+    if parms[1] = VK_RETURN and parms[2] = 0 then
+        returnValue(-1)
+    end if
+end procedure
+
+
+procedure KeyPress_B1(integer self, integer event, sequence parms)
+    if parms[1] = VK_RETURN then
+        if equal(getText(self), "jump") then
+            setFocus(Boxes[3])
+        end if
+    end if
+end procedure
+        
+procedure AppInit()
+    Boxes = {}
+    Btns  = {}
+    Labels = {}
+    Win = createEx(Window,  "Edit Boxes", 0, 0, 0, 400, 400, 0, 0)
+    Labels &= createEx(Label,   "Box 1"        , Win,  25,  5,  50, 20, 0, 0)
+    Boxes &= createEx(EditBox, "The first box", Win,  25, 25, 300, 25, 0, 0)
+    Labels &= createEx(Label,   "Box 2"        , Win,  25, 55,  50, 20, 0, 0)
+    Boxes &= createEx(EditBox, "The second box",Win,  25, 75, 300, 25, 0, 0)
+    Labels &= createEx(Label,   "Box 3"        , Win,  25,105, 50, 20, 0, 0)
+    Boxes &= createEx(EditBox, "The third box", Win,  25,125, 300, 25, 0, 0)
+    Btns &= createEx(Button,  "&1",            Win,  25,200, 20, 25, 0, 0)
+    Btns &= createEx(Button,  "&2",            Win,  65,200, 20, 25, 0, 0)
+    Btns &= createEx(Button,  "&3",            Win, 105,200, 20, 25, 0, 0)
+
+
+    setHandler(Btns, w32HClick, routine_id("onClick_Btn"))
+
+    setTextColor(Boxes[1], Brown)
+    setTextColor(Boxes[2], Blue)
+    setTextColor(Boxes[3], Red)
+
+    setTextColor(Labels[1], Brown)
+    setTextColor(Labels[2], Blue)
+    setTextColor(Labels[3], Red)
+    setWindowBackColor(Boxes[3], Pink)
+    
+    setHandler({Boxes[1], Boxes[3]}, w32HKeyPress, routine_id("IgnoreReturn"))
+    setHandler(Boxes[1], w32HKeyPress, routine_id("KeyPress_B1"))
+    setHint(Boxes[1], "Enter \"jump\" to jump to the third box")
+end procedure
+
+AppInit()
+startApp(0)

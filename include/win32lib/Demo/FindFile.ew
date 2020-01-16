@@ -1,0 +1,262 @@
+-- FindFile.ew: has function to Find specified File(s),
+--              in specified directory(s)
+
+--  Dan Moyer  May 3, 2002  version 0.15
+--  previous version was named "FindFNam.ew"          
+
+-- NOTE:  NEW IN VERSION 0.15:
+-- "StopOrNot" is a global variable to allow user to stop the search;
+-- it MUST be DECLARED and SET in the APPLICATION which uses this!
+--  ie, set to 0 initially, with button "stop" sets it to 1 (1 = stop)
+
+-- 
+--  this include is used in RunDemos to find where Win32Lib Tutorials 
+--  and the IDE are,
+--  but it's generalized so it can be used in other applications.
+
+--  THE FUNCTION IN THIS INCLUDE WHICH DOES THIS IS:
+--   FindAllSpecifiedFiles(sequence LookForTheseFiles,
+--                         sequence InTheseDirs, integer SubDirs_YorN)
+
+-- the function returns a sequence of the files found, with three pieces 
+--  of information per found file: date, directory found in, and file name,
+--  sorted by date.
+--  FilesFound = {{date1, dir1, file1}, {date2, dir2, file2}...}
+
+-- USAGE EXAMPLE:
+-- sequence FilesFound, LookFor, InHere
+-- LookFor = {"TUTOR3.EXW","REGISTER.DOC"}  -- search for multiple files
+-- InHere = {getenv("EUDIR"), FindFuphoria(),"C:\\"} -- in multiple dirs
+-- FilesFound = FindAllSpecifiedFiles(LookFor, InHere, 1)-- 1 = all subdirs
+--  -- make list of all files found, by pathname (already sorted by date):
+-- for n = 1 to length(FilesFound) do
+--  addItem(SomeList, FilesFound[n][2] & "\\"& FilesFound[n][3])
+-- end for
+
+--
+--  first searches in Euphoria directory (from getenv("EUDIR"),
+--  then looks for "Fuphoria" directory in case earlier Euphoria renamed,
+--  and if found searches it for Win32Libs;
+--  (actually searches for "WIN32LIB.HTM", to make sure the directories
+--   found have both Win32Lib.ew AND the EXAMPLES!)
+
+--    Uses "walk_dir", which has two parts: the "walk_dir" function which
+--	walks through a directory (or all, depending on last parameter:
+--	0 is just the named directory, 1 is recurse through all sub d's);
+--    and an associated USER CREATED FUNCTION which handles the results
+--	of the walk through. walk_dir links to the user supplied function
+--    like this:
+--    exit_code = walk_dir(TargetDirectory, routine_id("UserSuppliedFunction"), 0)
+--    of course, the user supplied function must reside ABOVE the walk_dir
+--    that calls it.  And you can use more than one walk_dir, to call more
+--    than one routine to do different things.
+
+--    walk_dir requires "file.e" to be included
+--    (is already included in Win32Lib)
+
+--    walk_dir RETURNS AS ELEMENTS OF ItemEntry: 
+--  		 D_NAME, D_ATTRIBUTES, D_SIZE, D_YEAR, D_MONTH,	D_DAY,
+--		 D_HOUR, D_MINUTE, D_SECOND
+
+--    eg, ItemEntry[D_NAME] contains a filename
+--    and an attribute "d" signifies a directory
+
+
+-------------------------------------------------------------
+-- INCLUDES:
+
+include std/filesys.e
+include std/wildcard.e
+include std/get.e
+include std/text.e
+include std/sort.e
+
+----------------------------------------------------------------
+--  DEFINE WHAT DIRECTORY TO LOOK AT:
+object FuphoriaPath
+
+-- NOTE: this is *now* used in only one way: in "IsFuphoriaINroot", 
+--	   in order to "pass" it back to "FindFuphoria", so it can 
+--	   return it to whatever called it, with path of Fuphoria
+
+--  note: this is set a couple of different times to various directories
+--        down below, so DON'T just set it here & forget it;
+-- 	    if you need to set it differently below, must be in the format:
+--		TargetDirectory = "C:\\fuphoria"
+--	    if you set it "by hand"
+
+-------------------------------------------------------------------
+-- DEFINE WHAT FILES TO LOOK FOR:
+sequence FilesToFind
+FilesToFind = {}
+--{"TUTOR3.EXW", "WINTUTOR.EXW", "README.TXT", "REGISTER.DOC"}
+
+-- note:  THIS IS TO HELP MAKE THIS A GENERALIZED FUNCTION, WHERE
+--		FILES TO FIND ARE SENT IN A SEQUENCE TO THE FUNCTION
+--  SHOULD ALSO MAKE IT ACCEPT SEQUENCE OF DIRECTORYS TO LOOK IN, TOO
+----------------------------------------------------
+--SEQUENCE TO HOLD ALL DIRECTORIES FOUND:
+sequence ThePaths
+ThePaths = {}
+
+------------------------------------------------
+-- BOOLEANS FOR FOUND FILE & FUPHORIA DIRECTORY: 
+integer FoundFuphoria
+FoundFuphoria = 0
+-----------------------------------------------
+
+--object Selection 
+sequence DandP,medium,low
+DandP = {}  -- holds Date and Path 
+
+-- DATE HANDLING VARIABLES, to change date of files into # of days
+--  for sorting by recency
+medium = {9,4,6,11} -- sept, april, june, nov: 30 days
+low = {2} -- february, 28 days, ignore leap years
+--------------------------------------------------------------------------
+--  ROUTINES:
+-------------------------------------------------------------------------
+
+
+-----------------------------------------------------------------------
+
+function IsFileINdirectory(sequence path_name, sequence ItemEntry)
+object aDate
+integer Mmult -- month multiplier to get days in month
+
+if find(ItemEntry[D_MONTH], medium) then
+   Mmult = 30
+elsif find(ItemEntry[D_MONTH], low) then
+   Mmult = 28
+else
+   Mmult = 31
+end if
+
+
+aDate = (ItemEntry[D_YEAR]*365) + (ItemEntry[D_MONTH] * Mmult) + ItemEntry[D_DAY] + (ItemEntry[D_HOUR]/24) + (ItemEntry[D_MINUTE]/(24*60)) + (ItemEntry[D_SECOND]/(24*3600))
+
+  
+  if equal(ItemEntry[D_ATTRIBUTES], "d") then
+       --  if it's a directory, do nothing
+  else -- if it isn't a directory, must be a file, so check it:
+	if find(upper(ItemEntry[D_NAME]), FilesToFind) then
+         DandP = {aDate, path_name,ItemEntry[D_NAME]}
+         ThePaths = append(ThePaths,DandP )--date & path_name
+	end if
+  end if
+     return StopOrNot  --  0 = continue
+end function
+
+----------------
+function IsFileUNDERdirectory(sequence path_name, sequence ItemEntry)
+object aDate
+integer Mmult
+
+
+doEvents(0)  -- to help allow user to STOP the search
+
+if find(ItemEntry[D_MONTH], medium) then
+   Mmult = 30
+elsif find(ItemEntry[D_MONTH], low) then
+   Mmult = 28
+else
+   Mmult = 31
+end if
+aDate = (ItemEntry[D_YEAR]* 365) + (ItemEntry[D_MONTH] * 30) + ItemEntry[D_DAY] + (ItemEntry[D_HOUR]/24) + (ItemEntry[D_MINUTE]/(24*60)) + (ItemEntry[D_SECOND]/(24*3600))
+
+  if equal(ItemEntry[D_ATTRIBUTES], "d") then
+       --  if it's a directory, do nothing
+  else -- if it isn't a directory, must be a file, so check it:
+	if find(upper(ItemEntry[D_NAME]), FilesToFind) then
+         DandP = {aDate,path_name,ItemEntry[D_NAME]}
+         if find(DandP, ThePaths) = 0 then -- ignore duplicated finds
+           ThePaths = append(ThePaths,DandP )-- date & path_name & filename
+	   end if
+   	   return StopOrNot--0 = keep going, look for all
+	end if
+  end if
+     return StopOrNot
+end function
+
+-------------  
+-- LOOKS for where file(s) to be found might be, under some directory
+--  specified in passed parameter, ThisDir:
+
+procedure FindSomeFiles(object ThisDir, integer LookAllSubs)
+integer exit_code
+
+if LookAllSubs = 0 then  -- just look in specified directory:
+--  looks at all files IN TargetDirectory directory:
+--  (enabled by the "0" at end in combination with its linked function):
+
+   exit_code = walk_dir(ThisDir, routine_id("IsFileINdirectory"), 0)
+
+else  -- look in specified directory AND under it:
+-- looks at all file in all directories UNDER specified directory:
+--  (enabled by the "1" at end, in combination with its linked function): 
+
+   exit_code = walk_dir(ThisDir, routine_id("IsFileUNDERdirectory"), 1)
+
+end if
+
+ end procedure
+------------------------------------------------------------------------
+-- ROUTINES FOR FINDING "FUPHORIA":
+function IsFuphoriaINroot(sequence path_name, sequence ItemEntry)
+doEvents(0)
+  if equal(ItemEntry[D_ATTRIBUTES], "d") then
+	if equal(upper(ItemEntry[D_NAME]), "FUPHORIA") then
+         -- this should be only place FuphoriaPath is used,
+         --  to pass "back" to FindFuphoria
+	   FuphoriaPath = path_name & "\\" & ItemEntry[D_NAME]
+	   FoundFuphoria = 1
+         return 1  -- quit, found it (o means continue)
+      end if
+  end if
+  return 0 -- continue till searched all of root
+end function
+--------------------
+-- looks for "Fuphoria" directory, in case older Euphoria directory was
+--  auto renamed; only looks for *one*, though
+
+global function FindFuphoria()
+integer exit_code
+
+--* don't need the following test, it's already done in the function itself
+-- first look in root:
+--   exit_code = walk_dir("C:\\", routine_id("IsFuphoriaINroot"), 0)
+
+-- want to look in all directories for Fuphoria, BUT ONLY IF NOT FOUND ABOVE
+-- Note: call the same function, but with "look under dir" flag set:
+--   if FoundFuphoria = 0 then
+      FuphoriaPath  = ""
+      exit_code = walk_dir("C:\\", routine_id("IsFuphoriaINroot"), 1)
+--   end if
+
+ return FuphoriaPath  
+
+end function
+
+---------------------------------------------------------------------------
+--  BEGIN  MAIN FUNCTION: --
+--------------------------------------------------------------------------
+global function FindAllSpecifiedFiles(sequence LookForTheseFiles,
+   sequence InTheseDirs, integer SubDirs_YorN)
+
+  ThePaths = {}
+  -- following var is not used IN here, but in function called in here:
+  FilesToFind = upper(LookForTheseFiles)
+
+  -- result of the following is to put found path/filenames into "ThePaths":
+  for n = 1 to length(InTheseDirs) do
+     -- below, SubDirs_YorN =1 says to look in all sub-dirs too;
+     -- "0" means look only in root; was passed from calling function:
+     FindSomeFiles(InTheseDirs[n], SubDirs_YorN)
+  end for
+
+  ThePaths = sort(ThePaths) -- sorts ThePaths by DATE
+
+  return ThePaths
+
+end function  -- FindAllSpecifiedFiles()
+----------------------------------------------------------

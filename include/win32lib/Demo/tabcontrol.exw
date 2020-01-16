@@ -1,0 +1,136 @@
+without warning
+include std/text.e
+include win32lib.ew
+
+integer win, tc, tc2, t1, t2, t3, t4, t5, t6
+integer te1, te2, te3, te4
+integer g2, g3, g4
+integer c1, c2, bb,sb, c3, c4, c5
+
+integer xx
+xx = 0
+procedure tabname(integer self, integer event, sequence parms)
+    xx += 1
+    setText(t1, sprintf("count %d", xx))
+end procedure
+
+procedure pb(integer self, integer event, sequence parms)
+    setText(win, getText(t3))
+
+    if event = w32HClick then
+        setCtlSize(tc,{0.75,-5},{0.75,-25})
+    else
+        setCtlSize(tc,{0.99,-5},{0.99,-25})
+    end if
+
+end procedure
+
+integer state_t4
+state_t4 = 0
+procedure click_c5(integer self, integer event, sequence parms)
+
+	setEnable(t4, state_t4)
+	state_t4 = not state_t4
+	if state_t4 then
+		setText(self, "Enable Tab4")
+	else
+		setText(self, "Disable Tab4")
+	end if
+end procedure
+
+integer tg tg = 0
+procedure click_bb(integer self, integer event, sequence parms)
+    if tg = 0 then
+        destroy(t3)
+        tg = 1
+
+        setText(bb, "Add Tab3")
+    else
+        t3 = createEx(TabItem, "Three", tc, 5, 25, 590, 390, 0, 0)
+        g3 = createEx(Group, " group 3", t3, 5, 25, 400, 300, 0, 0)
+        te3 = createEx(Combo, "control3", g3, 15, 29, 200, 125, 0, 0)
+        tg = 0
+        setText(bb, "Delete Tab3")
+        setFocus(t1)
+    end if
+end procedure
+
+
+function rtClickedTab(atom Tab, integer x, integer y)
+    atom lHT
+    atom lTab
+    atom lRC
+
+    lHT = w32acquire_mem(0, SIZEOF_TCHITTESTINFO)
+    w32store(lHT, TCHITTESTINFO_ptX, x)
+    w32store(lHT, TCHITTESTINFO_ptY, y)
+
+    lTab = sendMessage(Tab, TCM_HITTEST, 0, lHT)
+    lRC = w32fetch(lHT, TCHITTESTINFO_flags)
+
+    w32release_mem(lHT)
+
+    return {lTab,lRC}
+end function
+
+----- mouse handler  -------------
+procedure Tab_onMouse (integer self, integer event, sequence params)
+sequence aTab
+
+if equal(params[1], RIGHT_DOWN) then
+    aTab = rtClickedTab(self, params[2], params[3])  
+    setText(sb, "right down: " & sprint(params) & ":" & sprint(aTab))
+else
+    setText(sb, " ")
+end if
+
+end procedure
+
+
+procedure main()
+
+    win = createEx(Window, "Test Tabcontrol", 0, 0, 0, 640, 480, 0, 0)
+    sb  = createEx(StatusBar, "", win, 0, 0, 0, 0, 0, 0)
+    bb = createEx(Button, "Delete Tab3", win, 5,5, 92, 20, 0, 0)
+
+    tc  = createEx(TabControl, "", win, 5, 25, {0.99,-5}, {0.99,-25}, 0, 0)
+    t1 = createEx(TabItem, "One",   tc, 5, 25, 590, 390, 0, 0)
+    t2 = createEx(TabItem, "Two",   tc, 5, 25, 590, 390, 0, 0)
+    t3 = createEx(TabItem, "Three", tc, 5, 25, 590, 390, 0, 0)
+    t4 = createEx(TabItem, "Four",  tc, 5, 25, 590, 390, 0, 0)
+
+    g2 = createEx(Group, " group 2", t2, 5, 25, 400, 300, 0, 0)
+    g3 = createEx(Group, " group 3", t3, 5, 25, 400, 300, 0, 0)
+    g4 = createEx(Group, " group 4", t4, 5, 25, 400, 300, 0, 0)
+    tc2 = createEx(TabControl, "", t4, 410, 25, 200, 100, 0, 0)
+    t5 = createEx(TabItem, " Five ", tc2, 410, 25, 200, 100, 0, 0)
+    t6 = createEx(TabItem, " Six ", tc2, 410, 25, 200, 100, 0, 0)
+
+    te1 = createEx(Combo, "control1", t1,  5, 25, 200, 125, 0, 0)
+    te2 = createEx(Combo, "control2", g2, 10, 27, 200, 125, 0, 0)
+    te3 = createEx(Combo, "control3", g3, 15, 29, 200, 125, 0, 0)
+    te4 = createEx(Combo, "control4", g4, 20, 31, 200, 125, 0, 0)
+
+    c1 = createEx(ListView, {"FIRST","SECOND"}, t1, 5, 85, 300, 200, LVS_REPORT,0)
+    c2 = createEx(Button, "Shrink Tabs", g2, 100, 200, 92, 30, 0,0)
+    
+    c3 = createEx(Button, "Btn 1", t5, 30, 30, 40, 25, 0,0)
+    c4 = createEx(Button, "Btn 2", t6, 35, 35, 40, 25, 0,0)
+    
+    c5 = createEx(Button, "Disable Tab4", win, 500, 0, 100, 25, 0,0)
+
+    te1 = addLVItem(c1, 0, {"one","two"})
+    te2 = addLVItem(c1, 0, {"three","four"})
+
+    setHandler(c2, w32HClick, routine_id("pb"))
+    setHandler(bb, w32HClick, routine_id("click_bb"))
+    setHandler(win, w32HResize, routine_id("pb"))
+    setHandler(win, w32HClick, routine_id("tabname"))
+    setHandler( {tc, tc2}, w32HMouse, routine_id("Tab_onMouse"))
+    setHandler(c5, w32HClick, routine_id("click_c5"))
+    WinMain(win, Normal)
+
+end procedure
+
+main()
+

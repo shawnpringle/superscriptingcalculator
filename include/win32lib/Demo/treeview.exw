@@ -1,0 +1,55 @@
+include win32lib.ew
+without warning
+with trace
+constant
+MainWin =  createEx( Window, "Treeview Find Label Demo", 0, 1, 1, 492, 380,0,0),
+FocusBut = createEx(DefPushButton, "Search", MainWin, 0, 0, 90, 20, 0, 0),
+FindText = createEx(EditBox, "Apple", MainWin, 0, 25, 90, 40, 0, 0),
+Msg = createEx(LText, "", MainWin, 0, 80, 480, 20, 0, 0),
+TV = createEx(TreeView, "TreeView", MainWin, 10, 95, 464, 230,
+                or_all({TVS_HASLINES,TVS_LINESATROOT,
+                        TVS_HASBUTTONS,TVS_EDITLABELS,
+                        TVS_SHOWSELALWAYS}),0 )
+
+--VOID = sendMessage(TV, TVM_SETUNICODEFORMAT, 1, 0)
+--setFont(TV, "Verdana", 14, {Normal,0,0,0,THAI_CHARSET,0,0,0,0})
+
+sequence folders
+
+    folders = {}
+    folders &= addTVItem( TV, 0, 0, "Fruit" , 0 )
+    folders &= addTVItem( TV, 0, 0, "Orange" , folders[1] )
+    folders &= addTVItem( TV, 0, 0, "Mango" , folders[1] )
+    folders &= addTVItem( TV, 0, 0, "Banana" , folders[1] )
+    folders &= addTVItem( TV, 0, 0, "Apple" , folders[1] )
+
+    folders &= addTVItem( TV, 0, 0, "Vegetable" , 0 )
+    folders &= addTVItem( TV, 0, 0, "Potato" , folders[6] )
+    folders &= addTVItem( TV, 0, 0, "Celery" , folders[6] )
+    folders &= addTVItem( TV, 0, 0, "Pumpkin" , folders[6] )
+    folders &= addTVItem( TV, 0, 0, "Beans" , folders[6] )
+
+
+procedure FocusBut_click(integer self, integer event, sequence params)
+sequence t,s
+integer f
+
+    setText(Msg, "")
+    s = getText(FindText)
+    for i=1 to length(folders) do
+        t = getText({TV,i})
+        if equal(t, s) then
+--            setFocus({TV,i})
+            setCheck({{TV,i}}, w32True)
+            f = isChecked({TV,i})
+            setText(Msg, sprintf("\"%d\" state.", f))
+            return
+        end if
+    end for
+    setText(Msg, sprintf("\"%s\" not found.", {s}))
+
+end procedure
+setHandler(FocusBut, w32HClick,routine_id("FocusBut_click"))
+setWindowBackColor(TV,Parchment)
+WinMain(MainWin, Normal)
+

@@ -1,0 +1,75 @@
+-- ex05.exw
+--
+-- This opens a window with two buttons.
+-- Clicking the buttons brings up a message box.
+
+include std/win32/msgbox.e
+include win32lib.ew
+without warning
+
+-- Create a window
+createForm({
+             "name=MsgWindow," &        -- The window's name
+             "left=Center," &  -- Centered horizontally
+             "top=Center," &   -- Centerted vertically
+             "width=350," &     -- The width in pixels
+             "height=350," &     -- The height in pixels
+             "caption=Two Buttons"
+            ,
+
+            -- Push Button
+            "Button," &
+             "width=8 char," &
+             "height=1 char," &
+             "left=center,top=20%," &
+             "Caption=Push Me!," &  -- Note the name is defaulted from this as 'PushMe'
+             "Font=(24,Courier New,Bold)"
+            ,
+                
+            -- Don't Push Button
+            "Button," &
+             "width=120," &
+             "height=40," &
+             "left=center," &
+             "top=60%," &
+             "Caption=Don't Push Me!," &-- Note the name is defaulted from this as 'DontPushMe'
+             "Enable=No," &
+             "Font=Times New Roman"
+            
+            ,
+            "TextBox, name=TestFld,( Insert number here ), width=20char, top=(*+5), left=Push Me!*"
+
+          })
+
+-- I'll need to reference some control by ID later
+-- so I'll get them now and save them.
+constant dontpush = getNameId("Don't Push Me!")
+constant testfld = getNameId("TestFld")
+
+-- the first button's behavior
+procedure Click_DontPushMe(integer self, integer event, sequence parms)
+    atom lValue
+
+    lValue = getNumber(testfld)
+    VOID = message_box( "That hurt!", sprintf("%15.15g", lValue) & " Ouch!", MB_ICONEXCLAMATION )
+end procedure                                       
+registerRoutine("Click_DontPushMe", routine_id("Click_DontPushMe"))
+
+
+-- second button's behavior    
+procedure Click_PushMe(integer self, integer event, sequence parms)
+    VOID = message_box( "That tickles!", "*Giggle*", MB_ICONINFORMATION ) 
+    if isEnabled(dontpush) then
+        setEnable( dontpush, w32False)
+    else
+        setEnable( dontpush, w32True)
+    end if
+end procedure                                       
+registerRoutine("Click_PushMe", routine_id("Click_PushMe"))
+
+procedure Activate_MsgWindow(integer self, integer event, sequence parms)
+    setFocus(testfld)
+end procedure                                       
+registerRoutine("Activate_MsgWindow", routine_id("Activate_MsgWindow"))
+
+include w32Start.ew

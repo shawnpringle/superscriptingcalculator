@@ -1,0 +1,14 @@
+without warning
+include win32lib.ew
+
+integer MainWin
+integer Text1
+integer Text2
+integer Text3
+
+MainWin = create(Window, "Initial Focus",0, 0, 0, 300, 300, 0)
+Text1   = create(EditText, "Not here", MainWin, 5,  5, 200, 25, 0)
+Text2   = create(EditText, "This is it", MainWin, 5, 35, 200, 25, 0)
+Text3   = create(EditText, "Nor here", MainWin, 5, 65, 200, 25, 0)
+
+WinMain({MainWin, Text2}, Normal)

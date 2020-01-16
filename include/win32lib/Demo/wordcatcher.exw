@@ -1,0 +1,1216 @@
+-- Word Catcher
+
+--A game with the object of correctly spelling words
+--to get a better score.
+
+without warning
+include std/dll.e
+include std/text.e
+include std/win32/msgbox.e
+include Win32Lib.ew
+with trace
+
+constant VersionMajor = 1,
+         VersionMinor = 0,
+         VersionDate = "25 August 2003",
+         VersionAuthor = "Derek Parnell"
+integer GameLevel
+integer PlayerScore
+sequence LevelScore
+sequence LevelWord
+sequence LevelPerfectWord
+sequence LevelKeystroke
+sequence LevelDuration
+integer NumberOfLevels
+integer NeedsSaving
+integer RoundTrigger
+sequence LevelTrigger
+integer HighScore
+sequence LevelIds
+sequence CurrentUser
+sequence CurrentWords
+atom CurrentBonus
+integer BonusCounting
+atom BonusDelta
+integer vxScreen
+integer vyScreen
+integer fromX
+integer fromY
+integer vxMainWin
+integer vyMainWin
+
+integer MainWin
+integer Buffer
+integer MenuGame
+integer MIGameSave
+integer MIGameLoad
+integer MIGameReset
+integer MIGameQuit
+
+integer NameDialog
+integer NameText
+integer NameOk
+integer NameCancel
+integer NameMsg
+
+integer CharWidth, CharHeight
+integer SpriteWidth, SpriteHeight
+integer LightHeight, LightWidth, LightX
+
+integer LandingWidth
+integer LandingHeight
+integer LandingX
+integer LandingY
+
+atom    BackGroundBMP
+atom    SpriteBMP
+atom    AlphabetBMP
+atom    AltAlphaBMP
+sequence FlashAlphaBMP
+sequence FlashSeq
+integer NextFlash
+
+integer spriteId
+integer spriteVar
+sequence spritesX
+sequence spritesY
+sequence lights
+integer lightSeq
+integer SaucerLeft, SaucerTop
+sequence Heights
+integer XSpeed
+integer YSpeed
+
+sequence FleeSpeed
+sequence Alphabet
+sequence SelectedWord
+sequence EmptySpots
+sequence FilledSpots
+sequence FoundChars
+
+sequence WordList
+sequence GameLevelWords
+sequence LevelMinSpeed
+sequence LevelMaxSpeed
+sequence GameLevelBonus
+sequence GameLevelBias
+
+integer AutoSaveInterval
+
+----------------------------------------
+procedure GetLevelData()
+----------------------------------------
+    integer fh
+    sequence filename
+    object iniLine
+    sequence errs
+    integer lineno
+    integer pos
+    integer currentlevel
+    sequence currentsection
+    sequence lKey
+    sequence lValue
+    sequence lNum
+
+
+    -- Set up default values first.
+    AutoSaveInterval = 1000 * 60 * 5 -- 5 minutes.
+    CurrentWords = {}
+    -- Now get user specified values.
+    filename = "..\\demoresources\\wordcatcher.ini"
+    currentlevel = 0
+    currentsection = ""
+
+    fh = open(filename, "r")
+    if fh < 0 then
+        VOID = message_box(
+                 sprintf("Cannot open the initialization file\n\t'%s'\n" &
+                         "Using default values instead.",
+                     {filename}),
+                    "Word Catcher", MB_ICONEXCLAMATION)
+
+        NumberOfLevels = 10
+        LevelIds = {"1","2","3","4","5","6","7","8","9","10"}
+        WordList = {
+            {"AND","WHY","ZED","FAR","PUT","CAR","HOW","CAN","CAT","DOG","APE","POT","THE","MAY"},
+            {"FOUR","TREE","FIVE","CAPE","LAMB","VIEW","BEAT","JUNE","TOOL","LIVE"},
+            {"HOUND","HEART","CLOWN","ROSIE","EARTH","LEVEL","GENIE","MARCH"},
+            {"SCHOOL","CARROT","WOMBAT","FLOWER","ADJUST","AUGUST","EMPIRE","HYGINE"},
+            {"COMMAND","ENGLISH","AMERICA","PRESTIGE","ISOTOPE","INSTALL"}
+                    }
+        LevelTrigger = repeat(5,NumberOfLevels)
+        GameLevelWords = {1,1,1,2,2,3,3,4,4,5}
+        LevelMinSpeed  = {-3,-5,-7,-7,-9,-11,-11,-14,-14,-17}
+        LevelMaxSpeed  = { 3, 5, 7, 7, 9, 11, 11, 14, 14, 17}
+        GameLevelBonus = repeat(1000,NumberOfLevels)
+        GameLevelBias = repeat(0,NumberOfLevels)
+        for i = 1 to length(GameLevelBias) do
+            GameLevelBias[i] = 10 * power(1.2,i-1)
+        end for
+
+        return
+    end if
+
+    errs = ""
+    iniLine = gets(fh)
+    lineno = 0
+    NumberOfLevels = 0
+    LevelIds = {}
+    WordList = {}
+    GameLevelWords = {}
+
+    while sequence(iniLine) do
+        lineno += 1
+        -- Remove any trailing NEWLINE
+        if iniLine[length(iniLine)] = '\n' then
+            iniLine = iniLine[1 .. length(iniLine)-1]
+        end if
+
+        -- Remove excess spaces
+        iniLine = trim(iniLine)
+
+        -- Ignore blank lines
+        if length(iniLine) > 0 then
+            -- Section headers must start and end in square brackets
+            if iniLine[1] = '[' and iniLine[length(iniLine)] = ']' then
+                -- Found a section --
+                -- Remove brackets
+                iniLine = trim(iniLine[2..length(iniLine)-1])
+                -- Remove extra spaces
+                iniLine = lower(iniLine)
+
+                -- Look for known sections
+                if    equal(iniLine,"options") then
+                    currentsection = iniLine
+
+                elsif equal(iniLine, "level") then
+                    currentsection = iniLine
+                    currentlevel = 0
+                else
+                    currentsection = ""
+                    -- unknown section used.
+                    errs &= sprintf("Line %d: Unknown section header '[%s]' is ignored.\n",
+                                    {lineno, iniLine})
+                end if
+            -- Key/Value pairs must start with an alphabetic and have '=' in it.
+            elsif find(lower(iniLine[1]), "abcdefghijklmnopqrstuvwxz") then
+
+                pos = find('=', iniLine)
+                -- If this is not a key/value then just ignore it.
+                if pos > 0 then
+                    -- Found a key/value pair
+                    lKey = lower(trim(iniLine[1..pos-1]))
+                    lValue = trim(iniLine[pos+1..length(iniLine)])
+
+                    if equal(currentsection, "options") then
+                        if equal(lKey, "autosave") then
+                            lNum = w32TextToNumber({lValue,w32True})
+                            if lNum[2] = w32False then
+                                AutoSaveInterval = (1000 * 60) * w32abs(lNum[2])
+                            else
+                                errs &= sprintf("Line %d: Autosave value '%s' is not numeric\n",
+                                                      {lineno,lValue})
+                            end if
+
+                        elsif equal(lKey, "player") then
+                            CurrentUser = lValue
+                        else
+                            errs &= sprintf("Line %d: Unknown key/value '%s'\n",
+                                                      {lineno,iniLine})
+                        end if
+
+                    elsif equal(currentsection, "level") then
+                        if equal(lKey, "id") then
+                            if currentlevel = 0 then
+                                currentlevel = find(lValue, LevelIds)
+                                if currentlevel > 0 then
+                                    errs &= sprintf("Line %d: Duplicated level ID '%s'\n",
+                                                          {lineno,lValue})
+                                else
+                                    LevelIds = append(LevelIds, lValue)
+                                    currentlevel = length(LevelIds)
+                                    GameLevelWords &= 0
+                                end if
+                            else
+                                pos = find(lValue, LevelIds)
+                                if pos > 0 then
+                                    errs &= sprintf("Line %d: Duplicated level ID '%s'\n",
+                                                          {lineno,lValue})
+                                else
+                                    LevelIds[currentlevel] = lValue
+                                end if
+                            end if
+
+                        elsif equal(lKey, "wordfile") then
+
+                            pos = find(lValue, WordList)
+                            if pos = 0 then
+                                WordList = append(WordList, lValue)
+                                pos = length(WordList)
+                            end if
+                            if currentlevel = 0 then
+                                currentlevel = length(LevelIds) + 1
+                                LevelIds = append(LevelIds, sprintf("%d", currentlevel))
+                                GameLevelWords &= 0
+                            end if
+                            GameLevelWords[currentlevel] = pos
+                        else
+                            errs &= sprintf("Line %d: Unknown key/value '%s'\n",
+                                                      {lineno,iniLine})
+                        end if
+                    end if
+                end if
+            end if
+        end if
+
+        iniLine = gets(fh)
+    end while
+    close(fh)
+
+    NumberOfLevels = length(LevelIds)
+    LevelMaxSpeed = repeat(3, NumberOfLevels)
+    for i = 2 to NumberOfLevels do
+        LevelMaxSpeed[i] = 2 + LevelMaxSpeed[i-1]
+    end for
+    LevelMinSpeed  = -LevelMaxSpeed
+
+    LevelTrigger = repeat(5,NumberOfLevels)
+    GameLevelBonus = repeat(1000,NumberOfLevels)
+    GameLevelBias = repeat(0,NumberOfLevels)
+    for i = 1 to length(GameLevelBias) do
+        GameLevelBias[i] = 10 * power(1.2,i-1)
+    end for
+
+    if length(errs) > 0 then
+        VOID = message_box("Errors found while processing the initialization file\n" &
+                            errs, "Word Catcher", MB_ICONASTERISK)
+    end if
+end procedure
+
+-------------------------------
+procedure SelectWord()
+-------------------------------
+    integer lWordSet
+    object lLine
+    integer fh
+
+    -- Find out which file it comes from.
+    if length(CurrentWords) = 0 then
+        lWordSet = GameLevelWords[GameLevel]
+        if sequence(WordList[lWordSet][1]) then
+            CurrentWords = WordList[lWordSet]
+        else
+            -- Load words form file.
+            fh = open("..\\demoresources\\" & WordList[lWordSet], "r")
+            if fh < 0 then
+                VOID = message_box(sprintf("** SERIOUS ERROR **\n" &
+                                   "\nUnable to use word file '%s'\n\n",
+                                    {WordList[lWordSet]}),
+                                   "Word Catcher",
+                                    MB_ICONEXCLAMATION)
+                closeApp()
+            end if
+
+            lLine = gets(fh)
+            while sequence(lLine) do
+                if lLine[length(lLine)] = '\n' then
+                    lLine = lLine[1..length(lLine)-1]
+                end if
+                lLine = upper(trim(lLine))
+                if length(lLine) > 0 then
+                    CurrentWords = append(CurrentWords, lLine)
+                end if
+                lLine = gets(fh)
+            end while
+            close(fh)
+        end if
+    end if
+    lWordSet = rand(length(CurrentWords))
+    SelectedWord = CurrentWords[lWordSet]
+
+    -- hmmm. Do I delete the word now or let it be reused?
+
+    -- Reset the bonus and stop the bonus countdown.
+    CurrentBonus = GameLevelBonus[GameLevel]
+    BonusCounting = w32False
+end procedure
+
+---------------------------------
+procedure ScatterLetters(sequence pWord)
+---------------------------------
+    sequence lAllSpots
+    integer x
+
+    -- Do not use currently filled spots.
+    lAllSpots = EmptySpots
+    for i = 1 to length(FilledSpots) do
+        for j = 1 to length(lAllSpots) do
+            if FilledSpots[i][2] = lAllSpots[j][2] and
+               FilledSpots[i][3] = lAllSpots[j][3] then
+                lAllSpots = w32removeIndex(j,lAllSpots)
+                exit
+            end if
+        end for
+    end for
+
+    -- pWord can either be a string or a set of FoundChar elements
+    for i = 1 to length(pWord) do
+        x = rand(length(lAllSpots))
+        FilledSpots = append(FilledSpots, lAllSpots[x])
+        lAllSpots = w32removeIndex(x, lAllSpots)
+        if sequence(pWord[i]) then
+            -- FoundChar element
+            FilledSpots[length(FilledSpots)][1] = pWord[i][1]
+            FilledSpots[length(FilledSpots)][6] = pWord[i][6]
+        else
+            -- Simple string
+            FilledSpots[length(FilledSpots)][1] = pWord[i]
+            FilledSpots[length(FilledSpots)][6] = i
+        end if
+    end for
+end procedure
+
+-------------------------------
+procedure SpillChars()
+-------------------------------
+    -- This 'spills' half the collected letters so far.
+    integer lNum
+    if length(FoundChars) = 0 then
+        return
+    end if
+
+    lNum = floor(length(FoundChars)/2)
+    if lNum < 1 then
+        lNum = 1
+    end if
+    ScatterLetters(FoundChars[1..lNum])
+    FoundChars = FoundChars[lNum+1..length(FoundChars)]
+
+end procedure
+-------------------------------
+procedure SetupWord()
+-------------------------------
+
+    SelectWord()
+
+    -- Scatter letters
+    FilledSpots = {}
+    ScatterLetters(SelectedWord)
+    FoundChars = {}
+
+    -- Initial position and speed
+    SaucerLeft = rand(vxScreen - SpriteWidth)
+    SaucerTop = 0
+    XSpeed = 0
+    YSpeed = 0
+    BonusDelta = 1
+
+end procedure
+
+-------------------------------
+procedure SetGameLevel(integer pLevel)
+-------------------------------
+
+    if pLevel > NumberOfLevels then
+        pLevel = NumberOfLevels
+    elsif pLevel < 1 then
+        pLevel = 1
+    end if
+
+    GameLevel = pLevel
+    CurrentWords = {}
+    LandingWidth = floor(CharWidth + (NumberOfLevels - GameLevel) * 0.33 * CharWidth)
+    LandingHeight = 5
+    LandingX = floor((vxScreen - LandingWidth)/2)
+    LandingY = Heights[7]+CharHeight - 5
+
+    SetupWord()
+    RoundTrigger = 0
+
+end procedure
+
+------------------------------------------
+function CalcWordScore()
+------------------------------------------
+    integer lScore
+
+    lScore = 0
+    for i = 1 to length(FoundChars) do
+        if i = FoundChars[i][6] then
+            lScore += floor((length(SelectedWord)-i+1) *
+                                  GameLevelBias[GameLevel])
+        end if
+    end for
+    return lScore
+end function
+
+------------------------------------------
+function PerfectScore()
+------------------------------------------
+    integer lScore
+    integer lLen
+
+    lScore = 0
+    lLen = length(SelectedWord)
+    for i = lLen to 1 by -1 do
+        lScore += floor(i * GameLevelBias[GameLevel])
+    end for
+    return lScore
+end function
+
+-------------------------------
+function SaveValues(integer pAutoSaving)
+-------------------------------
+    integer fh
+    sequence filename
+
+    if length(CurrentUser) = 0 then
+        filename = "autosave.wcs"
+    else
+        filename = CurrentUser & ".wcs"
+    end if
+
+    fh = open(filename, "w")
+    if fh < 0 then
+        if pAutoSaving = w32False then
+            VOID = message_box(sprintf("Cannot create file '%s'",{filename}),
+                            "Word Catcher", MB_ICONEXCLAMATION)
+        end if
+        return w32False
+    end if
+
+    if HighScore < PlayerScore then
+        HighScore = PlayerScore
+    end if
+
+    printf(fh, "# Word Catcher V%d.%d\n\n[file]\nname=%s\nhighscore=%d\n\n",
+                  {VersionMajor,VersionMinor,CurrentUser, HighScore})
+
+    puts(fh, "[saved]\n")
+    for i = 1 to length(LevelScore) do
+        printf(fh, "l%02d=%d,%d,%d,%d,%d\n", {i, LevelScore[i],
+                                              LevelWord[i],LevelPerfectWord[i],
+                                              LevelKeystroke[i], LevelDuration[i]
+                                              })
+    end for
+
+    printf(fh, "currentlevel=%d\n", GameLevel)
+
+    NeedsSaving = w32False
+    close(fh)
+    return w32True
+end function
+
+-------------------------------
+procedure onClick_NameSave( integer self, integer event, sequence parms )
+-------------------------------
+    sequence lNewName
+
+    lNewName = getText(NameText)
+    if length(lNewName) = 0 then
+        return
+    end if
+
+    setText(NameMsg, "Saving...")
+    CurrentUser = lNewName
+
+    if SaveValues(w32False) then
+        setText( MainWin, "Word Catcher - " & lNewName)
+        closeWindow( NameDialog)
+    end if
+    setText(NameMsg, "")
+
+end procedure
+
+
+-------------------------------
+procedure SaveGame(integer pNeeded)
+-------------------------------
+    integer l,t,w,h
+    sequence text
+    sequence textext
+    sequence lDialogSize
+
+    if pNeeded = w32False then
+        return
+    end if
+
+    NameDialog = createEx(Window, "Word Catcher -- Saving Game", 0,
+                            Center, Center, 300, 300, WS_DLGFRAME, 0)
+
+    lDialogSize = getClientRect(NameDialog)
+
+    text = "Name:"
+    textext = getTextExtent(NameDialog, text)
+    l = 5
+    t = 5
+    w = textext[1]
+    h = textext[2]
+    VOID  = createEx(LText, text, NameDialog,
+                           l,t,w,h, 0, 0)
+
+    textext = getTextExtent(NameDialog, "_")
+    l = 5
+    t = t + h + 2
+    w = textext[1] * 32 -- Maximum expected name length
+    h = textext[2] + 8
+
+    NameText = createEx(EditBox, CurrentUser, NameDialog,
+                           l,t,w,h, 0, 0)
+
+
+    textext = getTextExtent(NameDialog, "_")
+    l = 5
+    t = t + 3 * h + 2
+    w = lDialogSize[3] - 10
+    h = textext[2] + 2
+    NameMsg = createEx(LText, "", NameDialog,
+                           l,t,w,h, 0, 0)
+
+    textext = getTextExtent(NameDialog, "_")
+    w = textext[1] * 8
+    h = textext[2] * 2
+    l = lDialogSize[3] - 5 - w
+    t = lDialogSize[4] - 5 - h
+    NameCancel = createEx(Button, "&Cancel", NameDialog,
+                           l,t,w,h, w32AUTOCLOSE, 0)
+
+    w = textext[1] * 8
+    h = textext[2] * 2
+    l = l - 5 - w
+    t = lDialogSize[4] - 5 - h
+    NameOk = createEx(DefButton, "&Save", NameDialog,
+                           l,t,w,h, 0, 0)
+
+    setHandler(NameOk, w32HClick, routine_id("onClick_NameSave"))
+
+    openDialog(NameDialog)
+
+    destroy(NameDialog)
+
+end procedure
+
+-------------------------------
+procedure onClick_MIGameSave( integer self, integer event, sequence parms )
+-------------------------------
+    SaveGame(w32True)
+end procedure
+
+-------------------------------
+procedure onClick_MIGameReset( integer self, integer event, sequence parms )
+-------------------------------
+
+    FoundChars = {}
+    SetGameLevel( GameLevel )
+    XSpeed = 0
+    YSpeed = 0
+end procedure
+
+-------------------------------
+procedure onClose_MainWin( integer self, integer event, sequence parms )
+-------------------------------
+    SaveGame (NeedsSaving)
+end procedure
+
+-------------------------------
+procedure onPaint_MainWin( integer self, integer event, sequence parms )
+-------------------------------
+    integer x,y,a,w,h
+    atom lAlphaBMP
+    sequence text, textext
+    integer lWordScore
+    integer lTopBorder
+
+
+   -- Copy the background to the buffer.
+   bitBlt(Buffer,  0, 0,           -- Dest
+          BackGroundBMP, 0, 0,   -- Source
+          vxMainWin, vyMainWin,     -- width, height
+          SRCCOPY )                 -- style
+
+    -- Display the selected Word.
+    x = floor((vxMainWin - (length(SelectedWord) * (CharWidth + 5))) / 2)
+    y = Heights[7] + CharHeight + 2
+    for i = 1 to length(SelectedWord) do
+        a = SelectedWord[i]-'A' + 1
+        lAlphaBMP = AlphabetBMP
+        for j = 1 to length(FoundChars) do
+            if i = FoundChars[j][6] then
+                lAlphaBMP = FlashAlphaBMP[NextFlash]
+                exit
+            end if
+        end for
+        transBlt(Buffer,  x, y,           -- Dest
+            {lAlphaBMP,Alphabet[a][1],Alphabet[a][2] , CharWidth-1,CharHeight-1}     -- Source
+             )
+       x += (CharWidth + 5)
+
+    end for
+
+   -- Now add the saucer sprite
+   transBlt(Buffer,  SaucerLeft, SaucerTop,           -- Dest
+            {SpriteBMP,spritesX[spriteId],spritesY[spriteVar] ,
+                  SpriteWidth-1,SpriteHeight-1}     -- Source
+             )
+
+    -- Now add the flashing lights (if still flying)
+    if spriteId != 7 then
+        bitBlt(Buffer,  SaucerLeft+6, SaucerTop+14,           -- Dest
+               SpriteBMP, LightX,lights[lightSeq] , LightWidth,LightHeight,     -- Source
+               SRCCOPY  )
+    end if
+
+
+    if (GameLevel + GameLevel) <= NumberOfLevels then
+        -- Draw the lowest height for the saucer.
+        setPenColor(Buffer, Violet)
+        drawRectangle(Buffer, w32True, 0,LandingY,
+                         vxScreen, LandingY+1) --floor(LandingHeight/2))
+    end if
+
+    -- Display remaining characters (if front of saucer)
+    if length(FilledSpots) > 0 then
+        for i = 1 to length(FilledSpots) do
+            a = FilledSpots[i][1]-'A' + 1
+            transBlt(Buffer,  FilledSpots[i][2], FilledSpots[i][3],      -- Dest
+                {AlphabetBMP,Alphabet[a][1],Alphabet[a][2],
+                   CharWidth-1,CharHeight-1}     -- Source
+                 )
+        end for
+    else
+        -- Draw the landing platform.
+        setPenColor(Buffer, BrightGreen)
+        drawRectangle(Buffer, w32True, LandingX,LandingY,
+                         LandingX+LandingWidth, LandingY+LandingHeight)
+        setPenColor(Buffer, Green)
+        drawRectangle(Buffer, w32False, LandingX,LandingY,
+                         LandingX+LandingWidth, LandingY+LandingHeight)
+
+    end if
+
+    -- Show scores etc...
+    lTopBorder = getSystemMetrics(SM_CYCAPTION) +
+                 getSystemMetrics(SM_CYMENUSIZE)+
+                 getSystemMetrics(SM_CYBORDER)
+
+    if CurrentBonus > 0 then
+        text = sprintf("Bonus %d", floor(CurrentBonus))
+        textext = getTextExtent(Buffer, text)
+        x = 5
+        y = vyScreen - (3 * (textext[2])) - lTopBorder
+        wPuts({Buffer,x,y}, text)
+    end if
+
+    lWordScore = CalcWordScore()
+    if lWordScore > 0 then
+        text = sprintf("Word Score %d", lWordScore)
+        textext = getTextExtent(Buffer, text)
+        x = 5
+        y = vyScreen - (2 * (textext[2])) - lTopBorder
+        wPuts({Buffer,x,y}, text)
+    end if
+
+    setTextColor(Buffer, Pink)
+    text = sprintf("Level %s", {LevelIds[GameLevel]})
+    textext = getTextExtent(Buffer, text)
+    x = vxScreen - textext[1] - 5 - getSystemMetrics(SM_CXBORDER)
+    y = vyScreen - (2 * textext[2]) - lTopBorder
+    wPuts({Buffer,x,y}, text)
+
+    text = sprintf("Game Score %d", PlayerScore)
+    textext = getTextExtent(Buffer, text)
+    x = 5
+    y = vyScreen - textext[2] - lTopBorder
+    wPuts({Buffer,x,y}, text)
+
+    -- Now update the user's view.
+    bitBlt(MainWin,  0, 0,           -- Dest
+          Buffer, 0, 0,   -- Source
+          vxMainWin, vyMainWin,     -- width, height
+          SRCCOPY )                 -- style
+
+end procedure
+
+-------------------------------
+procedure onTimer_MainWin( integer self, integer event, sequence parms )
+-------------------------------
+    integer SaucerRight,SaucerBottom
+    integer lRoundScore
+    atom distX,distY
+    integer l,t,r,b
+    integer tl,tt,tr,tb
+    integer dist
+
+    if parms[1] = 2 then
+        VOID = SaveValues ( w32True) -- Autosaving
+        return
+    end if
+
+    -- Special case --
+    -- If the saucer is at the 7th position, then it has landed,
+    -- so there is no horizontal movement allowed,
+    -- and only upward movement is allowed.
+    if spriteId = 7 then
+        XSpeed = 0
+        if YSpeed > 0 then
+            YSpeed = 0
+        end if
+    end if
+
+    -- Calc the next position for the saucer.
+    SaucerLeft += XSpeed
+    SaucerTop += YSpeed
+
+    -- Check for boundary conditions.
+    -- If we hit an edge then the speed in that
+    -- direction stops.
+    -- First the vertical.
+    if SaucerTop > Heights[7] then
+        SaucerTop = Heights[7]
+        YSpeed = 0
+    elsif SaucerTop < 0 then
+        SaucerTop = 0
+        YSpeed = 0
+    end if
+    -- And now the horizontal.
+    if SaucerLeft > vxMainWin - 32 then
+       SaucerLeft = vxMainWin - 32
+       XSpeed = 0
+    elsif SaucerLeft < 0 then
+       SaucerLeft = 0
+       XSpeed = 0
+    end if
+
+    -- Record the time that the saucer spends moving.
+    if XSpeed != 0 or YSpeed != 0 then
+        LevelDuration[GameLevel] += 1
+    end if
+
+    -- Select the appropriate sprite for the saucer
+    -- depending on is vertical position.
+    for i = 1 to length(Heights) do
+        if SaucerTop <= Heights[i] then
+            spriteId = i
+            exit
+        end if
+    end for
+
+    -- Move to next variation of the current sprite.
+    spriteVar += 1
+    if spriteVar > 3 then
+        spriteVar = 1
+    end if
+
+    -- Move to the next flashing light set.
+    lightSeq += 1
+    if lightSeq > length(lights) then
+        lightSeq = 1
+    end if
+
+    -- Check for collisions --
+    -- First with any remaining letter
+    SaucerRight = SaucerLeft + SpriteWidth - 1
+    SaucerBottom = SaucerTop + SpriteHeight - 1
+    for i = 1 to length(FilledSpots) do
+        l = FilledSpots[i][2]
+        t = FilledSpots[i][3]
+        r = FilledSpots[i][4]
+        b = FilledSpots[i][5]
+
+        -- Make it float
+        FilledSpots[i][7] -= 1
+        if FilledSpots[i][7] = 0 then
+            FilledSpots[i][7] = rand(30)+10
+            FilledSpots[i][9] = rand(3)-2
+        end if
+        l += FilledSpots[i][9]
+        r += FilledSpots[i][9]
+
+        FilledSpots[i][8] -= 1
+        if FilledSpots[i][8] = 0 then
+            FilledSpots[i][8] = rand(30)+10
+            FilledSpots[i][10] = rand(3)-2
+        end if
+        t += FilledSpots[i][10]
+        b += FilledSpots[i][10]
+
+        -- Check if the char has to flee the saucer.
+        distX = w32abs(SaucerLeft-l)
+        distY = w32abs(SaucerTop-t)
+        dist = floor(power(distX*distX + distY*distY, 0.5) / CharWidth) + 1
+        if dist <= length(FleeSpeed) then
+            distX = floor(FleeSpeed[dist] * GameLevel / NumberOfLevels)
+            distY = distX
+            if distX != 0 then
+                if SaucerLeft > l then
+                    distX = -distX
+                end if
+                if SaucerTop > t then
+                    distY = -distY
+                end if
+                l += distX
+                t += distY
+                r += distX
+                b += distY
+            end if
+        end if
+
+        -- Check Screen boundary.
+        if l < 0 then
+            l = 0
+            r = CharWidth-1
+        end if
+        if r > vxScreen-CharWidth-1 then
+            r = vxScreen-CharWidth-1
+            l = r-CharWidth
+        end if
+
+        if t < CharHeight then
+            t = CharHeight
+            b = CharHeight + CharHeight - 1
+        end if
+        if b > LandingY then
+            b = LandingY-1
+            r = b - CharHeight - 1
+        end if
+
+        -- Bounce up if near bottom
+        if b > Heights[6] then
+            t -= 2
+            b -= 2
+        end if
+
+        -- Bounce off any adjacent chars.
+        for j = 1 to length(FilledSpots) do
+            if j != i then
+                tr = FilledSpots[j][4]
+                tb = FilledSpots[j][5]
+                tt = FilledSpots[j][3]
+                tl = FilledSpots[j][2]
+                if r < tl or
+                   b < tt or
+                   t > tb or
+                   l > tr then
+                   -- ignore this char
+                else
+                    if FilledSpots[i][3] < t then
+                        b = tt - 1
+                        t = b - CharHeight - 1
+                    elsif FilledSpots[i][3] > t then
+                        t = tb + 1
+                        b = t + CharHeight - 1
+                    end if
+
+                    if FilledSpots[i][2] > l then
+                        l = tr + 1
+                        r = l - CharWidth - 1
+                    elsif FilledSpots[i][2] < l then
+                        r = tl - 1
+                        l = r - CharWidth + 1
+                    end if
+
+                end if
+            end if
+        end for
+
+        -- Update final position.
+        FilledSpots[i][2] = l
+        FilledSpots[i][3] = t
+        FilledSpots[i][4] = r
+        FilledSpots[i][5] = b
+
+        if SaucerLeft > FilledSpots[i][4] or
+            SaucerRight < FilledSpots[i][2] or
+            SaucerTop > FilledSpots[i][5] or
+            SaucerBottom < FilledSpots[i][3] then
+        else
+            -- BANG! We crashed into a letter.
+            FoundChars = append(FoundChars, FilledSpots[i])
+            FilledSpots = w32removeIndex(i, FilledSpots)
+            if length(FilledSpots) = 0 then
+                BonusCounting = w32False
+                BonusDelta = 0.15
+            end if
+            exit
+
+        end if
+    end for
+
+    -- Check if landed
+    if spriteId = 7 then
+        if length(FilledSpots) = 0 then
+            -- Allow a 2-pixel leeway for precision.
+            if SaucerLeft + SpriteWidth - 2 <= LandingX + LandingWidth and
+               SaucerLeft + 2 >= LandingX then
+
+                -- Round over!
+                if length(FoundChars) > 0 then
+                    lRoundScore = CalcWordScore()
+                    if lRoundScore = PerfectScore() then
+                        RoundTrigger += 1
+                        if RoundTrigger >= LevelTrigger[GameLevel] then
+                            SetGameLevel(GameLevel+1)
+                        end if
+                        LevelPerfectWord[GameLevel] += 1
+                    else
+                        LevelWord[GameLevel] += 1
+                    end if
+
+                    lRoundScore += floor(CurrentBonus)
+
+                    NeedsSaving = w32True
+                    PlayerScore += lRoundScore
+                    LevelScore[GameLevel] += lRoundScore
+
+                    FoundChars = {}
+                end if
+
+                CurrentBonus = 0
+                BonusDelta = 0
+            else
+                if SaucerLeft > LandingX + LandingWidth  or
+                   SaucerLeft < LandingX - SpriteWidth then
+                    -- Landed too far outside the platform,
+                    -- so collected letters are scattered again.
+                   SpillChars()
+                   SaucerTop -= 1
+                end if
+            end if
+        else
+            -- Landed too soon, so collected letters
+            -- are scattered again.
+            SpillChars()
+            if length(FoundChars) > 0 then
+                SaucerTop -= 1
+            end if
+        end if
+    end if
+
+
+    -- Flip Flashing Char
+    NextFlash = FlashSeq[NextFlash]
+
+    -- Reduce Bonus
+    if BonusCounting and CurrentBonus > 0
+        -- If not moving then pause the bonus countdown
+       and not(XSpeed = 0 and YSpeed = 0) then
+        CurrentBonus -= BonusDelta
+    end if
+
+    -- Now draw everything on the screen.
+    repaintFG (MainWin)
+end procedure
+
+-------------------------------
+procedure onKeyDown_MainWin( integer self, integer event, sequence parms )
+-------------------------------
+    integer lRefresh
+    integer lNewLevel
+
+    lRefresh = 0
+
+    if parms[1] = VK_DOWN then
+        YSpeed += 1
+        lRefresh = 1
+        BonusCounting = w32True
+    elsif parms[1] = VK_UP then
+        YSpeed -= 1
+        lRefresh = 1
+        BonusCounting = w32True
+    elsif parms[1] = VK_RIGHT then
+        XSpeed += 1
+        lRefresh = 1
+        BonusCounting = w32True
+    elsif parms[1] = VK_LEFT then
+        XSpeed -= 1
+        lRefresh = 1
+        BonusCounting = w32True
+
+    elsif parms[1] = VK_ENTER then
+        if spriteId = 7 and BonusDelta = 0 then
+            SetupWord()
+        elsif SaucerTop = 0 and length(FoundChars) = 0 then
+            SetupWord()
+        end if
+    elsif parms[1] = VK_ESCAPE then
+        FoundChars = {}
+        SetGameLevel( GameLevel )
+    else
+        lNewLevel = find(parms[1], "1234567890")
+        if lNewLevel > 0 and length(FoundChars) = 0 then
+            SetGameLevel( lNewLevel )
+        end if
+    end if
+
+    if XSpeed < LevelMinSpeed[GameLevel] then
+        XSpeed = LevelMinSpeed[GameLevel]
+    elsif XSpeed > LevelMaxSpeed[GameLevel] then
+        XSpeed = LevelMaxSpeed[GameLevel]
+    end if
+
+    if YSpeed < LevelMinSpeed[GameLevel] then
+        YSpeed = LevelMinSpeed[GameLevel]
+    elsif YSpeed > LevelMaxSpeed[GameLevel] then
+        YSpeed = LevelMaxSpeed[GameLevel]
+    end if
+
+    if lRefresh then
+        LevelKeystroke[GameLevel] += 1
+        CurrentBonus -= 1
+        repaintFG(MainWin)
+    end if
+end procedure
+
+with trace
+-------------------------------
+procedure RunApp()
+-------------------------------
+    sequence lSize
+    integer x,y
+    integer mx,my
+    integer nx,ny
+    sequence lCaption
+
+    -- Saucer bitmap contains a grid of 9 across by 3 down
+    -- The first 7 across is a sprite for the vertical height
+    -- and the grid positions down are variations of those
+    -- sprites (to make it animated)
+    SpriteBMP     = loadBitmapFromFile("..\\demoresources\\saucer.bmp")
+    lSize         = getCtlSize (SpriteBMP)
+    SpriteWidth   = lSize[1] / 9
+    SpriteHeight  = lSize[2] / 3
+    LightHeight   = 2
+    LightWidth    = 19
+    LightX        = 8 * SpriteWidth
+
+    spritesX      = {0, 1, 2, 3, 4, 5, 6} * SpriteWidth
+    spritesY      = {0, 1, 2} * SpriteHeight
+    lights        = {0, 1, 2, 3} * LightHeight
+
+    -- Alphabet bitmap is a grid of 5 across and 8 down.
+    -- It repesents the characters "A-Z" and then ".,- "
+    -- and then the digits "0-9".
+    AlphabetBMP   = loadBitmapFromFile("..\\demoresources\\alphabet.bmp")
+    lSize         = getCtlSize(AlphabetBMP)
+    CharWidth     = lSize[1] / 5
+    CharHeight    = lSize[2] / 8
+
+    -- Alt. Alpha bitmap is identical to the alphabet
+    -- bitmap but is in a different color. This is used
+    -- to flash the selected word's characters.
+    AltAlphaBMP= loadBitmapFromFile("..\\demoresources\\AltAlpha.bmp")
+    FlashAlphaBMP = {AltAlphaBMP, AltAlphaBMP,
+                     AlphabetBMP, AlphabetBMP}
+    NextFlash     = 1
+    FlashSeq      = {2,3,4,1}
+
+
+    -- Pre-calc bmp offsets for each letter.
+    Alphabet = {}
+    y = -CharHeight
+    for i = 1 to 8 do
+        y += CharHeight
+        x = -CharWidth
+        for j = 1 to 5 do
+            x += CharWidth
+            Alphabet = append(Alphabet, {x,y})
+        end for
+    end for
+
+
+    BackGroundBMP = loadBitmapFromFile("..\\demoresources\\landscape.bmp")
+    lSize = getCtlSize(BackGroundBMP)
+
+    vxScreen = lSize[1]
+    vyScreen = lSize[2]
+    fromX = 0
+    fromY = 0
+    vxMainWin = vxScreen
+    vyMainWin = vyScreen
+
+    -- Calculate the height levels
+    Heights = repeat(0,7)
+    Heights[1] = floor(vyScreen * 0.20)
+    Heights[2] = floor(vyScreen * 0.33)
+    Heights[3] = floor(vyScreen * 0.42)
+    Heights[4] = floor(vyScreen * 0.53)
+    Heights[5] = floor(vyScreen * 0.66)
+    Heights[6] = Heights[5]+3
+    Heights[7] = Heights[6]+1
+
+    -- Calculate all the possible 'random' character posns.
+    x = floor(CharWidth * 0.75)
+    y = floor(CharHeight * 2.1)
+    mx = vxScreen - x - CharWidth
+    my = Heights[7] - 1 - (2 * CharHeight)
+    EmptySpots = {}
+    ny = y - CharHeight
+    while ny < my do
+        ny += CharHeight
+        nx = x - CharWidth
+        while nx < mx do
+            nx += CharWidth
+            EmptySpots = append(EmptySpots, {0, nx, ny, nx+CharWidth, ny+CharHeight, 0,
+                                             rand(30)+10,rand(30)+10,rand(3)-2,rand(3)-2})
+        end while
+    end while
+
+
+    spriteId = 1
+    spriteVar = 1
+    lightSeq = 1
+
+
+    FleeSpeed = {1,2,4,2,1}
+    GetLevelData()
+
+    PlayerScore = 0
+    LevelScore = repeat(0, NumberOfLevels)
+    LevelPerfectWord = repeat(0,NumberOfLevels)
+    LevelWord = repeat(0,NumberOfLevels)
+    LevelKeystroke = repeat(0,NumberOfLevels)
+    LevelDuration = repeat(0,NumberOfLevels)
+    NeedsSaving = w32False
+    SetGameLevel(1)
+    HighScore = 0
+
+
+    lCaption = "Word Catcher"
+    if length(CurrentUser) > 0 then
+        lCaption &= " - " & CurrentUser
+    end if
+    MainWin = createEx( Window, lCaption, NULL, 0, 0,
+                                vxMainWin, vyMainWin, {WS_VISIBLE,WS_SYSMENU}, 0)
+    MenuGame = createEx(Menu, "&Game", MainWin, 0, 0, 0, 0, 0, 0)
+      MIGameSave = createEx(MenuItem, "&Save...", MenuGame, 0, 0, 0, 0, 0, 0)
+      MIGameLoad = createEx(MenuItem, "&Load...", MenuGame, 0, 0, 0, 0, 0, 0)
+      VOID       = createEx(MenuItem, "-",        MenuGame, 0, 0, 0, 0, 0, 0)
+      MIGameReset = createEx(MenuItem, "&Reset", MenuGame, 0, 0, 0, 0, 0, 0)
+      VOID       = createEx(MenuItem, "-",        MenuGame, 0, 0, 0, 0, 0, 0)
+      MIGameQuit = createEx(MenuItem, "&Quit", MenuGame, 0, 0, 0, 0, w32AUTOCLOSE, 0)
+
+    Buffer = createEx( Pixmap, "", 0, 0, 0, vxScreen, vyScreen, 0, 0)
+
+    setFont(Buffer, "Arial", 18, Normal)
+    setHandler(MainWin, w32HPaint,  routine_id("onPaint_MainWin"))
+    setHandler(MainWin, w32HKeyDown,  routine_id("onKeyDown_MainWin"))
+    setHandler(MainWin, w32HTimer,  routine_id("onTimer_MainWin"))
+
+    setHandler(MIGameSave, w32HClick, routine_id("onClick_MIGameSave"))
+    setHandler(MIGameLoad, w32HClick, routine_id("onClick_MIGameLoad"))
+    setHandler(MIGameReset, w32HClick, routine_id("onClick_MIGameReset"))
+
+    setHandler(MainWin, w32HClose, routine_id("onClose_MainWin"))
+
+    setTimer(MainWin, 1, 100)
+    setTimer(MainWin, 2, AutoSaveInterval)
+
+    WinMain( MainWin, Normal )
+end procedure
+
+
+-------------------------------
+-------------------------------
+-------------------------------
+
+RunApp()

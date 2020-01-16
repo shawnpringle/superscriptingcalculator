@@ -1,0 +1,31 @@
+include win32lib.ew
+without warning
+
+constant MainWindow = create(Window, "Many Lists", 0, 10, 10, 800, 630, 0)
+sequence Lists
+Lists = {}
+integer x, y, h, w, id
+
+x = 5
+y = 5
+h = 20
+w = 80
+
+for i = 1 to 207 do
+    id = create(DropDownList,"", MainWindow, x, y, w, 400, 0 )
+    for j = 1 to 20 do
+        addItem(id, sprintf("%d item", j) )
+    end for
+
+    Lists &= id
+    x += (w + 5)
+    if x > 750 then
+        x = 5
+        y += (h + 5)
+    end if
+
+end for
+
+
+WinMain( MainWindow,Normal )
+

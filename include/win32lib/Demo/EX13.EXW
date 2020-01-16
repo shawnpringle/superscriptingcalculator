@@ -1,0 +1,82 @@
+-- ex13.exw
+-- Simple timer
+
+include std/sort.e
+include win32lib.ew
+without warning
+       
+-----------------------------------------------------------------------------
+sequence ticks
+sequence speeds
+constant vColor = {Blue, BrightRed, Green}
+
+integer TimerA
+integer TimerB
+integer TimerC
+
+procedure SetAlarms()
+    integer lWin
+
+    lWin = getNameId("TimerWin")
+    -- activate the timers
+    for i = 1 to length(speeds) do
+        speeds[i] = {rand(1500) + 300, i}
+    end for
+    setTimer( lWin, TimerA, speeds[1][1] )
+    setTimer( lWin, TimerB, speeds[2][1] )
+    setTimer( lWin, TimerC, speeds[3][1] )
+
+    speeds = sort(speeds)
+    
+end procedure
+
+
+-----------------------------------------------------------------------------
+procedure Click_TimerWin( integer self, integer event, sequence parms)
+    SetAlarms()
+end procedure
+registerRoutine("Click_TimerWin", routine_id("Click_TimerWin"))
+
+-----------------------------------------------------------------------------
+procedure Timer_TimerWin( integer self, integer event, sequence parms)
+    -- increment the appropriate timer
+    ticks[parms[1]] = ticks[parms[1]] + 1
+    
+    -- force a Paint event
+    repaintWindow( self )
+    
+end procedure  
+registerRoutine("Timer_TimerWin", routine_id("Timer_TimerWin"))
+
+-----------------------------------------------------------------------------
+procedure Paint_TimerWin(  integer self, integer event, sequence parms )
+    integer lTimer
+
+    -- display the current amounts
+    for i = 1 to length(speeds) do
+        lTimer = speeds[i][2]
+        setTextColor(self, vColor[lTimer])
+        wPrintf( {self,5,1 + (i-1)* 20}, "Tick%s = %-5d  (%dms)", {lTimer+'A'-1, ticks[lTimer], speeds[i][1]} )
+    end for
+    
+end procedure
+registerRoutine("Paint_TimerWin", routine_id("Paint_TimerWin"))
+
+
+-----------------------------------------------------------------------------
+global function main(sequence vArgs)
+    integer lWin
+
+    createForm( "Timer Window, TimerWin, Default, Default, 200, 100, events=(Timer,Click),hint=Click to change speed" )
+    lWin = getNameId("TimerWin")
+    TimerA = next_number("TimerWin")
+    TimerB = next_number("TimerWin")
+    TimerC = next_number("TimerWin")
+    ticks = repeat(0, current_number("TimerWin"))
+    speeds = repeat(0, current_number("TimerWin"))
+
+    SetAlarms()
+    return 0 -- All okay!
+end function
+
+include w32Start.ew

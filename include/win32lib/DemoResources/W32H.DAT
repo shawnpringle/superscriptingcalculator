@@ -1,0 +1,29 @@
+These are "event types" which can be used in the "setHandler" procedure,
+which is the new way to designate a routine intended to handle an event.
+
+EVENT TYPE:             EVENT DESCRIPTION:
+
+w32HActivate    -- Occurs for Windows only and after the window is opened
+w32HBreak       --
+w32HChange      -- Value in a control is changed; ie, select item in a list
+w32HClick       -- single click left mouse button on a button type control
+w32HClose       -- a window closes
+w32HDestroy     -- the application is being closed
+w32HDragAndDrop -- user has dropped a dragged item onto acceptable control ** int id, seq data_or_file_name
+w32HEvent       -- an event of any type has occured ** atom event, atom wParam, atom lParam
+w32HGotFocus    -- a control will receive keyboard actions
+w32HKeyDown     -- a key is pressed down ** int keyCode, int shift
+w32HKeyPress    -- "Printable" key is pressed ** int keyCode, int shift
+w32HKeyUp       -- a key is released ** int keyCode, int shift
+w32HLostFocus   -- a control will not receive keyboard actions
+w32HMouse       -- mouse actions: moved, up/down or dbl-click a button, etc ** int event, int x, int y, int shift
+w32HOpen        -- a window opens
+w32HPaint       -- A portion or all of a Window needs to be redrawn ** int x1, int y1, int x2, int y2
+w32HPause       --
+w32HResize      -- user or program changes size of window ** int style, int x, int y 
+w32HScroll      -- a scroll control is moved ** int position
+w32HTimer       -- a timer fires
+
+proc doEvents(integer id)   Gives control back to windows until there are no pending events to process.
+proc returnValue( value )   Override default value returned by handler. 
+proc setHandler( object id, object htype, integer routine)   Sets up an user written event handler 

@@ -1,0 +1,102 @@
+------------------------------------------
+
+include win32lib.ew
+
+--with trace
+without warning
+
+
+global constant
+
+panelwin = create( Window, "Calculator", 0, Default, Default, 230, 320, 0 ),
+
+abtitle9 = create( LText, "Value", panelwin, 86, 10, 50, 20, 0 ),
+
+deFld = {
+    create( EditText, "", panelwin, 85,  38, 50, 20, 0 ),
+    create( EditText, "", panelwin, 85,  72, 50, 20, 0 ),
+    create( EditText, "", panelwin, 85, 106, 50, 20, 0 ),
+    create( EditText, "", panelwin, 85, 140, 50, 20, 0 ),
+    create( EditText, "", panelwin, 85, 174, 50, 20, 0 )
+        },
+
+title1 = create( LText, " *1", panelwin,  5, 10, 20, 20, 0 ),
+title2 = create( LText, " *2", panelwin, 30, 10, 20, 20, 0 ),
+title3 = create( LText, " *3", panelwin, 55, 10, 20, 20, 0 ),
+
+g1 = create( Group, "", panelwin,  2,  28, 78, 34, 0 ),
+g2 = create( Group, "", panelwin,  2,  62, 78, 34, 0 ),
+g3 = create( Group, "", panelwin,  2,  96, 78, 34, 0 ),
+g4 = create( Group, "", panelwin,  2, 130, 78, 34, 0 ),
+g5 = create( Group, "", panelwin,  2, 164, 78, 34, 0 ),
+
+rb = {
+    {create( Radio, "",  g1      ,  8,  16, 15, 10, 0 ),
+     create( Radio, "",  g1      , 33,  16, 15, 10, 0 ),
+     create( Radio, "",  g1      , 58,  16, 15, 10, 0 )
+    },
+
+    {create( Radio, "",  g2      ,  8,  16, 15, 10, 0 ),
+     create( Radio, "",  g2      , 33,  16, 15, 10, 0 ),
+     create( Radio, "",  g2      , 58,  16, 15, 10, 0 )
+    },
+
+    {create( Radio, "",  g3      ,  8,  16, 15, 10, 0 ),
+     create( Radio, "",  g3      , 33,  16, 15, 10, 0 ),
+     create( Radio, "",  g3      , 58,  16, 15, 10, 0 )
+    },
+
+    {create( Radio, "",  g4      ,  8,  16, 15, 10, 0 ),
+     create( Radio, "",  g4      , 33,  16, 15, 10, 0 ),
+     create( Radio, "",  g4      , 58,  16, 15, 10, 0 )
+    },
+
+    {create( Radio, "",  g5      ,  8,  16, 15, 10, 0 ),
+     create( Radio, "",  g5      , 33,  16, 15, 10, 0 ),
+     create( Radio, "",  g5      , 58,  16, 15, 10, 0 )
+    }
+     },
+
+total = create( LText, "Total", panelwin, 1, 208, 75, 20, 0 ),
+output = create( EditText, "", panelwin, 85, 208, 70, 20, 0 ),
+line1 = create( LText, "----------------------------------------", panelwin, 
+0, 198, 300, 10, 0 ),
+line2 = create( LText, "----------------------------", panelwin, 100, 198,
+300, 10, 0 ),
+cal = create( DefPushButton, "Calculate", panelwin, 10, 230, 60, 30, 0 )
+
+
+
+
+
+procedure onClick_cal(integer self, integer event, sequence params)
+
+
+  atom totall
+  sequence nums, factors
+
+  nums = repeat(0, 5)
+  factors = nums
+
+  for i = 1 to 5 do
+    nums[i] = getNumber (deFld[i])
+    
+    factors[i] = (isChecked(rb[i][1]) * 1) +
+                 (isChecked(rb[i][2]) * 2) +
+                 (isChecked(rb[i][3]) * 3)
+  end for
+
+  nums *= factors
+  totall = (nums[1] + nums[2] + nums[3] + nums[4] + nums[5])
+
+  setText( output, sprintf("%8.2f",totall))
+
+end procedure
+
+
+setHandler(cal, w32HClick,  routine_id("onClick_cal"))
+
+WinMain( panelwin, Normal )
+
+
+

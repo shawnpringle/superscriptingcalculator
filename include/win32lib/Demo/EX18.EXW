@@ -1,0 +1,611 @@
+-- ex18.exw
+--
+-- Game demonstrating Win32Lib features
+-- version 2.2 - set gameOver flag when computer wins
+-- version 2.1 - display of information uses static text controls
+-- version 2.0 - game now has look ahead to "good" moves
+
+without warning
+include std/win32/msgbox.e
+include win32lib.ew
+
+object VOID
+VOID = setAppName("ex18")
+
+-----------------------------------------------------------------------------
+createForm({
+        "Connect, width=250, height=300," &
+                 "font=(Arial,10),bgcolor=BrightWhite," &
+                 "events=Mouse, bars=status," &
+                 "flags=(NEW,WS_DLGFRAME,WS_SYSMENU)," &
+                 "exflags=WS_EX_TOOLWINDOW",
+
+        "Label, Winner,top=0,left=0, width=200, height=20,bgcolor=BrightWhite",
+
+        "Menu, &File",
+            "MenuItem, &New Game",
+            "MenuItem, -",
+            "MenuItem, E&xit,flag=autoclose",
+        "Menu, &Options",
+            "MenuItem, Level &1 (Easy),event=click=levelGame",
+            "MenuItem, Level &2 (Moderate),event=click=levelGame",
+            "MenuItem, Level &3 (Hard),event=click=levelGame",
+            "MenuItem, -",
+            "MenuItem, Explain Move",
+        "Menu, &Help",
+            "MenuItem, &About Connect..."
+    })
+
+constant vLevels =
+          {getNameId("Level1Easy"),
+           getNameId("Level2Moderate"),
+           getNameId("Level3Hard")
+          },
+         vWinnerMsg = getNameId("Winner"),
+         vExplain = getNameId("ExplainMove")
+
+
+-----------------------------------------------------------------------------
+constant BlackBall = textToBitmap( {
+    "       xxxxxxxx       ",
+    "     xxxxxxxxxxxx     ",
+    "    xxxxxxxxxxxxxx    ",
+    "   xxxxxx x  xxxxxx   ",
+    "  xxxxx   xxxxxxxxxx  ",
+    " xxxx  xxxxxxxxxxxxxx ",
+    " xxxx x xxxxxxxxxxxxx ",
+    "xxxx  xxxxxxxxxxxxxxxx",
+    "xxxx xxxxxxxxxxxxxxxxx",
+    "xxx  xxxxxxxxxxxxxxxxx",
+    "xxxx xxxxxxxxxxxxxxxxx",
+    "xxx xxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxx xxxxxxxxxxxxxxxxx",
+    " xxxxxxxxxxxxxxxxxxxx ",
+    " xxxxxxxxxxxxxxxxxxxx ",
+    "  xxxxxxxxxxxxxxxxxx  ",
+    "   xxxxxxxxxxxxxxxx   ",
+    "    xxxxxxxxxxxxxx    ",
+    "     xxxxxxxxxxxx     ",
+    "       xxxxxxxx       "} )
+
+constant WhiteBall = textToBitmap( {
+    "       xxxxxxxx       ",
+    "     xxxxxxxxxxxx     ",
+    "    xxx       xxxx    ",
+    "   xx        x  xxx   ",
+    "  xx          xx xxx  ",
+    " xx         xx xxxxxx ",
+    " xx             x xxx ",
+    "xx             xx xxxx",
+    "xx           x x xxxxx",
+    "x             x xx xxx",
+    "xx x        x xxxxxxxx",
+    "x x        x xxxx xxxx",
+    "xx       xx xx xxxxxxx",
+    "xx x  x x xxx xxxxxxxx",
+    "xxxx x  xx xxxxxxxxxxx",
+    " xx x xx xxx xxxxxxxx ",
+    " xxx xx x x xxxxxxxxx ",
+    "  xxxx xx xxxxxxxxxx  ",
+    "   xxxxxxxxxxxxxxxx   ",
+    "    xxxxxxxxxxxxxx    ",
+    "     xxxxxxxxxxxx     ",
+    "       xxxxxxxx       "} )
+
+constant Arrow = textToBitmap( {
+    "     xxxxxxxxxxxx     ",
+    "     x         xx     ",
+    "     x x x x x xx     ",
+    "     x  x x x xxx     ",
+    "     x x x x xxxx     ",
+    "     x  x x x xxx     ",
+    "     x x x x xxxx     ",
+    "     x  x x x xxx     ",
+    "     x x x x xxxx     ",
+    "     x  x x x xxx     ",
+    "     x x x x xxxx     ",
+    "xxxxxx  x x x xxxxxxxx",
+    " x   x x x x x x xxxx ",
+    "  x   x x x x x xxxx  ",
+    "   x   x x x x xxxx   ",
+    "    x   x x x xxxx    ",
+    "     x   x x xxxx     ",
+    "      x   x xxxx      ",
+    "       x   xxxx       ",
+    "        x  xxx        ",
+    "         x xx         ",
+    "          xx          "} )
+
+-----------------------------------------------------------------------------
+constant
+    Spacing = 24,
+    Columns = 8,
+    Rows    = 8
+
+integer level, explainFlag
+    level = 2           -- can change from menu
+    explainFlag = 1     -- explain move
+
+-----------------------------------------------------------------------------
+-- create an 8x8 grid
+sequence
+    tile,           -- holds bitmap of tile
+    legal,          -- next position in column
+    moves           -- holds moves returned by evaluate routines
+
+integer
+    gameOver        -- true if game is over
+
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+-- The Menu Actions
+
+-----------------------------------------------------------------------------
+global procedure Click_NewGame(integer self, integer event, sequence parms)
+
+    -- set up the board for a new game
+
+    -- initialize the grid
+    tile    = repeat( repeat( 0, Columns ), Rows )
+    legal   = repeat( 0, Columns )
+
+    -- set legal moves
+    for i = 1 to Columns do
+        tile[i][Rows] = Arrow
+        legal[i] = Rows
+    end for
+
+    -- clear text and flags
+    setWindowBackColor(vWinnerMsg, BrightWhite)
+
+    showMessage( "" )
+    setText( vWinnerMsg, "" )
+    gameOver = 0
+
+
+    -- refresh window
+    repaintWindow( getId(w32GetMainWindow) )
+
+end procedure
+
+-----------------------------------------------------------------------------
+global procedure levelGame(integer self, integer event, sequence parms)
+    -- change level difficulty
+    setCheck(self, w32True)
+    level = find(self, vLevels)
+end procedure
+
+-----------------------------------------------------------------------------
+procedure setExplain( integer i )
+    -- set explanation on or off
+
+    -- save flag
+    explainFlag = i
+
+    -- change check on menu
+    setCheck( vExplain, i )
+    if i = 0 then
+        showMessage( "")
+    end if
+    -- refresh window
+    repaintWindow( getId(w32GetMainWindow) )
+
+end procedure
+
+
+-----------------------------------------------------------------------------
+global procedure Click_ExplainMove(integer self, integer event, sequence parms)
+    -- toggle option on/off
+    setExplain( not explainFlag )
+end procedure
+
+procedure ShowExplanation(sequence Text)
+    if explainFlag then
+        showMessage( Text)
+    end if
+end procedure
+
+-----------------------------------------------------------------------------
+global procedure Click_AboutConnect(integer self, integer event, sequence parms)
+    VOID = message_box(   "Connect Game Demo" & 13 & 10 &
+                            "Click on an arrow to move." & 13 & 10 &
+                            "Objective:" & 13 & 10 &
+                            "Connect four balls in any direction.",
+                            "Connect Game Demo",
+                            MB_ICONINFORMATION+MB_TASKMODAL )
+end procedure
+
+
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+-- The Game Actions
+
+-----------------------------------------------------------------------------
+procedure setTile( integer i, integer j, atom hBitmap )
+
+    -- set at tile on the board
+
+    integer x, y
+
+    -- change the tile
+    tile[i][j] = hBitmap
+
+    -- calculate position
+    x = i * Spacing
+    y = j * Spacing
+
+    -- repaint the tile
+    repaintRect( getId(w32GetMainWindow), x, y, x+Spacing-1, y+Spacing-1 )
+
+end procedure
+
+
+-----------------------------------------------------------------------------
+procedure placeMarker( integer i, integer j, atom hBitmap )
+
+    -- place a marker on the board, move arrow
+
+    -- place the marker
+    setTile( i, j, hBitmap )
+
+    -- top of column?
+    if j = 1 then
+        -- no legal moves left in column
+        legal[i] = 0
+    else
+        -- note legal move
+        legal[i] = j-1
+        -- place marker
+        setTile( i,j-1,Arrow)
+    end if
+
+end procedure
+
+-----------------------------------------------------------------------------
+constant
+    -- the directions for the moves
+    Vertical        = { {0,0}, {0,1},  {0,2},  {0,3} },
+    Horizontal      = { {0,0}, {1,0},  {2,0},  {3,0} },
+    Diagonal        = { {0,0}, {1,1},  {2,2},  {3,3} },
+    BackDiagonal    = { {0,0}, {-1,1}, {-2,2}, {-3,3} }
+
+
+-----------------------------------------------------------------------------
+procedure addMove( integer i, integer j )
+    -- add move to moves list
+    moves = append( moves, { i, j } )
+end procedure
+
+
+-----------------------------------------------------------------------------
+function tileAt( integer index, integer i, integer j, sequence direction )
+    -- return tile at position, offset into pattern by index
+    integer u, v
+
+    -- get the position
+    u = i + direction[index][1]
+    v = j + direction[index][2]
+
+    -- indexes in range
+    if u < 1 or u > Columns
+    or v < 1 or v > Rows then
+        return -1
+    end if
+
+    return tile[u][v]
+
+end function
+
+-----------------------------------------------------------------------------
+function legalMove( integer i, integer j, sequence direction, sequence pattern )
+    -- return true if pattern matches vertical slice
+    return  tileAt( 1, i, j, direction ) = pattern[1]
+    and     tileAt( 2, i, j, direction ) = pattern[2]
+    and     tileAt( 3, i, j, direction ) = pattern[3]
+    and     tileAt( 4, i, j, direction ) = pattern[4]
+end function
+
+-----------------------------------------------------------------------------
+procedure checkMove( integer i, integer j, sequence direction, sequence pattern )
+    -- collects move if legal
+    if legalMove( i, j, direction, pattern ) then
+        -- look in each positon
+        for pos = 1 to 4 do
+            -- if legal move (arrow)
+            if tileAt( pos, i, j, direction ) = Arrow then
+                -- add the move
+                addMove( i+direction[pos][1], j+direction[pos][2] )
+            end if
+        end for
+    end if
+end procedure
+
+
+-----------------------------------------------------------------------------
+function hasLegalDirection( integer i, integer j, sequence pattern )
+    -- check if legal in any direction
+    return  legalMove( i, j, Horizontal,    pattern )
+    or      legalMove( i, j, Vertical,      pattern )
+    or      legalMove( i, j, Diagonal,      pattern )
+    or      legalMove( i, j, BackDiagonal,  pattern )
+end function
+
+-----------------------------------------------------------------------------
+procedure checkAllDirections( integer i, integer j, sequence pattern )
+    -- check for pattern match in all directions
+    checkMove( i, j, Horizontal,   pattern )
+    checkMove( i, j, Vertical,     pattern )
+    checkMove( i, j, Diagonal,     pattern )
+    checkMove( i, j, BackDiagonal, pattern )
+end procedure
+
+-----------------------------------------------------------------------------
+function hasAnyLegalMatch( sequence pattern )
+    -- check all board positions for legal move
+    for i = 1 to Columns do
+        for j = 1 to Rows do
+            if hasLegalDirection( i, j, pattern ) then
+                return 1
+            end if
+        end for
+    end for
+    return 0
+end function
+
+-----------------------------------------------------------------------------
+procedure checkAllPositions( sequence pattern )
+    -- check entire board for all patterns using this move
+    for i = 1 to Columns do
+        for j = 1 to Rows do
+            checkAllDirections( i, j, pattern )
+        end for
+    end for
+end procedure
+
+
+-----------------------------------------------------------------------------
+function findWinningMove( atom hBmp )
+    -- look for winning patterns. returns true if win found for player
+
+    return hasAnyLegalMatch( { hBmp, hBmp, hBmp, hBmp } )
+
+end function
+
+
+-----------------------------------------------------------------------------
+function findBlock( atom hBmp )
+    -- look for blocking patterns, return true if found any.
+    -- blocking moves are stored in move
+
+    -- blocking patterns
+    checkAllPositions( { Arrow, hBmp,  hBmp,  hBmp } )
+    checkAllPositions( { hBmp,  Arrow, hBmp,  hBmp } )
+    checkAllPositions( { hBmp,  hBmp,  Arrow, hBmp } )
+    checkAllPositions( { hBmp,  hBmp,  hBmp,  Arrow  } )
+
+    return length( moves )
+
+end function
+
+
+-----------------------------------------------------------------------------
+function findGoodMove( atom hBmp )
+    -- look for "good" move, return true if found any.
+    -- moves are stored in move
+
+    checkAllPositions( { Arrow, Arrow, hBmp,  hBmp } )
+    checkAllPositions( { hBmp,  Arrow, Arrow, hBmp } )
+    checkAllPositions( { hBmp,  hBmp,  Arrow, Arrow  } )
+    checkAllPositions( { Arrow, hBmp,  hBmp,  Arrow  } )
+    checkAllPositions( { Arrow, hBmp,  Arrow, hBmp } )
+    checkAllPositions( { hBmp,  Arrow, hBmp,  Arrow  } )
+
+    return length( moves )
+
+end function
+
+-----------------------------------------------------------------------------
+function findLegalMove( atom hBmp )
+
+    -- collect a list of legal moves, returns true if found any
+    -- legal moves are store in moves
+
+    moves = {}
+    for column = 1 to length( legal ) do
+        if legal[column] then
+            addMove( column, legal[column] )
+        end if
+    end for
+
+    return length( moves )
+
+end function
+
+
+-----------------------------------------------------------------------------
+function pick( sequence s )
+    -- pick a random item from a list
+    return s[rand(length(s))]
+end function
+
+
+-----------------------------------------------------------------------------
+procedure computerMove()
+
+    -- make a move by the computer
+    sequence move
+    sequence explain
+
+    -- clear the moves
+    moves = {}
+
+    -- clear explanation
+    explain = ""
+
+    -- game already over?
+    if gameOver then
+        -- no need to look for move, game over
+        ShowExplanation("Game over" )
+
+    -- look for a winning move
+    elsif findBlock( WhiteBall ) then
+        -- found a winning move
+        setWindowBackColor(vWinnerMsg, Yellow)
+        setText( vWinnerMsg, "Computer Wins" )
+        ShowExplanation(  "Found Winning Move" )
+        gameOver = 1
+
+    elsif level > 1
+    and   findBlock( BlackBall ) then
+        -- found a move that blocks opponent
+        ShowExplanation( "Blocked Your Move" )
+
+
+    elsif level > 2
+    and  findGoodMove( WhiteBall  ) then
+        -- found a move that strengthens position
+        ShowExplanation( "Found Good Move" )
+
+    elsif level > 2
+    and   findGoodMove( BlackBall  ) then
+        -- found a move that weakens opponent's position
+        ShowExplanation( "Move Weakens Your Position" )
+
+    elsif findLegalMove( BlackBall ) then
+        -- found a legal move
+        ShowExplanation( "Found Legal Move" )
+
+    else
+        -- no moves remain
+        setWindowBackColor(vWinnerMsg, BrightCyan)
+        setText( vWinnerMsg, "It's a draw" )
+        ShowExplanation("No Moves Remaining" )
+
+    end if
+
+    -- found a move?
+    if length( moves ) then
+
+        -- pick a move at random
+        move = pick( moves )
+
+        -- place marker
+        placeMarker( move[1], move[2], WhiteBall )
+
+    end if
+
+end procedure
+
+
+
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+-- The Window Actions
+
+-----------------------------------------------------------------------------
+procedure Paint_Connect( integer self, integer event, sequence parms)
+    -- tile the bitmaps randomly across the window
+    integer x, y
+
+    -- top of grid
+    drawRectangle( self, 0, Spacing-1, Spacing-2,
+                    (Rows+1)*Spacing, (Columns+1)*Spacing )
+
+    -- vertical lines
+    for i = 2 to Rows do
+        x = (i*Spacing)-1
+        drawLine( self, x, Spacing-2, x, (Columns+1)*Spacing )
+    end for
+
+    -- draw the tiles
+    for i = 1 to Columns do
+        for j = 1 to Rows do
+
+            -- calculate tile position
+            x = (i * Spacing)
+            y = (j * Spacing)
+
+            -- in repaint rectangle?
+            if x > parms[3] or x+Spacing-1 < parms[1]
+            or y > parms[4] or y+Spacing-1 < parms[2] then
+                -- not in rectangle
+            else
+                -- is there something to display?
+                if tile[i][j] then
+                    -- draw it
+                    drawBitmap( self, tile[i][j], x, y )
+                end if
+            end if
+        end for
+    end for
+
+end procedure
+registerRoutine("Paint_Connect", routine_id("Paint_Connect"))
+
+-----------------------------------------------------------------------------
+procedure Mouse_Connect( integer self, integer wevent, sequence parms)
+integer event
+integer x
+integer y
+integer shift
+
+    -- uncover the clicked tile
+    integer i, j, endGame
+    object move
+
+    event = parms[1]
+    x = parms[2]
+    y = parms[3]
+    shift = parms[4]
+
+    -- left click?
+    if event = LEFT_DOWN then
+
+        -- convert to a tile
+        i = floor( x/Spacing )
+        j = floor( y/Spacing )
+
+        -- clicked a tile?
+        if  not gameOver                    -- game still running
+        and i > 0 and i < Columns+1         -- legal column
+        and j > 0 and j < Rows+1 then       -- legal row
+
+            -- is it an arrow (legal move)?
+            if tile[i][j] = Arrow then
+
+                -- change it to a marker
+                placeMarker( i, j, BlackBall )
+
+                -- did the player win?
+                if findWinningMove( BlackBall ) then
+                    setWindowBackColor(vWinnerMsg, BrightGreen)
+                    setText( vWinnerMsg, "Congratulations! You win." )
+
+                    gameOver = 1
+                end if
+
+                -- computer's turn
+                computerMove()
+
+            end if
+
+        end if
+
+    end if
+
+
+end procedure
+registerRoutine("Mouse_Connect", routine_id("Mouse_Connect"))
+
+-- initialize
+procedure Open_Connect( integer self, integer event, sequence parms)
+    defineMenuRadioGroup(vLevels)
+    Click_NewGame(0,0,"")           -- new game
+    setCheck( vLevels[2], w32True )       -- moderate difficulty
+    setExplain( 1 )     -- explains moves
+end procedure
+registerRoutine("Open_Connect", routine_id("Open_Connect"))
+
+include w32Start.ew

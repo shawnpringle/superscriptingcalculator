@@ -1,0 +1,97 @@
+-- ex09.exw
+--
+-- Display fonts in a window
+
+include win32lib.ew
+without warning
+
+object vFont10, vFont14, vFont24
+sequence vBackColors
+sequence vTextColors
+
+-- action to take when the window is clicked
+global procedure Click_FontSamples( integer self, integer event, sequence parms)
+    vBackColors = {rgb(rand(255),rand(255),rand(255)), rgb(rand(255),rand(255),rand(255))}
+    vTextColors = {rgb(rand(255),rand(255),rand(255)), rgb(rand(255),rand(255),rand(255))}
+    repaintWindow(getNameId("FontSamples"))
+end procedure
+registerRoutine("Click_FontSamples", routine_id("Click_FontSamples"))
+
+-- action to take when the window displays
+global procedure Paint_FontSamples( integer self, integer event, sequence parms)
+    integer lTop
+    sequence lFonts
+    sequence lLineSize
+    sequence lBackColors
+    sequence lTextColors
+    integer lNextColor
+
+    lFonts = {{"","Default", 0, 0},
+              {"Courier New","",    vFont10,    Normal},
+              {"Times New Roman","", vFont10, Normal},
+              {"Arial","", vFont10, Normal },
+              {"Times New Roman",": Bold", vFont10, Bold},
+              {"Times New Roman",": Italic", vFont10, Italic},
+              {"Times New Roman",": Underline", vFont10, Underline},
+              {"Times New Roman",": Bold, Italic and Underline", vFont10, Bold+Italic+Underline },
+              {"System",": Bold", vFont14, {Bold,0,0,0,ANSI_CHARSET,0,0,0,0} },
+              {{417,418,419,420,421,422,423,424,425,426,427,428,429,430,440,450,460,470,480,490,500,506,507},"",
+              vFont24, {Normal,0,0,0,THAI_CHARSET,0,0,0,0} },
+              {"Trebuchet MS","", 26, Normal },
+              {"Trebuchet MS","", vFont10, Normal },
+              {"ms serif","", vFont14, Normal },
+              {"fixedsys","", vFont14, Normal },
+              {"unknown font","",vFont10, Normal}
+             }
+    lBackColors = vBackColors
+    lTextColors = vTextColors
+    lNextColor = 0
+    lLineSize = getClientSize(self)
+    lTop = 0
+
+    for i = 1 to length(lFonts) do
+        if lTop > parms[4] then
+            -- Don't bother redrawing areas that were not hidden.
+            exit
+        end if
+        setFont( self, lFonts[i][1], lFonts[i][3], lFonts[i][4] )
+        lLineSize[2] = (2 + getTextHeight(self, "|"))
+        lNextColor += 1
+        if lNextColor > length(lBackColors) then
+            lNextColor = 1
+        end if
+        setPenColor(self, lBackColors[lNextColor])
+        drawRectangle(self, w32True, 0, lTop, lLineSize[3], lTop + lLineSize[2])
+
+        setPenPos( self, 1, lTop )
+        setTextColor(self, lTextColors[lNextColor])
+        wPuts( self, lFonts[i][1] & lFonts[i][2] )
+        lTop += lLineSize[2]
+    end for
+
+end procedure
+registerRoutine("Paint_FontSamples", routine_id("Paint_FontSamples"))
+
+global function main( sequence pArgs)
+    integer lWin
+
+    -- Stuff to do before the app starts.
+    createForm( {"Font Samples," &
+                "top=5%, left=Center, width=50%, height=90%," &
+                "Events=Click, hint=Click to change colors" -- non-standard event for a window.
+                })
+    lWin = getNameId("Font Samples")
+
+    vBackColors = {rgb(250, 240, 212), rgb(212,240, 250)}
+    vTextColors = {rgb(005, 015, 043), rgb(043,015, 005)}
+
+    -- Optimise font creation by precalculating certain sizes.
+    vFont10 = convPointsToLogical(lWin, {10}, 1)
+    vFont14 = convPointsToLogical(lWin, {14}, 1)
+    vFont24 = convPointsToLogical(lWin, {24}, 1)
+
+    return 0 -- Signal that all is okay to start.
+
+end function
+
+include w32Start.ew

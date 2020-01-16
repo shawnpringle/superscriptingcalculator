@@ -1,0 +1,128 @@
+-- ex15.exw
+--
+-- This opens a window with a bunch of controls on it, then
+-- changes the window color.
+
+include win32lib.ew
+without warning
+
+constant
+     Demos = {
+        {PushButton       ,"PushButton"},
+        {DefPushButton    ,"DefPushButton"},
+        {CheckBox         ,"CheckBox"},
+        {TriCheckBox      ,"TriCheckBox"},
+        {Radio            ,"Radio"},
+        {Group            ,"Group"},
+        {List             ,"List"},
+        {SortedList       ,"SortedList"},
+        {Combo            ,"Combo"},
+        {SortedCombo      ,"SortedCombo"},
+        {SimpleCombo      ,"SimpleCombo"},
+        {DropDownList     ,"DropDownList"},
+        {ComboBoxEx       ,"ComboBoxEx"},
+        {EditText         ,"EditText"},
+        {MleText          ,"MleText"},
+        {RichEdit         ,"RichEdit"},
+        {LText            ,"LText"},
+        {RText            ,"RText"},
+        {CText            ,"CText"},
+        {HScroll          ,"HScroll"},
+        {VScroll          ,"VScroll"}
+    }
+
+
+global function main(sequence pArgs)
+    integer rgbColor, widget, x, y , w, h
+    object old
+    sequence info
+    atom flags
+    integer maxw, maxh, maxColw, id
+    integer lWin
+
+    -- This uses many controls so use a higher than normal 'new slot' figure.
+
+    setControlBlocks(30)
+
+    -- This window has a statusbar for simple messages.
+    createForm( "Simple Window" )
+    lWin = getNameId("Simple Window")
+
+    -- initial control position
+    info = getCtlSize(lWin)
+    maxw = 0
+    maxh = 0
+    maxColw = 0
+    x = 5
+    y = 5
+
+    -- build controls
+    for i = 1 to length(Demos) do
+        if find(Demos[i][1], {LText, CText, RText}) then
+            -- This makes the tooltip show for these.
+            flags = SS_NOTIFY
+        else
+            flags = 0
+        end if
+
+        if Demos[i][1] = HScroll then -- make smaller vertical dimension for horiz scroll
+            w = 120
+            h = 20
+
+        elsif Demos[i][1] = VScroll then--make bigger vert & smaller horiz for vert scroll
+            w = 20
+            h = 140
+        elsif Demos[i][1] = SimpleCombo then--make bigger vert & smaller horiz for vert scroll
+            w = 120
+            h = 80
+        else
+            w = 120
+            h = 40
+        end if
+
+        if  w > maxColw then
+            maxColw = w
+        end if
+
+        newUIObj(
+           sprintf( "type=%s, caption=%s,Control_%d,  left=%d, top=%d, width=%d, height=%d,flags=%d,Range=(%d,%d),parent=%d",
+            {Demos[i][2], Demos[i][2], Demos[i][1], x, y, w, h,
+             flags, 1, 10, lWin}
+             )
+                )
+        id = getNameId(sprintf("Control_%d",Demos[i][1]))
+
+        setHint(id, sprintf( "id=%d ctltype=%d ctlname=%s", id & Demos[i] )  )
+        y = y + h + 10
+        if y > maxh then
+            maxh = y
+        end if
+
+        if y > 320 then
+            y = 5
+            x = x + maxColw + 10
+            maxColw = w
+        end if
+
+        if x > maxw then
+            maxw = x
+        end if
+    end for
+
+    setClientRect (lWin, maxw+25, maxh)
+
+    return 0
+end function
+
+procedure generic_handler(integer self, integer event, sequence parms)
+    showMessage(sprintf("Control='%s' event='%d'", {getIdName(self), event}))
+end procedure
+
+-- Custom call back
+global procedure AppCallback(integer self, integer event, sequence parms)
+    if event = w32HGetHandler then
+        returnValue(routine_id("generic_handler"))
+    end if
+end procedure
+
+include w32Start.ew

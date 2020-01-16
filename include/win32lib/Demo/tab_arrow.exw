@@ -1,0 +1,66 @@
+include win32lib.ew
+
+constant mainwin = create(Window, "main", 0, 0, 0, 200,200,0)
+constant AA = create(EditText, "AA", mainwin, 10,  10, 150,20,0)
+constant BB = create(EditText, "BB", mainwin, 10,  40, 150,20,0)
+constant CC = create(EditText, "CC", mainwin, 10,  70, 150,20,0)
+constant DD = create(EditText, "DD", mainwin, 10, 110, 150,20,0)
+
+constant WhereTo = {AA,BB,CC,DD}
+procedure MoveCursor(integer self, integer keyCode)
+    integer shift
+
+    shift = find(self, WhereTo)
+    if keyCode = VK_DOWN then
+        shift += 1
+        if shift > length(WhereTo) then
+            shift = 0
+        end if
+
+    elsif keyCode = VK_UP then
+        shift -= 1
+        if shift < 1 then
+            shift = 0
+        end if
+
+    else
+        shift = 0
+    end if
+
+    if shift > 0 then
+        setFocus(WhereTo[shift])
+    end if
+
+end procedure
+
+procedure keyPress(integer self, integer processId, sequence arg)
+    VOID = self
+    VOID = processId
+    if arg[1] = VK_TAB then
+        returnValue(-1)
+    end if
+end procedure
+
+procedure keyDown(integer self, integer processId, sequence arg)
+    integer keyCode, shift
+    VOID = processId
+    keyCode = arg[1]
+    shift   = arg[2]
+
+    if keyCode = VK_TAB then -- make tab same as arrows
+       if and_bits(shift,ShiftMask) = 0 then
+           keyCode = VK_DOWN
+       else
+           keyCode = VK_UP
+       end if
+    end if
+
+    if keyCode = VK_UP or keyCode = VK_DOWN then
+        MoveCursor(self, keyCode)
+    end if
+end procedure
+setHandler(Screen, w32HKeyDown, routine_id("keyDown"))
+setHandler(Screen, w32HKeyPress, routine_id("keyPress"))
+
+VOID = setTabCodes(0)
+WinMain({mainwin,AA}, Normal)

@@ -1,0 +1,177 @@
+function or_all(sequence s)
+-- or together all elements of a sequence
+    atom result
+    
+    result = 0
+    for i = 1 to length(s) do
+        result = or_bits(result, s[i])
+    end for
+    return result
+end function
+
+without warning
+include win32lib.ew 
+  
+constant
+  lvcolumn_mask       = w32allot(Long),
+  lvcolumn_fmt        = w32allot(Long),
+  lvcolumn_cx         = w32allot(Long),
+  lvcolumn_pszText    = w32allot(Lpsz),
+  lvcolumn_cchTextMax = w32allot(Long),
+  lvcolumn_iSubItem   = w32allot(Long),
+  lvcolumn_iImage     = w32allot(Long),
+  lvcolumn_iOrder     = w32allot(Long),
+  sizeof_lvcolumn     = w32allotted_size(),
+
+  LVCFMT_IMAGE            = #0800,
+  LVCFMT_COL_HAS_IMAGES   = #8000 
+  
+
+global procedure SetColumnImage(atom lv,integer col,integer img)
+  atom MemAddr,void             
+    MemAddr = w32acquire_mem(0,sizeof_lvcolumn)
+    store(MemAddr,lvcolumn_mask, or_bits(LVCF_FMT,LVCF_IMAGE))
+    store(MemAddr,lvcolumn_fmt,  or_bits(LVCFMT_IMAGE,LVCFMT_COL_HAS_IMAGES))
+    store(MemAddr,lvcolumn_iImage, img-1)
+
+    void = sendMessage(lv,LVM_SETCOLUMN,col-1,MemAddr)
+    w32release_mem(MemAddr)
+  end procedure
+
+constant Win = create(Window,"Test for Listview Column",0,Default,Default,300,200,0),
+  Lst = 
+create(ListView,{"Names","Age"},Win,10,10,280,160,or_all({LVS_SHOWSELALWAYS,LVS_SHAREIMAGELISTS,LVS_REPORT}))
+
+
+constant TempIcoFile = getenv("TMP")&"\\cirico.tmp"        
+
+-- Converted Using Enclude (C) Jordah Ferguson 2002 in RDS archives
+-- Contacts: jorfergie03@yahoo.com
+
+constant aleph={'A','B','C','D','E','F','G','H','I','J','K','L','M',
+  'N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+  'a','b','c','d','e','f','g','h','i','j','k','l','m',
+  'n','o','p','q','r','s','t','u','v','w','x','y','z',
+  '0','1','2','3','4','5','6','7','8','9','+','/'}
+constant drem ={64,16,4}
+constant dmul ={4,16,64}
+constant ddiv ={16,4,1}
+constant nc3  ={3,1,2}
+constant ldrop={2,1,1}
+
+global function decode64(sequence in)
+  integer len,oidx,case3,tmp
+  sequence result
+  sequence ccha
+    len=length(in)
+  if len >0 then
+    if remainder(len,4)!=0 then
+      puts(1,"Decode64: len not 4n")
+      abort(1)
+    end if
+    oidx=(len/4)*3
+    case3=3
+    while in[len]='=' do
+      oidx-=1
+      case3=nc3[case3]
+      len-=1
+    end while
+    ccha=repeat(0,256)
+    for i=1 to 64 do
+      ccha[aleph[i]]=i-1
+    end for
+    result=repeat('?',oidx)
+    for i=oidx to 1 by-1 do
+      tmp=remainder(ccha[in[len-1]],drem[case3])*dmul[case3]
+      tmp+=floor(ccha[in[len]]/ddiv[case3])
+      result[i]=tmp
+      len-=ldrop[case3]
+      case3=nc3[case3]
+    end for
+    return result
+  else
+    return {}
+  end if
+end function
+
+sequence aa_ico
+
+aa_ico = decode64(
+"AAABAAEADQ0AAAEACAAsBQAAFgAAACgAAAANAAAAGgAAAAEACAAAAAAABAEAAAAAAAAAAAAAAAEA"&
+
+"AAAAAAAAAAAAAACAAACAAAAAgIAAgAAAAIAAgACAgAAAwMDAAICAgAAAAP8AAP8AAAD//wD/AAAA"&
+
+"/wD/AP//AAD///8ABgYGABISEgAfHx8ALCwsADk5OQBFRUUAUlJSAF9fXwBsbGwAeHh4AIWFhQCS"&
+
+"kpIAn5+fAKurqwC4uLgAxcXFANLS0gDe3t4A6+vrAPj4+ADw+/8ApKCgAMDcwADwyqYAAAA+AAAA"&
+
+"XQAAAHwAAACbAAAAugAAANkAAADwACQk/wBISP8AbGz/AJCQ/wC0tP8AABQ+AAAeXQAAKHwAADKb"&
+
+"AAA8ugAARtkAAFXwACRt/wBIhf8AbJ3/AJC1/wC0zf8AACo+AAA/XQAAVHwAAGmbAAB+ugAAk9kA"&
+
+"AKrwACS2/wBIwv8AbM7/AJDa/wC05v8AAD4+AABdXQAAfHwAAJubAAC6ugAA2dkAAPDwACT//wBI"&
+
+"//8AbP//AJD//wC0//8AAD4qAABdPwAAfFQAAJtpAAC6fgAA2ZMAAPCqACT/tgBI/8IAbP/OAJD/"&
+
+"2gC0/+YAAD4UAABdHgAAfCgAAJsyAAC6PAAA2UYAAPBVACT/bQBI/4UAbP+dAJD/tQC0/80AAD4A"&
+
+"AABdAAAAfAAAAJsAAAC6AAAA2QAAAPAAACT/JABI/0gAbP9sAJD/kAC0/7QAFD4AAB5dAAAofAAA"&
+
+"MpsAADy6AABG2QAAVfAAAG3/JACF/0gAnf9sALX/kADN/7QAKj4AAD9dAABUfAAAaZsAAH66AACT"&
+
+"2QAAqvAAALb/JADC/0gAzv9sANr/kADm/7QAPj4AAF1dAAB8fAAAm5sAALq6AADZ2QAA8PAAAP//"&
+
+"JAD//0gA//9sAP//kAD//7QAPioAAF0/AAB8VAAAm2kAALp+AADZkwAA8KoAAP+2JAD/wkgA/85s"&
+
+"AP/akAD/5rQAPhQAAF0eAAB8KAAAmzIAALo8AADZRgAA8FUAAP9tJAD/hUgA/51sAP+1kAD/zbQA"&
+
+"PgAAAF0AAAB8AAAAmwAAALoAAADZAAAA8AAAAP8kJAD/SEgA/2xsAP+QkAD/tLQAPgAUAF0AHgB8"&
+
+"ACgAmwAyALoAPADZAEYA8ABVAP8kbQD/SIUA/2ydAP+QtQD/tM0APgAqAF0APwB8AFQAmwBpALoA"&
+
+"fgDZAJMA8ACqAP8ktgD/SMIA/2zOAP+Q2gD/tOYAPgA+AF0AXQB8AHwAmwCbALoAugDZANkA8ADw"&
+
+"AP8k/wD/SP8A/2z/AP+Q/wD/tP8AKgA+AD8AXQBUAHwAaQCbAH4AugCTANkAqgDwALYk/wDCSP8A"&
+
+"zmz/ANqQ/wDmtP8AFAA+AB4AXQAoAHwAMgCbADwAugBGANkAVQDwAG0k/wCFSP8AnWz/ALWQ/wDN"&
+
+"tP8ADw8PIB4lGxkXFRMAAAABAA8PIB4lGxkXFRMAAAAAAQAPIB4lOhk6FToAAAAT/wD/IB4lOhlF"&
+
+"FUUAOgATFbCw5h4lOhlFFUYARQA6FRfh+OslOhlFFVEAUQBFFToZ/wD/Gxk6FUYAUgBGFToZG0my"&
+
+"gRk6FUUAUQBRFUUZOiUAAAAXFToARQBGFUUZOiUeAP//FRMAOgBFFUUZOiUeIAAAABMAAAA6FToZ"&
+
+"OiUeIA8A8dgAAAATFRcZGyUeIA8P/wD/AAATFRcZGyUeIA8PDwD//wAH//8AB///AAf//wAH//8A"&
+
+"B///AAf//wAH//8AB///AAf//wAH//8AB///AAf//wAH//8=")
+  
+function Return_Icon_Handle(sequence data)
+  atom handle,ic,void               
+    handle = open(TempIcoFile,"wb")
+    puts(handle,data)  
+    close(handle)
+    ic = extractIcon(TempIcoFile) 
+    void = deleteFile(TempIcoFile)
+    return ic
+end function  
+
+atom icon1,void
+icon1 = Return_Icon_Handle(aa_ico)
+
+-- Release internal memory
+aa_ico = {}
+
+-- Set the Icons in win32libs default image list
+constant img1 = addIcon(icon1)
+
+-- Delete the resource         
+void = w32Func(xDeleteObject,{icon1})
+ 
+
+procedure w32HOpen_Win(atom id,integer event,sequence params)
+SetColumnImage(Lst,1,img1)
+end procedure
+setHandler(Win,w32HOpen,routine_id("w32HOpen_Win")) 
+
+WinMain(Win,0)   
+

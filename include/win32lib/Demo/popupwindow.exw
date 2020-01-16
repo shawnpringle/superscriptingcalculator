@@ -1,0 +1,33 @@
+without warning
+include win32lib.ew
+
+integer MainWin
+integer SB
+integer PopWin
+integer PT
+
+MainWin = create(Window, "Main Window", 0, 0, 0, 300, 200, 0)
+SB      = create(StatusBar, "", MainWin, 0, 0,0 , 0, 0)
+
+PopWin = create(Window, "Popup Window", 0, 305, 205, 200, 100, {WS_POPUP,WS_BORDER,WS_VISIBLE})
+PT     = create(Label, "G'Day mate!", PopWin, Center, Center, 88, 20, SS_NOTIFY+WS_BORDER)
+
+integer cnt
+cnt = 0
+procedure Click(integer self, integer event, sequence parms)
+    setText(SB, sprintf("%d: ", self) & getText(PopWin))
+    if self = MainWin then
+        cnt += 1
+        setText(PopWin, sprintf("Text #%d", cnt))
+        setVisible(PopWin,1)
+    else
+        cnt -= 1
+        setText(PopWin, sprintf("Text #%d", cnt))
+    end if
+    if self = PT then
+        setVisible(PopWin,0)
+    end if
+end procedure
+setHandler({MainWin,PopWin,PT}, w32HClick, routine_id("Click"))
+
+WinMain(MainWin, Normal)

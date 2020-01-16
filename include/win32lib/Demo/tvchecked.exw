@@ -1,0 +1,63 @@
+include std/text.e
+include Win32Lib.ew
+without warning
+
+--------------------------------------------------------------------------------
+-- Window Window1
+sequence IDEFlags
+IDEFlags = classDefaults(Window, { {1, {WS_SYSMENU}},{2, {WS_EX_DLGMODALFRAME}} } )
+constant Window1 = createEx( Window, "Window1", 0, Default, Default, 400, 320, {WS_DLGFRAME, WS_SYSMENU, WS_MINIMIZEBOX}, {WS_EX_DLGMODALFRAME} )
+sequence rect
+rect = getClientRect(Window1)
+rect[1..2] += 8
+rect[3..4] -= 8
+object windir
+windir = getenv("windir")
+if atom(windir) then
+    windir = "C:\\WINDOWS"
+end if
+constant TreeView2 = createEx( TreeView, "TreeView2", Window1, rect[1], rect[2], rect[3] - rect[1], 208, or_all({TVS_HASLINES,TVS_HASBUTTONS,TVS_LINESATROOT,TVS_SHOWSELALWAYS,TVS_CHECKBOXES}), 0 )
+constant openfolder = addIcon( extractIcon({windir & "\\system32\\shell32.dll", 4,0}) )
+constant closefolder = addIcon( extractIcon({windir & "\\system32\\shell32.dll", 5,0}) )
+constant PushButton3 = createEx( PushButton, "Load TreeView", Window1, rect[1], 228, 100, 28, 0, 0 )
+constant PushButton5 = createEx( PushButton, "Set Checked", Window1, {0.5, -50}, 228, 100, 28, 0, 0 )
+constant PushButton6 = createEx( PushButton, "Set Unchecked", Window1, rect[3] - 100, 228, 100, 28, 0, 0 )
+constant StatusBar7 = createEx( StatusBar, "", Window1, 0, w32Edge, 0, 20, 0, 0)
+---------------------------------------------------------
+--------------------------------------------------------------------------------
+procedure PushButton3_onClick (integer self, integer event, sequence params)--params is ()
+    integer id1
+    integer id2
+    eraseItems(TreeView2)
+    for i = 1 to 5 do
+        id1 = addTVItem(TreeView2, openfolder, closefolder, sprint(i), 0)
+        for j = 1 to 3 do
+            id2 = addTVItem(TreeView2, openfolder, closefolder, sprint(j), id1)
+        end for
+    end for
+end procedure
+setHandler( PushButton3, w32HClick, routine_id("PushButton3_onClick"))
+--------------------------------------------------------------------------------
+procedure PushButton6_onClick (integer self, integer event, sequence params)--params is ()
+setCheck({{TreeView2, getIndex(TreeView2)}}, False)
+end procedure
+setHandler( PushButton6, w32HClick, routine_id("PushButton6_onClick"))
+--------------------------------------------------------------------------------
+procedure PushButton5_onClick (integer self, integer event, sequence params)--params is ()
+setCheck({{TreeView2, getIndex(TreeView2)}}, True)
+end procedure
+setHandler( PushButton5, w32HClick, routine_id("PushButton5_onClick"))
+--------------------------------------------------------------------------------
+procedure TreeView2_onChange(integer self, integer event, sequence params) 
+setText(StatusBar7, "isChecked: " & sprint(isChecked({TreeView2, getIndex(TreeView2)})))
+setEnable({PushButton5, PushButton6}, (getIndex(TreeView2) > 0))
+end procedure
+setHandler( TreeView2, w32HChange, routine_id("TreeView2_onChange"))
+--------------------------------------------------------------------------------
+procedure Window1_onActivate(integer self, integer event, sequence params)
+setEnable({PushButton5, PushButton6}, False)
+end procedure
+setHandler( Window1, w32HActivate, routine_id("Window1_onActivate"))
+
+
+WinMain( Window1,Normal )

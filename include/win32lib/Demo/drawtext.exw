@@ -1,0 +1,86 @@
+-- drawtext.exw
+--
+-- This draws formatted text into the window.
+without warning
+include win32lib.ew
+
+constant
+    theWin = create( Window, "Resizable Text Window", 0, 0, 0, 400, 400, 0 ),
+    SB     = create( StatusBar, "", theWin, 0, 0, 0, 0, 0),
+    vBorders = {12,12,-18,-18},
+    vText =
+"Licence:" & 10 &
+"This software is provided 'as-is', without any express or implied warranty." & 10 &
+"In no event will the authors be held liable for any damages arising from " &
+"the use of this software." & 10 &
+"" & 10 &
+"Permission is granted to anyone to use this software for any purpose, " &
+"including commercial applications, and to alter it and redistribute it " &
+"freely, subject to the following restrictictions:" & 10 &
+"1.\tThe origin of this software must not be misrepresented; you must not " &
+"claim that you wrote the original software." & 10 &
+"2.\tIf you use this software in a product, acknowedgement in the product's " &
+"documenation and binary are required." & 10 &
+"3.\tAltered source versions, and works substantially derived from the it, " &
+"must..." & 10 &
+"\ta)\tbe plainly be marked as such," & 10 &
+"\tb)\tnot be misrepresented as the original software," & 10 &
+"\tc)\tinclude this notice, unaltered." & 10 &
+"--------------------End of NOTICE------------------------*"
+
+
+
+------------------------------------------------
+procedure Resize_theWin(integer self, integer event, sequence parms)
+------------------------------------------------
+    returnValue(0)
+end procedure
+
+------------------------------------------------
+procedure Paint_theWin(integer self, integer event, sequence parms)
+------------------------------------------------
+    sequence lRect, lTextRect, delta
+    sequence drawn
+
+    -- Find the size of the rectangle needed.
+    lTextRect = textRect(theWin, vText, {self, vBorders},
+            {DT_EXPANDTABS, DT_WORDBREAK, DT_END_ELLIPSIS}, 2, 15, 0)
+
+    lRect = lTextRect[3]
+    lRect[1] -= 6
+    lRect[2] -= 6
+    lRect[3] += 6
+    lRect[4] += 6
+    clearWindow(theWin)
+    -- Paint the background, and borders
+    drawLines(theWin, {Cyan, --getSysColor(COLOR_BTNHIGHLIGHT),
+                           {lRect[1],lRect[4], lRect[1], lRect[2]},
+                           {lRect[3],lRect[2]},
+                           {lRect[3]-1,lRect[2]+1},
+                           {lRect[1]-1,lRect[2]+1},
+                           {lRect[1]-1,lRect[4]+1},
+                       BrightCyan, --getSysColor(COLOR_BTNSHADOW),
+                           {lRect[1],lRect[4], lRect[3], lRect[4]},
+                           {lRect[3], lRect[2]},
+                           {lRect[3]-1,lRect[2]+1},
+                           {lRect[3]-1,lRect[4]+1},
+                           {lRect[1]+1,lRect[4]+1},
+                       BrightBlue, --getSysColor(COLOR_BTNSHADOW),
+                           {w32True, lRect[1]+2,lRect[2]+2, lRect[3]-1, lRect[4]-1}
+                          })
+
+    -- Set the text color and draw in the text.
+    drawn = drawText(theWin, vText, lTextRect[3],
+            {DT_EXPANDTABS, DT_WORDBREAK, DT_END_ELLIPSIS}, 2, 15, 0)
+
+    -- Show status message.
+    setText(SB, sprintf("Height (in pixels): %d, Chars drawn: %d", drawn))
+end procedure
+
+
+setFont(theWin, "Times New Roman", 10, 0)
+setHandler(theWin, w32HPaint, routine_id("Paint_theWin"))
+setHandler(theWin, w32HResize, routine_id("Resize_theWin"))
+setTextColor(theWin, BrightWhite)
+WinMain( theWin, Normal)
+

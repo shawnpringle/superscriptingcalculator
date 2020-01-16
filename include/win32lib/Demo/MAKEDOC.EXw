@@ -1,0 +1,1754 @@
+-- gather documentation from source code
+-- create an HTML document
+
+without trace
+without warning
+without profile
+include std/sort.e
+include std/wildcard.e
+include std/win32/msgbox.e
+include std/filesys.e
+include std/get.e
+include std/text.e
+include std/io.e
+include std/os.e
+include hash.e
+include w32common.ew
+
+object VOID
+constant
+     kMAKEDOC_Version = "1.1"
+   , kMAKEDOC_Copyright = "(c) 2000,2003"
+   , kMAKEDOC_Authors = "David Cuny, Derek Parnell, Matt Lewis"
+   , kSpecialEscapes = {  "~<",   ">~", "~>",   "~(c)",  "~(t)",    "~&",    "~\"",     "~s"}
+   , kHTMLEscapes    = {"&lt;", "&gt;", "&gt;", "&copy;", "&reg;", "&amp;", "&quot;", "&nbsp;"}
+   , kDelims      = " ~`!@#$%^&*()-+={[]};:\"'<,>.?/|"
+   , kStartQuotes = "\"'`<!"
+   , kEndQuotes   = "\"'`>|"
+   , kDefnQuotes  = "'`|"
+   , kES          = next_number(0)
+   , kName        = next_number(kES) -- name of routine, first for sorting
+   , kTopicIdx    = next_number(kES) -- topic
+   , kTag         = next_number(kES) -- html tag
+   , kDesc        = next_number(kES) -- short info
+   , kReturn      = next_number(kES) -- return value, if function
+   , kText        = next_number(kES) -- text
+   , kDefnType    = next_number(kES) -- type of name
+   , kParamList   = next_number(kES) -- For funcs & procs, the list of parameters.
+   , kES_SIZEOF   = current_number(kES)
+   , kNewRecord   = repeat( 0, kES_SIZEOF )
+   , kTrue        = 1
+   , kFalse       = 0
+   , kTagCodes    = {        "b",     "i",      "ff",   "li",    "n",  "term",   "bm", "lit"}
+   , kStartHTM    = { "<strong>",  "<em>",  "<code>", "<li>", "<br>",  "<dt>",  "<i>",    ""}
+   , kEndHTM      = {"</strong>", "</em>", "</code>",     "",     "",  "<dd>", "</i>",    ""}
+   , kTextReqd    = {          1,       1,         1,      0,      0,       1,     1,     1}
+   , kBookMark    = {          0,       0,         0,      0,      0,       1,     1,     0}
+   , kNested      = {          1,       1,         1,      1,      0,       1,     0,     0}
+   , kTagCommands = {    "", "/para", "/code", "/endcode", "/define", "/enddefine"}
+   , kTagCmdHTML  = { "<p>",   "<p>", "<pre>",   "</pre>",    "<dl>",      "</dl>"}
+   , kLineTags    = {           "/h " ,           "/H " ,          "/sh "  }
+   , kLineHTML    = { {"<h2>","</h2>"}, {"<h1>","</h1>"}, {"<h3>","</h3>"} }
+
+constant kWordStart = kStartQuotes & "abcdefghijklmnopqrstuwvxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+integer  vBookMarks     vBookMarks = 0       -- Hash table Id for the bookmarks.
+integer  vAutoRefs      vAutoRefs  = 0       -- Doing auto-crossreferencing or not.
+integer  vAutoBookMarks vAutoBookMarks  = 1  -- Doing auto-bookmarking or not.
+integer  vInDoc         vInDoc = kFalse
+integer  vInInfo        vInInfo = kFalse
+integer  vInIntro       vInIntro = kFalse
+integer  vCurTopicIdx   vCurTopicIdx = 0        -- The index into the current topic
+integer  vCurDefn       vCurDefn = 0         -- The index into the current topic's definition
+integer  vPasteMode     vPasteMode = kFalse  -- If pasting, the text is copied without replacing tags.
+integer  vUseData       vUseData   = kFalse  -- Am I extracting this line or not?
+sequence vTopics        vTopics = {}         -- holds the topics read so far
+sequence vInfoText      vInfoText = {}      -- overview of topic.
+sequence vAlias         vAlias    = {}       -- Aliases for a topic
+sequence vDefinition    vDefinition = {}     -- entity definitions
+sequence vTitle         vTitle = {}          -- HTML Title (from source file name).
+sequence vSourceFile    vSourceFile = {}     -- name of the source file.
+sequence vIntroText     vIntroText = {}      -- The text for the introduction.
+sequence vAutoRef       vAutoRef = ""        -- Filename prepended to autoref items.
+
+-- Reserved words.
+sequence vRW_Topic      vRW_Topic = "/topic "
+sequence vRW_Parent     vRW_Parent = "/parent "
+sequence vRW_Makedoc    vRW_Makedoc = "/makedoc "
+sequence vRW_AutoBookmark vRW_AutoBookmark = "autobookmark "
+sequence vRW_Other      vRW_Other = "other"
+sequence vRW_Title      vRW_Title = "title "
+sequence vRW_Introduction vRW_Introduction = "Introduction"
+
+--Matt Lewis
+sequence vParentTopic vParentTopic = {{},{}} -- Parent topics, if any--allows hierarchy of topics
+
+-- routine_ids --
+integer  phProcessFile phProcessFile = -1
+
+-- Routine that returns the parts of a file specification.
+-- returns: {Drive, Path, Name, Extention}
+-------------------------------------------------------------------------------
+function fFileParts(sequence pText)
+-------------------------------------------------------------------------------
+integer
+     lIndex
+
+object
+     lDir
+
+sequence
+     lDrive
+   , lPath
+   , lName
+   , lExtention
+   , lDirSep
+
+
+   lDrive = ""
+   lPath = ""
+   lName = ""
+   lExtention = ""
+   if platform() = LINUX
+   then
+      lDirSep = "\\"
+   else
+      lDirSep = "/"
+   end if
+
+   lDir = dir(pText)
+   if not atom(lDir)
+   then
+      pText = lDir[1][D_NAME]
+      if match("d", lDir[1][D_ATTRIBUTES]) !=  0
+      then
+         pText &= lDirSep
+      elsif match("v", lDir[1][D_ATTRIBUTES]) !=  0
+      then
+         pText &= (lDirSep & lDirSep)
+      end if
+
+      lIndex = length(pText)
+      while lIndex > 0 do
+         if pText[lIndex] = '.'
+               and
+            length(lExtention) = 0
+         then
+            lExtention = pText[lIndex + 1 .. length(pText)]
+         end if
+
+         lIndex -= 1
+      end while
+
+
+
+   end if
+
+   return {lDrive, lPath, lName, lExtention}
+
+end function
+
+-- Routine to remove all occurances of a substring from a string.
+-------------------------------------------------------------------------------
+function fRemoveSubstring(sequence pText, object pDeadText)
+-------------------------------------------------------------------------------
+    integer lPosn
+
+    lPosn = match(pDeadText, pText)
+
+    while lPosn != 0 do
+        pText = pText[1 .. lPosn-1] & pText[lPosn+length(pDeadText) .. length(pText)]
+        lPosn = match(pDeadText, pText)
+    end while
+
+    return pText
+end function
+
+-- Routine to remove leading and trailing spaces from a string.
+-------------------------------------------------------------------------------
+function fTrim(sequence pText)
+-------------------------------------------------------------------------------
+integer
+     lStart
+   , lEnd
+
+    lStart = 1
+    lEnd = length(pText)
+
+    if pText[lStart] != ' ' and pText[lEnd] != ' ' then
+        return pText
+    end if
+
+    while lStart <= lEnd do
+        if pText[lStart] != ' '
+        then
+            exit
+        end if
+        lStart += 1
+    end while
+
+    while lStart <= lEnd do
+        if pText[lEnd] != ' '
+        then
+            exit
+        end if
+        lEnd -= 1
+    end while
+
+    return pText[lStart .. lEnd]
+
+end function
+
+-- Adds an entry into the Bookmark hash table.
+-------------------------------------------------------------------------------
+procedure fNewBookMark(sequence pText, sequence pData)
+-------------------------------------------------------------------------------
+
+    if vAutoBookMarks != 0
+    then
+        if vBookMarks = 0
+        then
+            vBookMarks = Hash_NewTable(300)
+        end if
+
+        -- Add the entry only not already in there.
+
+        VOID = Hash_Insert(vBookMarks, pText, pData,
+                        kHASH_UNIQUE, kHASH_DEF)
+    end if
+end procedure
+
+-- Case-Insensitive sort comparision.
+-------------------------------------------------------------------------------
+function fNoCaseCompare( object pObject1, object pObject2 )
+-------------------------------------------------------------------------------
+    return compare( upper(pObject1), upper(pObject2) )
+end function
+
+-- Sort a set of words using a case-insensitive algorithm.
+-------------------------------------------------------------------------------
+function fSortWords( sequence pText )
+-------------------------------------------------------------------------------
+    return custom_sort( routine_id("fNoCaseCompare"), pText )
+end function
+
+-- Sort algo for index.
+-------------------------------------------------------------------------------
+function fDefnSort( object pObject1, object pObject2 )
+-------------------------------------------------------------------------------
+    return compare( upper({pObject1[kName], pObject1[kTopicIdx]}),
+                    upper({pObject2[kName], pObject2[kTopicIdx]})
+                  )
+end function
+
+-- Sort for the topic entries.
+-------------------------------------------------------------------------------
+function fSortDefns( sequence pText )
+-------------------------------------------------------------------------------
+    return custom_sort( routine_id("fDefnSort"), pText )
+end function
+
+-- Converts a string into a validly formatted TAG ID.
+-------------------------------------------------------------------------------
+function fMakeTagFromText( sequence pText )
+-------------------------------------------------------------------------------
+    -- converts text into a formatted tag value
+    -- trim, strip off trailing s, put into upper case
+    -- All non-chars (delimiters) are replaced by "_"
+    -- Multiple contiguous "_" replaced by a single "_"
+
+    integer lPosn
+
+    if length(pText) > 0
+    then
+        -- trim and uppercase
+      pText = upper( fTrim(pText) )
+
+      -- Replace delims
+      for i = 1 to length(pText)
+      do
+        if find(pText[i], kDelims)
+        then
+            pText[i] = '_'
+        end if
+      end for
+
+      -- Remove duplicated delims
+      lPosn = match("__", pText)
+      while lPosn != 0 do
+            pText = pText[1..lPosn] & pText[lPosn+2.. length(pText)]
+            lPosn = match("__", pText)
+      end while
+
+      -- Remove final 's'
+      if length(pText) > 1 and pText[length(pText)] = 'S'
+      then
+        pText = pText[1..length(pText)-1]
+      end if
+
+    end if
+
+
+    return pText
+
+end function
+
+-- Create the index and sort it.
+-------------------------------------------------------------------------------
+function fSortIndex(  )
+-------------------------------------------------------------------------------
+sequence
+     lIndex
+   , lDesc
+
+    lIndex = {}
+    for i = 1 to length(vTopics)
+    do
+        -- Only include topics that have an 'info' section.
+      if length(vInfoText[i][1]) > 0
+      then
+         lIndex &= {{ upper(vTopics[i]),
+                     fMakeTagFromText(vTopics[i]),
+                     vTopics[i],
+                     {},
+                     i}
+                   }
+      end if
+    end for
+
+   for i = 1 to length( vDefinition ) do
+
+         if sequence(vDefinition[i][kDesc])
+         then
+            lDesc = vDefinition[i][kDesc]
+         else
+            lDesc = ""
+         end if
+         lIndex &= { {upper(vDefinition[i][kName]),
+                      vDefinition[i][kTag],
+                      vDefinition[i][kName],
+                      " [<i><code>" & vDefinition[i][kDefnType] & "</code></i>] " & lDesc,
+                      vDefinition[i][kTopicIdx]}
+                   }
+   end for
+
+   return sort( lIndex )
+end function
+
+-------------------------------------------------------------------------------
+function fGetDelimitedText(sequence pText, object pCP)
+-------------------------------------------------------------------------------
+integer
+     refStart
+   , refEnd
+   , nestinc
+   , nestlvl
+   , quotetype
+   , lSpaces
+
+sequence
+     word
+   , quotedtext
+
+
+    lSpaces = 0
+    word = {}
+    refEnd = 0
+    if sequence (pCP) then
+        pCP = length(pCP) + 1
+    end if
+    if pCP <= length(pText)
+    then
+       quotetype = find(pText[pCP], kStartQuotes)
+       if quotetype != 0
+       then  -- this is a quoted bit of text.
+          refStart = pText[pCP]
+          refEnd = kEndQuotes[quotetype]
+          if refEnd != refStart
+          then
+            nestinc = 1
+          else
+            nestinc = 0
+          end if
+          nestlvl = 1
+          -- move past start delimiter
+          pCP += 1
+          -- parse until closing quote
+          while pCP <= length(pText)
+                   and
+                nestlvl > 0
+          do
+            if pText[pCP] = refStart
+            then
+               nestlvl += nestinc
+            end if
+
+            if nestlvl > 1
+                 or
+               pText[pCP] != refEnd
+            then
+               word &= pText[pCP]
+            end if
+
+            if pText[pCP] = refEnd
+            then
+               nestlvl -= 1
+            end if
+
+            pCP += 1
+         end while
+
+      else -- this is unquoted.
+         while pCP <= length(pText)
+         do
+            if pText[pCP] != ' '
+            then
+               exit
+            end if
+            pCP += 1
+            lSpaces += 1
+         end while
+
+         if lSpaces > 0
+         then
+            quotedtext = fGetDelimitedText(pText, pCP)
+            word = quotedtext[1]
+            pCP    = quotedtext[2]
+            refEnd = quotedtext[3]
+         else
+            while pCP <= length(pText)
+            do
+
+               if  find( pText[pCP], kDelims )
+               then
+                  exit
+               end if
+               word &= pText[pCP]
+               pCP += 1
+            end while
+            refEnd = 0
+         end if
+
+      end if
+
+   end if
+
+   return { word, pCP, refEnd, lSpaces }
+
+end function
+
+-------------------------------------------------------------------------------
+function fGetSValues( sequence pText, integer pDelim, object pOffset )
+-------------------------------------------------------------------------------
+sequence
+     lResult
+   , lTerm
+
+integer
+     lEndPosn
+
+    lResult = {}
+
+    if sequence (pOffset) then
+        pOffset = length(pOffset) + 1
+    else
+        pOffset = floor(pOffset)
+    end if
+
+    if pOffset > 0 then
+        if pOffset > length(pText) then
+            return {}
+        end if
+
+        pText = pText[pOffset .. length(pText)]
+    end if
+
+    while length(pText) > 0 do
+      lEndPosn = find(pDelim, pText)
+      if lEndPosn = 0
+      then
+         lEndPosn = length(pText) + 1
+      end if
+
+      lTerm = fTrim(pText[1 .. lEndPosn - 1])
+      if length(pText) > 0
+            and
+         find(pText[1], kStartQuotes) != 0
+      then
+         lTerm = fGetDelimitedText(lTerm, 1)
+         lTerm = lTerm[1]
+      end if
+
+      if length(lTerm) > 0
+      then
+         lResult = append(lResult, lTerm)
+      end if
+
+      if lEndPosn <= length(pText)
+      then
+         pText = pText [lEndPosn+1 .. length(pText)]
+      else
+         pText = ""
+      end if
+   end while
+
+   return lResult
+end function
+
+
+-------------------------------------------------------------------------------
+function fLink(sequence pFile, sequence pTag, sequence pText)
+-------------------------------------------------------------------------------
+    if length(pFile) > 0 and match(".htm", pFile) = 0 then
+        pFile &= ".htm"
+    end if
+    return sprintf("<a href=\"%s#%s\">%s</a>", {pFile, pTag, pText})
+end function
+
+-------------------------------------------------------------------------------
+function fCheckReferences( sequence pText, integer pMode )
+-------------------------------------------------------------------------------
+-- Examine each word to see if it is a bookmark word. If so, replace it with
+-- a html reference tag.
+integer
+     lSub
+   , lNext
+   , lChar
+   , lStart
+sequence
+     lCheckedText
+   , lQuotedText
+   , lWord
+   , lTag
+   , lBookmark
+
+   if pMode = 0
+   then
+      return pText
+   end if
+
+
+   lCheckedText = {}
+
+   lSub = 1
+   lNext = 1
+   while lNext do
+      lNext = 0
+      while lSub <= length(pText) do
+         lChar = pText[lSub]
+
+         lStart = find(lChar, kWordStart)
+         if lStart = 0
+         then
+            lCheckedText &= lChar
+            lNext = 1
+            lSub += 1
+            exit
+         end if
+
+         lQuotedText = fGetDelimitedText(pText, lSub)
+         lWord = lQuotedText[1]
+         lTag = fMakeTagFromText(lWord)
+
+         lBookmark = Hash_Fetch(vBookMarks, lTag, kHASH_DEF)
+         if length(lBookmark) != 0
+         then -- this word is a bookmarked item
+            lCheckedText &= fLink(lBookmark[1], lTag, lWord)
+         else
+            lCheckedText &= pText[lSub .. lQuotedText[2] - 1]
+         end if
+
+         lSub = lQuotedText[2]
+
+      end while
+   end while
+
+   return lCheckedText
+end function
+
+-------------------------------------------------------------------------------
+procedure fCheckForBookmarks( sequence pText, sequence pTopic )
+-------------------------------------------------------------------------------
+integer lPosn
+integer lDelim
+
+    lPosn = match("/bm", pText)
+    if lPosn = 1 then
+        pText = fTrim(pText[4..length(pText)])
+    else
+        lPosn = match("/term", pText)
+        if lPosn = 1 then
+            pText = fTrim(pText[6..length(pText)])
+        else
+            return
+        end if
+    end if
+
+    if length(pText) = 0 then
+        return
+    end if
+
+    if find(pText[1], kDelims) then
+
+        lDelim = pText[1]
+        lPosn = find(lDelim, pText[2..length(pText)])
+        if lPosn = 0 then
+            return
+        end if
+
+        pText = fTrim(pText[2..lPosn])
+    end if
+
+    fNewBookMark(fMakeTagFromText(pText), pTopic)
+
+end procedure
+
+-------------------------------------------------------------------------------
+function fReplaceTags( sequence pText , integer pMode)
+-------------------------------------------------------------------------------
+integer
+     lCP
+   , lTextStart
+   , refEnd
+   , lTagIndex
+
+sequence
+     lReplacedText
+   , lTag
+   , lEndHTML
+   , lDisplayPhrase
+   , lStartHTML
+   , lReference
+   , lNextPhrase
+   , lBookmark
+
+   -- while there are tags to process:
+   -- Check simple makedoc commands --
+   lTextStart = find(pText, kTagCommands)
+   if lTextStart != 0
+   then
+     return kTagCmdHTML[lTextStart]
+   end if
+
+   -- check for any "line-based" commands
+   for i = 1 to length(kLineTags) do
+      if match( kLineTags[i], pText ) = 1
+      then
+         return (kLineHTML[i][1] &
+                 fReplaceTags(pText[1 + length(kLineTags[i]) .. length(pText)], 0) &
+                 kLineHTML[i][2]
+                )
+      end if
+   end for
+
+   -- Convert any special escape characters into their HTML form.
+    for i = 1 to length(kSpecialEscapes) do
+      lTextStart = match(kSpecialEscapes[i], pText)
+      while lTextStart != 0 do
+         pText = pText[1 .. lTextStart - 1] &
+             kHTMLEscapes[i] &
+             pText[lTextStart + length(kSpecialEscapes[i]) .. length(pText)]
+
+         lTextStart = match(kSpecialEscapes[i], pText)
+      end while
+   end for
+
+
+   lReplacedText = {}
+   lTextStart = 1
+   if find('/', pText) = 0  -- Any possible tags in this line?
+   then
+      lCP = length(pText) + 1 -- if not, skip over entire line.
+   else
+      lCP = lTextStart             -- otherwise start at the beginning.
+      pText = ' ' & pText & ' ' -- Wrap spaces around the supplied string.
+   end if
+
+   while lCP < length( pText ) do
+        lCP += 1
+
+        -- start of a tag?
+        if ((pText[lCP-1] = ' ')
+                and
+            (pText[lCP] = '/')
+           )
+        then
+            -- Check for skipped over text.
+            if (lTextStart < lCP)
+            then
+               lReplacedText &= fCheckReferences(pText[lTextStart .. lCP-1], pMode)
+               lTextStart = lCP
+            end if
+
+            lCP += 1 -- skip over tag start.
+
+            lTag = ""
+            lDisplayPhrase = ""
+            lReference = ""
+            refEnd = 0
+
+            -- Scan to find end of this tag code.
+            if find(pText[lCP], kStartQuotes) = 0
+            then -- non-quoted, so do scan.
+               lNextPhrase = fGetDelimitedText(pText, lCP)
+               if lNextPhrase[4] = 0
+               then -- no leading spaces found!
+                  lTag = lNextPhrase[1]
+                  lCP  = lNextPhrase[2]
+               end if
+            end if
+
+            -- is this followed by a quoted reference?
+            if lCP <= length(pText)
+                  and
+               find(pText[lCP], kStartQuotes) != 0
+            then
+                lNextPhrase    = fGetDelimitedText(pText, lCP)
+                lDisplayPhrase = lNextPhrase[1]
+                lCP            = lNextPhrase[2]
+
+               -- and is this in turn followed by a reference phrase?
+               if lCP <= length(pText)
+                     and
+                  find(pText[lCP], kStartQuotes) != 0
+               then
+                  lNextPhrase = fGetDelimitedText(pText, lCP)
+                  lReference  = fMakeTagFromText(lNextPhrase[1])
+                  lCP         = lNextPhrase[2]
+                  refEnd      = lNextPhrase[3]
+               end if
+            end if
+
+            lTagIndex = find(lTag, kTagCodes)
+            if lTagIndex != 0
+            then
+               lStartHTML    = kStartHTM[lTagIndex]
+               lEndHTML      = kEndHTM[lTagIndex]
+
+               if kTextReqd[lTagIndex]
+                     and
+                  length(lDisplayPhrase) = 0
+                     and
+                  lCP != length(pText)
+               then
+                     lNextPhrase    = fGetDelimitedText(pText, lCP)
+                     lDisplayPhrase = lNextPhrase[1]
+                     lCP            = lNextPhrase[2]
+               end if
+
+               if length(lDisplayPhrase) > 0
+               then
+                  if kNested[lTagIndex] then
+                     lDisplayPhrase = fReplaceTags(lDisplayPhrase, 0) -- check for nested tags.
+                  end if
+               end if
+
+               if kBookMark[lTagIndex]
+               then
+                  if length(lReference) = 0
+                  then
+                     lReference  = lDisplayPhrase
+                  end if
+                  lReplacedText &= "<a name=\"" & fMakeTagFromText(lReference) & "\"></a>"
+               end if
+
+               -- attach to output
+               lReplacedText &= (lStartHTML & lDisplayPhrase & lEndHTML)
+
+            else -- implicit reference defined.
+                if length(lDisplayPhrase) > 0
+                then
+                  if length(lReference) = 0
+                  then
+                     lReference = fMakeTagFromText(lDisplayPhrase)
+                  end if
+                else
+                  lDisplayPhrase = lTag
+                end if
+
+               if length(lDisplayPhrase) > 0
+                     or
+                  length(lReference) > 0
+               then
+                   -- convert to a tag
+                   if length(lReference) = 0
+                   then
+                     lReference = fMakeTagFromText( lDisplayPhrase )
+                   end if
+
+                   -- create a header
+                   if find(refEnd,kDefnQuotes) != 0
+                   then -- Define a bookmark
+                     lReplacedText &= "<a name=" & lReference & "></a>" & lDisplayPhrase
+                   else -- Reference a bookmark.
+
+                   if length(vAutoRef) != 0 then
+                    lBookmark = vAutoRef
+                   else
+                    lBookmark = Hash_Fetch(vBookMarks, lReference, kHASH_DEF)
+                    if length(lBookmark) != 0 then
+                        lBookmark = lBookmark[1]
+                    end if
+                   end if
+                     lReplacedText &= fLink(lBookmark, lReference, lDisplayPhrase)
+                   end if
+               end if
+            end if
+
+            lTextStart = lCP -- Set new starting position.
+
+        end if
+   end while
+
+   if (lTextStart < lCP)
+   then
+      if lTextStart = 1
+      then  -- Special case: Entire string skipped over.
+         lReplacedText = fCheckReferences(pText, pMode)
+      else
+         lReplacedText &= fCheckReferences(pText[lTextStart .. lCP-1], pMode)
+      end if
+   end if
+
+   return lReplacedText
+end function
+
+
+-- Writes a HTML file's header block.
+-------------------------------------------------------------------------------
+procedure fOutputHead(integer pOutput)
+-------------------------------------------------------------------------------
+    sequence lDateTime
+
+    lDateTime = date()
+
+    printf( pOutput, "<html>\n<head>\n<!-- Generated by MAKEDOC v%s, %s by %s -->\n",
+               {kMAKEDOC_Version
+               ,kMAKEDOC_Copyright
+               ,kMAKEDOC_Authors
+               })
+
+    printf( pOutput, "<!-- on %4d/%02d/%02d at %02dh%02dm%02d -->\n",
+               {
+                lDateTime[1] + 1900,
+                lDateTime[2],
+                lDateTime[3],
+                lDateTime[4],
+                lDateTime[5],
+                lDateTime[6]
+               }
+          )
+
+    printf( pOutput, "<style>h4 {text-align: right}</style>\n<title>%s</title>\n</head>\n<body>\n",
+                    {vTitle} )
+
+end procedure
+
+-- Writes a HTML file's final block.
+-------------------------------------------------------------------------------
+procedure fOutputTail(integer pOutput)
+-------------------------------------------------------------------------------
+    -- end of html
+    puts( pOutput, "</body>\n</html>\n" )
+
+end procedure
+
+-- Returns a HTML link to the TOC
+-------------------------------------------------------------------------------
+procedure fOutputTOCRef(integer pOutput)
+-------------------------------------------------------------------------------
+      puts( pOutput, "<h4>" & vTitle & "<br>\n")
+      puts( pOutput, "<a href=\"index.htm#makedocTOC\">Table of Contents</a></h4>\n")
+end procedure
+
+
+-- Creates all the HTML files from the collected documentation data.
+-------------------------------------------------------------------------------
+procedure fBuildHTML(integer lOutput)
+-------------------------------------------------------------------------------
+integer
+     lTopicIdx    -- Current topic
+
+sequence
+     sortedTopics
+   , lSeeAlso
+   , lName
+   , lTag
+   , lTopicContents
+   , lSubTopics
+
+
+    -- The INDEX.HTM file contains the TOC and Index.
+    -- This file may have been renamed on the comand line.
+    -- lOutput = open("index.htm", "w")
+
+    fOutputHead(lOutput)
+
+    if length(vIntroText) > 0 then
+      fOutputTOCRef( lOutput )
+      printf( lOutput, "<h1><b>%s</b></h1>\n%s\n<hr>\n",
+            {vRW_Introduction, vIntroText} )
+    end if
+
+
+-- sort the topics
+
+-- add a TOC for the topics...
+   puts( lOutput, "<a name=\"makedocTOC\"></a>\n")
+
+   -- Define the TOC html table
+   puts( lOutput, "<table width=100% border=1><caption>Table of Contents</caption>\n")
+   puts( lOutput, "<thead><tr><td><h2>Topic</h2></td><td><h2>Description<h2></td></tr></thead>\n")
+
+    -- The reference to the index is always the first item in the TOC.
+   printf( lOutput, "<tr><td><a href=\"index.htm#%s\">%s</a></td><td>%s</td></tr>\n",
+           {"makedocINDEX", "Index","Alphabetical list of all items."} )
+
+    -- The TOC consists of references to the defined topics.
+    puts( 1, "Sorting the topics.\n" )
+    sortedTopics = fSortWords( vTopics )
+    puts(1,"Writing the TOC")
+    for i = 1 to length( sortedTopics ) do
+        puts(1,'.')
+        lTopicIdx = find( sortedTopics[i], vTopics )
+
+        -- Only include lowest level sub-topics
+        --if not find(vTopics[i], vParentTopic[1]) then
+            if not equal(vTopics[lTopicIdx], vRW_Other) or length(vInfoText[lTopicIdx][1]) > 0 then
+                lTag = fMakeTagFromText(vTopics[lTopicIdx])
+                printf( lOutput, "<tr><td>%s</td><td>%s</td></tr>\n",
+                        {fLink(lTag, lTag , vTopics[lTopicIdx]),
+                         vInfoText[lTopicIdx][1]} )
+            end if
+        --end if
+
+   end for
+   puts( lOutput, "</table>\n")
+   puts(1,'\n')
+
+
+-- Build the index.
+    puts( 1, "Sorting the topics.\n" )
+    sortedTopics = fSortIndex()
+
+    puts(1,"Writing the Index.")
+    puts( lOutput, "<a name=\"makedocINDEX\"><h1><b>Index</b></h1></a>\n" )
+
+    for i = 1 to length( sortedTopics ) do
+        if not equal(vTopics[sortedTopics[i][5]], vRW_Other) or length(vInfoText[sortedTopics[i][5]][1]) > 0 then
+            printf( lOutput, "%s %s<br>\n",
+               {fLink(fMakeTagFromText(vTopics[sortedTopics[i][5]]),
+                      sortedTopics[i][2],
+                      sortedTopics[i][3]),
+                sortedTopics[i][4]
+               } )
+            puts(1,'.')
+        end if
+    end for
+    -- line
+    puts( lOutput, "<hr>\n" )
+    puts(1,'\n')
+
+
+    fOutputTail(lOutput)
+    close(lOutput)
+
+
+    -- Now we build one HTML file for each topic.
+    -- Each topic html file contains the definitions/entries for
+    -- that topic.
+
+    puts( 1, "\nSorting the topics.\n" )
+    sortedTopics = fSortWords( vTopics )
+    puts( 1, "\nWriting the topic headers.\n" )
+    for i = 1 to length( sortedTopics ) do
+        -- find the unsorted index
+        lTopicIdx = find( sortedTopics[i], vTopics )
+
+        if not equal(vTopics[lTopicIdx], vRW_Other) or length(vInfoText[lTopicIdx][1]) > 0 then
+
+            puts( 1, "." )
+
+            -- Form a file name from the topic tag.
+            lOutput = open(fMakeTagFromText(vTopics[lTopicIdx]) & ".htm", "w")
+            fOutputHead(lOutput)
+
+            fOutputTOCRef( lOutput )
+
+            -- output the aliases for the topic.
+            for j = 1 to length(vAlias[lTopicIdx]) do
+                printf( lOutput, "<a name=\"%s\"></a>",
+                      {fMakeTagFromText( vAlias[lTopicIdx][j] )} )
+            end for
+
+            -- output the topic header.
+            printf( lOutput, "<h1><a name=\"%s\">%s</a></h1>\n",
+                      {fMakeTagFromText( vTopics[lTopicIdx] ),vTopics[lTopicIdx]} )
+
+
+            -- is there info attached to this topic?
+            if length( vInfoText[lTopicIdx][1] ) then
+              -- add it
+              -- NB. The infotext element has two strings in it.
+              printf( lOutput, "<p><h3>%s</h3><br>\n%s\n</p>\n", vInfoText[lTopicIdx] )
+            end if
+
+            -- gather a list of all routines under this topic
+            lTopicContents = {}
+            for j = 1 to length( vDefinition ) do
+                if vDefinition[j][kTopicIdx] = lTopicIdx then
+                    -- add the definition
+                    lTopicContents &= {vDefinition[j]}
+                end if
+            end for
+
+            -- sort the items
+            lTopicContents = fSortDefns(lTopicContents)
+
+            -- output a list of definitions contained in this topic.
+            for j = 1 to length( lTopicContents ) do
+              -- each definition is a list item
+              printf( lOutput, "<li><a href=\"#%s\"><i>%s</i> %s</a>%s &nbsp;&nbsp;%s\n",
+                      {lTopicContents[j][kTag],
+                       lTopicContents[j][kDefnType],
+                       lTopicContents[j][kName],
+                       lTopicContents[j][kParamList],
+                       lTopicContents[j][kDesc]
+                      } )
+
+            end for
+
+            -- write any supertopics
+            lSubTopics = {}
+            for j = 1 to length(vParentTopic[1]) do
+                if equal( vTopics[lTopicIdx], vParentTopic[1][j]) then
+                    lSubTopics &= {vParentTopic[2][j]}
+                end if
+            end for
+
+            if length( lSubTopics ) != 0 then
+                lSubTopics = fSortWords(lSubTopics)
+                puts( lOutput, "&nbsp;<br>&nbsp;<br><strong>Parent Topics:</strong><br>\n")
+                for j = 1 to length( lSubTopics ) do
+                    printf( lOutput, "<li>%s\n",{
+                                        fLink(fMakeTagFromText( lSubTopics[j] ),
+                                        fMakeTagFromText( lSubTopics[j] ),
+                                        lSubTopics[j])} )
+                end for
+            end if
+
+
+            -- write any subtopics
+            lSubTopics = {}
+            for j = 1 to length(vParentTopic[2]) do
+                if equal( vTopics[lTopicIdx], vParentTopic[2][j]) then
+                    lSubTopics &= {vParentTopic[1][j]}
+                end if
+            end for
+
+            if length( lSubTopics ) then
+
+                lSubTopics = fSortWords(lSubTopics)
+                puts( lOutput, "&nbsp;<br>&nbsp;<br><strong>Subtopics:</strong><br>\n")
+                for j = 1 to length( lSubTopics ) do
+
+                    printf( lOutput, "<li>%s\n",{
+                                        fLink(fMakeTagFromText( lSubTopics[j] ),
+                                        fMakeTagFromText( lSubTopics[j] ),
+                                        lSubTopics[j])} )
+                end for
+            end if
+
+
+            -- line
+            puts( lOutput, "<hr>\n" )
+
+
+            for k = 1 to length( lTopicContents ) do
+
+                puts( 1, "." )
+                fOutputTOCRef( lOutput )
+                -- build a header for the item
+                printf( lOutput, "<h2><a name=\"%s\">[<i>%s</i>]<br>%s</a> %s</h2>\n",
+                        {lTopicContents[k][kTag],
+                         lTopicContents[k][kDefnType],
+                         lTopicContents[k][kName],
+                         lTopicContents[k][kParamList]
+                        } )
+
+                -- is there a description?
+                if sequence( lTopicContents[k][kDesc] ) then
+                    printf( lOutput, "<h3>%s</h3>\n",
+                                {lTopicContents[k][kDesc]} )
+                end if
+
+                -- is there a return value?
+                if sequence( lTopicContents[k][kReturn] ) then
+                    printf( lOutput, "<h3>Returns: %s</h3>\n",
+                        {lTopicContents[k][kReturn]} )
+
+                end if
+
+
+                -- link back to the topic
+                lTopicIdx = lTopicContents[k][kTopicIdx]
+                printf( lOutput, "Category: <a href=\"#%s\">%s</a><br>\n",
+                        {fMakeTagFromText(vTopics[lTopicIdx]), vTopics[lTopicIdx]} )
+
+
+                -- output the text
+                puts( lOutput, "<p>" & lTopicContents[k][kText] )
+
+                -- see also:
+                -- automatically include everything in the category
+                lSeeAlso = {}
+                for j = 1 to length( lTopicContents ) do
+                    if  k != j and lTopicIdx = lTopicContents[j][kTopicIdx]
+                    then
+                        lSeeAlso &= {lTopicContents[j]}
+                    end if
+                end for
+
+                if length( lSeeAlso ) > 0 then
+                    -- put them in sorted order
+                    puts( lOutput, "<p>See Also: \n" )
+                    for j = 1 to length( lSeeAlso ) do
+
+                        -- get the name
+                        lName = lSeeAlso[j][kName]
+
+                        -- link
+                        printf( lOutput, "<a href=\"#%s\">%s</a>", {lSeeAlso[j][kTag], lName} )
+
+                        if j = length( lSeeAlso ) then
+                            -- no comma
+                            puts( lOutput, "\n" )
+                        else
+                            -- comma
+                            puts( lOutput, ",\n" )
+                        end if
+                    end for
+                end if
+
+                -- line
+                puts( lOutput, "<hr>\n" )
+            end for
+
+            puts( 1, "\n" )
+
+            close(lOutput)
+        end if
+    end for
+
+end procedure
+
+-------------------------------------------------------------------------------
+function fFetchFileData(sequence pFileName)
+-------------------------------------------------------------------------------
+sequence
+     lFileData
+
+integer
+     lHandle
+
+atom
+     lFileLength
+
+   lFileData = {}
+
+   lHandle = open(pFileName, "r")
+   if lHandle != -1
+   then
+      if seek(lHandle, -1) = 0
+      then
+         lFileLength = where(lHandle)
+         if seek(lHandle, 0) then end if
+         lFileData = get_bytes(lHandle, lFileLength)
+      end if
+      close (lHandle )
+   end if
+   return lFileData
+end function
+
+-------------------------------------------------------------------------------
+function fExtractData(integer pFileHandle, sequence pPrefix, sequence pFileName)
+-------------------------------------------------------------------------------
+object data
+integer
+     lPreformatted
+   , LinesIncluded
+   , LinesExcluded
+   , lPosn
+   , lHoldHandle
+
+sequence
+     lNextWord
+   , lDocData
+   , lLowerData
+   , lCurTopic
+
+   printf( 1, "Extracting documentation data from %s...\n", {pFileName} )
+
+   lDocData = {}
+   LinesIncluded = 0
+   LinesExcluded = 0
+   lPreformatted = kFalse
+   lCurTopic = vRW_Other
+
+   while 1 do
+
+      -- get data
+      data = gets( pFileHandle )
+      if atom( data ) then
+         exit
+      end if
+      lLowerData = lower(data)
+
+      -- Only look at lines that begin with the prefix
+      if length( data ) <= length(pPrefix)
+            or
+          not equal(data[1 .. length(pPrefix)], pPrefix)
+      then
+         LinesExcluded += 1
+         -- Does this also mark the end of this group of documentation lines?
+         if vUseData = kTrue
+         then
+            lDocData = append(lDocData, "/endtopic ")
+            lCurTopic = vRW_Other
+            vUseData = kFalse
+         end if
+
+      else
+       -- strip off the line feed, prefix, and trim spaces
+         data = data[1 + length(pPrefix)..length(data)-1]
+         lLowerData = lower(data)
+
+         -- Always do a right-trim.
+         while 1 do
+            if length(data) > 0 then
+               if data[length(data)] = ' ' then
+                  data = data[1 .. length(data) - 1]
+               else
+                  exit
+               end if
+            else
+               exit
+            end if
+         end while
+         lLowerData = lower(data)
+
+         if equal(lLowerData, "/code")
+         then
+            lPreformatted = kTrue
+         elsif equal(lLowerData, "/endcode")
+         then
+            lPreformatted = kFalse
+         end if
+
+
+         while lPreformatted = kFalse do
+            if length(data) > 0 then
+               if data[1] = ' ' then
+                  data = data[2 .. length(data)]
+               else
+                  exit
+               end if
+            else
+               exit
+            end if
+         end while
+         lLowerData = lower(data)
+
+
+         if match( vRW_Makedoc, lLowerData ) = 1
+         then
+
+            lLowerData = fRemoveSubstring(lLowerData, vRW_Makedoc)
+            data = fRemoveSubstring(data, vRW_Makedoc)
+
+            if match( vRW_AutoBookmark, lLowerData ) = 1 then
+               lNextWord = fGetDelimitedText(lLowerData, vRW_AutoBookmark)
+               vAutoBookMarks = find(lNextWord[1], {"on","yes","true"})
+
+            elsif match( vRW_Title, lLowerData ) = 1 then
+                vTitle = fRemoveSubstring(data, vRW_Title)
+
+            elsif match( "insert ", lLowerData) = 1 then
+                data = data[8..length(data)]
+                lHoldHandle = open(data, "r")
+                if lHoldHandle >= 0 then
+                    lDocData &= fExtractData(lHoldHandle, pPrefix, data)
+                    close(lHoldHandle)
+                end if
+            end if
+
+         -- Store bookmarks
+         elsif match(vRW_Topic, lLowerData) = 1
+         then
+            -- Only use first term, the rest are comments.
+            lNextWord = fGetSValues(data, ',', vRW_Topic)
+            lCurTopic = fMakeTagFromText(lNextWord[1])
+            fNewBookMark( lCurTopic , lCurTopic )
+
+         elsif match("/term ", lLowerData) = 1
+         then
+            lNextWord = fGetDelimitedText(data, 7)
+            fNewBookMark( fMakeTagFromText(lNextWord[1]), lCurTopic )
+
+         elsif match( "/type ", lLowerData ) = 1
+         or    match( "/proc ", lLowerData ) = 1
+         or    match( "/incl ", lLowerData ) = 1
+         or    match( "/func ", lLowerData ) = 1
+         or    match( "/const ", lLowerData ) = 1
+         or    match( "/var ", lLowerData ) = 1
+         or    match( "/note ", lLowerData ) = 1
+         or    match( "/feature ", lLowerData ) = 1
+         or    match( "/menu ", lLowerData ) = 1
+         or    match( "/menuitem ", lLowerData ) = 1
+         then
+            -- get the name
+            lNextWord = data[find( ' ', data )+1 .. length(data)]
+
+            lPosn = find( '(', lNextWord )
+            if lPosn = 0 then
+               lPosn = find( ' ', lNextWord )
+               if lPosn = 0 then
+                 lPosn = length(lNextWord) + 1
+               end if
+            end if
+            fNewBookMark( fMakeTagFromText(lNextWord[1 .. lPosn-1]),lCurTopic )
+
+         end if
+
+         if vUseData = kFalse
+               and
+            match("/topic ", lLowerData) = 1
+         then
+               vUseData = kTrue
+         end if
+
+         if vUseData = kTrue
+               or
+            match(vRW_Makedoc, lLowerData) = 1
+         then
+            fCheckForBookmarks(data, lCurTopic)
+            LinesIncluded += 1
+            lDocData = append(lDocData, data)
+         else
+            LinesExcluded += 1
+         end if
+      end if
+   end while
+
+   printf(1, "Documentation Lines = %d, NonDoc Lines = %d\n",
+            {LinesIncluded, LinesExcluded})
+
+   return lDocData
+
+end function
+
+
+-------------------------------------------------------------------------------
+procedure fProcessData(sequence data)
+-------------------------------------------------------------------------------
+integer
+     lFound
+
+sequence
+     lExpandedText
+   , lDefnType
+   , lName
+   , lParamList
+   , lNameTag
+   , lPrefix
+   , lLowerData
+
+
+   lLowerData = lower(data)
+--
+   if equal("/endpaste", lLowerData)
+   then
+      vPasteMode = kFalse
+   elsif match( vRW_Makedoc, lLowerData ) = 1
+   then
+
+      data       = fRemoveSubstring(data, vRW_Makedoc)
+      lLowerData = fRemoveSubstring(lLowerData, vRW_Makedoc)
+
+      if match( "autoxref ", lLowerData ) = 1 then
+         lExpandedText = fGetDelimitedText(lLowerData, 10)
+         vAutoRefs = find(lExpandedText[1], {"on","yes","true"})
+
+      elsif match( "autofile ", lLowerData ) = 1 then
+         lExpandedText = fGetDelimitedText(lLowerData, 10)
+         vAutoRef = lExpandedText[1]
+
+      elsif match( vRW_AutoBookmark, lLowerData ) = 1 then
+         lExpandedText = fGetDelimitedText(lLowerData, vRW_AutoBookmark)
+         vAutoBookMarks = find(lExpandedText[1], {"on","yes","true"})
+
+      elsif match( "insert ", lLowerData) = 1 then
+        --
+         lExpandedText = fGetDelimitedText(lLowerData, 8)
+         if length(lExpandedText[1]) > 0
+         then
+            lPrefix = fFileParts(lExpandedText[1])
+            if find(lPrefix[4], {"e","ew","ex","exw"}) > 0
+            then
+               lPrefix = "--"
+            else
+               lPrefix = ""
+            end if
+            if not call_func(phProcessFile, {lExpandedText[1], lPrefix})
+            then
+               -- ignore bad file.
+            end if
+         end if
+      end if
+
+   elsif match( vRW_Topic, lLowerData ) = 1 then
+     -- remove the tag
+     vUseData = kTrue
+
+     data = fGetSValues(data, ',', vRW_Topic)
+     lLowerData = fGetSValues(lLowerData, ',', vRW_Topic)
+     if equal(lLowerData[1], "introduction")
+     then
+         -- mark info flag
+         vInIntro = kTrue
+     else
+        -- does the topic exist?
+        vInInfo = kTrue
+        lFound = 0
+        for i = 1 to length( vTopics ) do
+            if equal( fMakeTagFromText( data[1] ), fMakeTagFromText( vTopics[i] ) ) then
+                lFound = i
+                exit
+            end if
+        end for
+        if lFound then
+            -- set the index
+            vCurTopicIdx = lFound
+        else
+            -- add the topic
+            puts(1, "t")
+            vTopics &= {data[1]}
+
+
+
+            -- allocate info record
+            vInfoText &= {{"",""}}
+            vAlias    &= {""}
+
+            -- point to the topic
+            vCurTopicIdx = length( vTopics )
+
+            for i = 2 to length(data) do
+               vAlias[vCurTopicIdx] &= {fMakeTagFromText(data[i])}
+            end for
+
+        end if
+   end if
+
+-- Matt Lewis
+   elsif match( vRW_Parent, lLowerData ) = 1 then
+        -- need to identify the parent topic
+        data = fGetSValues(data, ',', vRW_Parent)
+        vParentTopic[1] &= {vTopics[vCurTopicIdx]}
+        vParentTopic[2]  &= {data[1]}
+
+   elsif match( "/info", lLowerData ) = 1 then
+     -- mark info flag
+     vInInfo = kTrue
+
+   elsif match( "/paste ", lLowerData ) = 1
+            or
+         equal("/paste", lLowerData)
+   then
+      lExpandedText = fGetDelimitedText(data, 8)
+      if length(lExpandedText[1]) > 0
+      then
+         data = fFetchFileData(lExpandedText[1])
+         -- where to put it?
+         if vInDoc then
+             vDefinition[vCurDefn][kText] &= data
+         elsif vInIntro then
+             vIntroText &= data
+         else
+            if length(vInfoText[vCurTopicIdx][1]) = 0
+            then
+               vInfoText[vCurTopicIdx][1] = data
+            else
+               vInfoText[vCurTopicIdx][2] &= data
+            end if
+         end if
+      else
+         vPasteMode = kTrue
+      end if
+
+   elsif match( "/type ", lLowerData )
+   or    match( "/proc ", lLowerData )
+   or    match( "/func ", lLowerData )
+   or    match( "/incl ", lLowerData )
+   or    match( "/const ", lLowerData )
+   or    match( "/var ", lLowerData )
+   or    match( "/note ", lLowerData )
+   or    match( "/feature ", lLowerData )
+   or    match( "/menu ", lLowerData )
+   or    match( "/menuitem ", lLowerData )
+   or    match( "/command ", lLowerData )
+   or    match( "/keyword ", lLowerData )
+   or    match( "/aggregate ", lLowerData )
+   or    match( "/punctuation ", lLowerData )
+   or    match( "/class ", lLowerData )
+   then
+     -- Strip off the definition type
+     lFound = find( ' ', data )
+     lDefnType = data[2 .. lFound-1]
+     puts(1, lDefnType[1])
+     data = data[lFound+1..length(data)]
+
+     -- Strip off the name
+     lFound = find( '(', data )
+     if not lFound then
+         lFound = find( ' ', data )
+         if not lFound then
+            lFound = length(data) + 1
+         end if
+     end if
+     lName = data[1..lFound-1]
+     data = data[lFound .. length(data)]
+
+     -- Strip off the parameter list
+     lFound = find( ')',  data)
+     if lFound then
+        lParamList = data[1..lFound]
+        data = data[lFound+1 .. length(data)]
+     else
+        lParamList = ""
+     end if
+
+     -- convert to name to a tag
+     lNameTag = fMakeTagFromText( lName )
+
+     -- create a record
+     vDefinition &= {kNewRecord}
+     vCurDefn = length( vDefinition )
+
+     -- fill in the values
+     vDefinition[vCurDefn][kTopicIdx] = vCurTopicIdx
+     vDefinition[vCurDefn][kName] = lName
+     vDefinition[vCurDefn][kParamList] = lParamList
+     vDefinition[vCurDefn][kDefnType] = lDefnType
+     vDefinition[vCurDefn][kTag] = lNameTag
+     vDefinition[vCurDefn][kText] = fReplaceTags(data, vAutoRefs)
+
+     -- in documenation
+     vInDoc = kTrue
+
+   elsif match( "/desc ", lLowerData ) then
+     -- short blurb
+     vDefinition[vCurDefn][kDesc] = fReplaceTags(data[7..length(data)], vAutoRefs)
+
+   elsif match( "/ret ", lLowerData ) then
+     -- return value
+     vDefinition[vCurDefn][kReturn] = fReplaceTags(data[6..length(data)], vAutoRefs)
+
+   elsif match( "/endtopic ", lLowerData ) then
+         -- clear the flags
+         vInDoc = kFalse
+         vInInfo = kFalse
+         vInIntro = kFalse
+        vUseData = kFalse
+   elsif vInDoc
+         or
+       vInInfo
+         or
+       vInIntro
+   then
+         if vPasteMode = kFalse
+         then -- replace the tags
+            lExpandedText = fReplaceTags( data, vAutoRefs )
+         else
+            lExpandedText = data
+         end if
+         lExpandedText &= '\n'
+
+         -- where to put it?
+         if vInDoc then
+            vDefinition[vCurDefn][kText] &= lExpandedText
+         elsif vInIntro then
+             vIntroText &= lExpandedText
+         else
+            if length(vInfoText[vCurTopicIdx][1]) = 0
+            then
+               vInfoText[vCurTopicIdx][1] = lExpandedText
+            else
+               vInfoText[vCurTopicIdx][2] &= lExpandedText
+            end if
+         end if
+
+   end if
+
+end procedure
+
+-------------------------------------------------------------------------------
+function fProcessFile(sequence pInputFileName, sequence pPrefix)
+-------------------------------------------------------------------------------
+integer
+     in
+sequence
+     aMsg
+   , lDocData
+
+object
+     dirResult
+
+
+   dirResult = dir(pInputFileName)
+   if atom(dirResult)
+   then
+      aMsg = sprintf("The source file '%s' cannot be found.", {pInputFileName})
+      in = message_box (aMsg, " MAKEDOC - Error ", 0)
+      return kFalse
+   end if
+
+   -- Add source file to list, but only if not already there.
+   if match(pInputFileName, vSourceFile) = 0
+   then
+      vSourceFile = append(vSourceFile, pInputFileName)
+   end if
+
+   printf( 1, "\nPass 1: Processing the data in %s\n", {pInputFileName} )
+
+   in = open( pInputFileName, "r" )
+   lDocData = fExtractData(in, pPrefix, pInputFileName)
+   close(in)
+
+   -- parse the file
+   in = 0
+   printf( 1, "\nPass 2: Parsing the data in %s\n", {pInputFileName} )
+   while in < length(lDocData) do
+      in += 1
+      fProcessData(lDocData[in])
+   end while
+
+   puts(1, "\n")
+
+   return kTrue
+end function
+          
+-------------------------------------------------------------------------------
+procedure fMain(sequence pArgs)
+-------------------------------------------------------------------------------
+integer
+     in
+   , lOutput
+
+sequence
+     aMsg
+   , inFile
+   , outFile
+
+
+   if length(pArgs) <= 2
+         or
+      length(pArgs) > 4
+   then
+      if compare(pArgs[1], pArgs[2]) = 0
+      then
+         aMsg = sprintf("%s <sourcefile> [<output.htm>]\n",
+                  {pArgs[2]})
+      else
+         aMsg = sprintf( "%s %s <sourcefile> [<output.htm>]\n",
+                  {pArgs[1], pArgs[2]})
+      end if
+
+      in = message_box (aMsg, " MAKEDOC - Usage ", 0)
+      return
+   end if
+
+   inFile = pArgs[3]
+
+   in = length(inFile)
+   while in > 0 do
+      if inFile[in] = '.'
+      then
+         in -= 1
+         exit
+      end if
+      in -= 1
+   end while
+
+   if in = 0
+   then
+      in = length(inFile)
+   end if
+
+   if length(pArgs) < 4 then
+       outFile = "index.htm"--inFile[1 .. in]
+   else
+       outFile = pArgs[4]
+       in = match(".htm", outFile)
+       if in = 0
+             or
+          in != (length(outFile) - 3)
+       then
+          outFile &= ".htm"
+       end if
+   end if
+
+
+   in = length(inFile)
+   while in > 0 do
+      if inFile[in] = '\\'
+      then
+         in += 1
+         exit
+      end if
+      in -= 1
+   end while
+   if in = 0
+   then in = 1
+   end if
+
+
+   lOutput = open( outFile, "w" )
+
+   vInDoc = kFalse
+   vInInfo = kFalse
+   vInIntro =kFalse
+
+   -- Set up the default topic.
+   vTopics &= {vRW_Other}
+   vInfoText &= {{"",""}}
+   vAlias &= {""}
+   vDefinition &= {kNewRecord}
+   vCurDefn  = 1
+   vCurTopicIdx = 1
+   vDefinition[vCurDefn][kTopicIdx] = vCurTopicIdx
+   vDefinition[vCurDefn][kName] = vTopics[vCurTopicIdx]
+   vDefinition[vCurDefn][kParamList] = ""
+   vDefinition[vCurDefn][kDefnType] = ""
+   vDefinition[vCurDefn][kTag] = fMakeTagFromText(vTopics[vCurTopicIdx])
+   vDefinition[vCurDefn][kText] = ""
+
+   phProcessFile = routine_id("fProcessFile")
+
+   if call_func(phProcessFile, {inFile, "--"})
+   then
+      fBuildHTML(lOutput)
+   end if
+
+   close( lOutput )
+
+   in  = message_box( "finished!", "MAKEDOC", 0 )
+
+end procedure
+
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+fMain( command_line() )
+

@@ -1,0 +1,120 @@
+-- Clock in a simple banner
+-- can be dragged wherever you want it
+-- by Martin Stachon & Dan Moyer
+
+-- based on Simple Clock by Dan B Moyer
+-- shows actual time (in 24 hour format);
+-- Modifyied by Martin Stachon;
+-- then tooltips added by Dan Moyer :)
+-- then 10/Sep/2002: Martin changed to new event handlers,
+-- added onPaint handler, using drawText() to center the text
+-- it's your turn Dan :)
+
+include std/win32/msgbox.e
+include win32lib.ew 
+without warning
+
+sequence size  size = {90, 30} 
+                                
+constant 
+	ClockWin = create( Window, "Clock", 0, Default, Default,
+                                size[1], size[2], {WS_BORDER , WS_POPUP} ),
+                                
+	myPopup  = create( Popup, "", ClockWin, 0, 0, 0, 0, 0),
+	closeMenuItem = create( MenuItem, "&Close",    myPopup, 0, 0, 0, 0, w32AUTOCLOSE),
+	sep1          = create( MenuItem, "-",         myPopup, 0, 0, 0, 0, 0),
+	aboutMenuItem = create( MenuItem, "&About...", myPopup, 0, 0, 0, 0, 0)
+
+constant TickTimer    = 1
+
+setHint(ClockWin,"Drag to move, right-click to close")-- added by Dan Moyer
+setFont( tooltipControl, "Arial", 10, 0 ) -- added by Dan Moyer
+----------------------------------------------------------------------------
+procedure drawClock()
+	sequence TimeAndDate, clientRect
+ 	-- get the time every second
+	TimeAndDate = date()
+	clientRect = getClientRect(ClockWin) -- get the client rect inside window
+
+	-- display the new clock time:
+	-- we could use wPuts() as well, but with drawText() the text is centered in our rectangle
+    VOID = drawText(
+    	ClockWin, -- id
+    	sprintf("%02d:%02d:%02d",{TimeAndDate[4],TimeAndDate[5],TimeAndDate[6]}), -- text
+    	{ clientRect[1], clientRect[2], clientRect[3], clientRect[4] }, -- rectangle to draw in
+    	or_all({DT_CENTER, DT_VCENTER, DT_SINGLELINE}), -- flags: centered, single line
+    	0, -- tabsize; not used
+    	0, -- left margin
+    	0  -- right margin
+    )
+end procedure
+----------------------------------------------------------------------------
+procedure onPaint_ClockWin( integer self, integer event, sequence params )
+	drawClock()
+end procedure
+----------------------------------------------------------------------------
+procedure onTimer_ClockWin( integer self, integer event, sequence params )
+	if params[1] = TickTimer then -- it is our timer?
+		repaintWindow(self)
+	end if
+end procedure
+
+----------------------------------------------------------------------------
+procedure onClick_aboutMenuItem(integer self, integer event, sequence params)
+	if message_box(
+		"Clock Example using win32lib\n" &
+		"\n" & 
+		"Martin Stachon & Dan Moyer\n\n" & 
+		sprintf("win32lib version : %d.%d.%d (%s)", Win32LibVersion[1..4]), "About...", 0)
+	then end if
+end procedure
+----------------------------------------------------------------------------
+integer moving,relx,rely
+moving = 0
+procedure onMouse_ClockWin(integer self, integer event, sequence params)
+	-- params is {integer event, integer x, integer y, integer shift}
+	sequence mouse
+
+	mouse = getPointerPos()
+	if params[1] = LeftDown then 
+		moving = 1
+		relx   = params[2] -- store relative mouse pos.
+		rely   = params[3]
+		setMousePointer( ClockWin, SizePointer ) -- change mouse ptr
+        captureMouse(ClockWin)
+        
+	elsif params[1] = LeftUp then
+        moving = 0
+		setMousePointer( ClockWin, ArrowPointer )
+        releaseMouse()
+        
+	elsif params[1] = MouseMove and moving then
+		-- move and repaint
+		setRect( ClockWin, mouse[1]-relx, mouse[2]-rely, size[1], size[2], w32True )
+        
+	elsif params[1] = RightDown then
+		popup( myPopup, 20,10) -- show popup
+		moving = 0
+	else
+		moving = 0
+	end if
+end procedure
+----------------------------------------------------------------------------
+procedure onActivate_ClockWin(integer self, integer event, sequence params)
+	-- activate the timer to tick each second (1000 ms)
+	setTimer( ClockWin, TickTimer, 1000 )
+	setFont( ClockWin, "Arial", 15, Bold )
+	VOID = invokeHandler(ClockWin, w32HTimer, {TickTimer})
+    setMousePointer( ClockWin, ArrowPointer ) -- change mouse ptr
+end procedure
+----------------------------------------------------------------------------
+-- register handlers
+setHandler(ClockWin,      w32HActivate, routine_id("onActivate_ClockWin") )
+setHandler(ClockWin,      w32HTimer,    routine_id("onTimer_ClockWin") )
+setHandler(aboutMenuItem, w32HClick,    routine_id("onClick_aboutMenuItem") )
+setHandler(ClockWin,      w32HMouse,    routine_id("onMouse_ClockWin") )
+setHandler(ClockWin,      w32HPaint,    routine_id("onPaint_ClockWin") )
+
+-- set window color
+setWindowBackColor(ClockWin, Parchment)
+WinMain( ClockWin, Normal )

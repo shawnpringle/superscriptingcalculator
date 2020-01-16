@@ -1,0 +1,103 @@
+include Win32lib.ew
+without warning
+
+--------------------------------------------------------------------------------
+
+-- Window Window1
+constant Window1 = createEx( Window, "Thrown Dice Chart", 0, 0, 0, 276,
+113, 0, 0 ),
+  txt_Sides = createEx( EditText, "6", Window1, 48, 8, 48, 20, 0, 0 ),
+  LText3 = createEx( LText, "Sides", Window1, 12, 12, 36, 20, 0, 0 ),
+  LText4 = createEx( LText, "QTY", Window1, 12, 36, 36, 20, 0, 0 ),
+  txt_QTY = createEx( EditText, "3", Window1, 48, 32, 48, 20, 0, 0 ),
+  LText6 = createEx( LText, "Rolls", Window1, 12, 60, 36, 20, 0, 0 ),
+  txt_Rolls = createEx( EditText, "1000", Window1, 48, 56, 48, 20, 0, 0
+),
+  bttn_Roll = createEx( PushButton, "Roll", Window1, 104, 8, 156, 68, 0,
+0 ),
+  Graph = createEx( Pixmap, "Bitmap9", Window1, 8, 84, 252, 184, 0, 0 )
+--------------------------------------------------------------------------------
+
+
+function prepare_graph()
+    integer dice_num, dice_sides, dice_rolls, width, height
+
+    dice_num = getNumber( txt_QTY )
+    dice_sides = getNumber( txt_Sides )
+    dice_rolls = getNumber( txt_Rolls )
+
+    width = dice_sides*dice_num-dice_num+1
+    height = dice_rolls/2
+    setCtlSize( Graph, 30*width+20, height )
+    clearWindow(Graph)
+    setCtlSize( Window1, 30*width+20, height+113 )
+    for i = dice_num to dice_num*dice_sides do
+        doEvents(0)
+      setPenPos( Graph, 30*(i-dice_num), height - 20 )
+      wPrintf( Graph, "%d", {i} )
+    end for
+    copyBlt(Window1,8,84,Graph)
+    -- return the size of the graph
+    return {30*width+20, height}
+end function
+
+  ------------------------------
+
+procedure update_roll_button()
+    setText( bttn_Roll, getText( txt_QTY ) & "d" & getText( txt_Sides )
+& " x " & getText( txt_Rolls ) )
+end procedure
+
+update_roll_button()
+
+  ------------------------------
+
+procedure bttn_Roll_onClick (integer self, integer event, sequence params)--params is ()
+    integer dice_num, dice_sides, dice_rolls, roll, slot
+    sequence dice_results, graph_size
+
+    graph_size = prepare_graph()
+    dice_num = getNumber( txt_QTY )
+    dice_sides = getNumber( txt_Sides )
+    dice_rolls = getNumber( txt_Rolls )
+    dice_results = repeat(0,dice_sides*dice_num-dice_num+1)
+
+    for i = 1 to dice_rolls do
+      roll = 0
+      for j = 1 to dice_num do
+        doEvents(0)
+        roll += rand( dice_sides )
+      end for
+      slot = roll-dice_num+1
+      dice_results[slot] += 1
+      setPenColor( Graph, Black )
+      drawLine(Graph,30*(slot)-30,graph_size[2]-20-dice_results[slot],
+                     30*(slot)-20,graph_size[2]-20-dice_results[slot])
+      copyBlt(Window1,8,84,Graph)
+    end for
+
+
+end procedure
+setHandler( bttn_Roll, w32HClick, routine_id("bttn_Roll_onClick"))
+
+  ------------------------------
+
+procedure txt_onChange (integer self, integer event, sequence
+params)--params is ()
+    -- update button when txt_Sides, txt_Rolls, or txt_QTY changes
+    update_roll_button()
+end procedure
+setHandler( {txt_Sides,txt_Rolls,txt_QTY}, w32HChange,
+routine_id("txt_onChange"))
+
+  ------------------------------
+
+procedure paintWindow( integer self, integer event, sequence params )
+    copyBlt(Window1,8,84,Graph)
+end procedure
+setHandler( Window1, w32HPaint, routine_id("paintWindow") )
+
+  ------------------------------
+  WinMain( Window1,Normal )
+  ------------------------------
+

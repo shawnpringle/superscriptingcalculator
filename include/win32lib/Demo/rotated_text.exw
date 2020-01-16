@@ -1,0 +1,24 @@
+include Win32Lib.ew
+without warning
+
+global procedure Paint_Prime (integer self, integer event, sequence params)
+    -- Set angle to 45 degrees
+	setFont( self, "Arial", 14, {Bold,0,450,450,DEFAULT_CHARSET,0,0,0,0} )
+    -- Draw in text.
+    setPenPosition(self, 100,100)
+    wPuts(self, "Terima")
+
+    -- Set angle to -45 degrees
+	setFont( self, "Times New Roman", 14, {Bold,0,3600-450,3600-450,DEFAULT_CHARSET,0,0,0,0} )
+    -- Draw in text.
+    setPenPosition(self, 150,100)
+    wPuts(self, "Kasih")
+
+end procedure
+registerRoutine("Paint_Prime", routine_id("Paint_Prime"))
+
+global function main(sequence vArgs)
+    createForm({"Window, Prime, at=(0,0), size=(300,300), bgcolor=brightwhite"})
+	return 0
+end function
+include w32start.ew

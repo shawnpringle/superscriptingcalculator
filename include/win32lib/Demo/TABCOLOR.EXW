@@ -1,0 +1,141 @@
+-- Experiments with a user-drawn control that looks like a fancy TabControl.
+without warning
+include win32lib.ew
+with trace
+
+sequence myTabs
+
+global procedure Mouse_TC(integer self, integer event, sequence parms)
+    sequence lRect
+    integer h
+    integer n
+
+    if parms[1] = WM_MOUSEMOVE then
+        return
+    end if
+
+    h = myTabs[1][3]
+    for i = 2 to length(myTabs) do
+        if myTabs[i][3] > h then
+            h = myTabs[i][3]
+        end if
+    end for
+    h += 4
+    if parms[3] > h then
+        return
+    end if
+    n = 5
+    for i = 1 to length(myTabs) do
+        n += myTabs[i][2] + 6
+        if parms[2] < n then
+            n = i
+            exit
+        end if
+        if i = length(myTabs) then
+            n = 0
+        end if
+    end for
+
+    if n = 0 then
+        return
+    end if
+
+    for i = 1 to length(myTabs) do
+        myTabs[i][4] = 0
+    end for
+    myTabs[n][4] = 1
+
+    repaintFG(self)
+end procedure
+registerRoutine("Mouse_TC", routine_id("Mouse_TC"))
+
+global procedure Paint_TC(integer self, integer event, sequence parms)
+    sequence lRect
+    integer x
+    integer n
+    integer h
+    atom workBG
+
+    workBG = BrightWhite
+    h = -1
+    for i = 1 to length(myTabs) do
+        if myTabs[i][3] > h then
+            h = myTabs[i][3]
+        end if
+        if myTabs[i][4] != 0 then
+            workBG = myTabs[i][5]
+        end if
+    end for
+
+    lRect = getRect(self)
+    lRect &= {lRect[3]-lRect[1], lRect[4]-lRect[2]}
+
+    -- Wipe out entire rect with background color.
+    x = findParent(self)
+    setPenWidth(self,1)
+    setPenColor(self, getControlInfo(x, CONTROLINFO_bcolor))
+    drawRectangle(self, 1, 0, 0, lRect[5], lRect[6])
+
+    -- Draw tab's working space.
+    -- Background
+    setPenColor(self, workBG)
+    drawRoundRect(self, 1, 0, h+3, lRect[5], lRect[6], 10, 10)
+    -- Border
+    setPenColor(self, Black)
+    setPenWidth(self, 2)
+    drawRoundRect(self, 0, 0, h+3, lRect[5], lRect[6], 10, 10)
+
+    setPenWidth(self,1)
+    -- Draw each Tab button.
+    x = 5
+    for i = 1 to 3 do
+        n = myTabs[i][2]
+        setPenColor(self,myTabs[i][7])
+        drawRoundRect(self, 1, x, 0, x+n+6, h+4, 5, 5)
+        if myTabs[i][4] != 0 then
+            setPenColor(self, Black)
+            setTextColor(self, Black)
+        else
+            setPenColor(self, rgb(128,128,128))
+            setTextColor(self, rgb(128,128,128))
+        end if
+        drawRoundRect(self, 0, x, 0, x+n+6, h+5, 5, 5)
+        wPuts({self, x+3, 2}, myTabs[i][1])
+        if myTabs[i][4] != 0 then
+            wPuts({self, x+4, 2}, myTabs[i][1])
+            showControlSet(myTabs[i][6])
+        end if
+        x += n + 6
+    end for
+
+end procedure
+registerRoutine("Paint_TC", routine_id("Paint_TC"))
+
+
+global function main(sequence pArgs)
+
+    createForm({
+        "Window, name=MainWin, caption=Color Tabs, at=(0,0), size=(640,480), bar=status",
+        "Window, name=TC, at=(10,10), parent=MainWin, size=(500,400),event=(Paint,Mouse), flags=(NEW,WS_CHILD,WS_VISIBLE)",
+        "Button, Btn1, at=(20,35), member=1",
+        "Button, Btn2, at=(60,45), member=1",
+        "Button, Btn3, at=(40,55), member=2",
+        "Button, Btn4, at=(80,65), member=2",
+        "Button, Btn5, at=(60,75), member=3",
+        "Button, Btn6, at=(100,85), member=3"
+        })
+
+    myTabs = {}
+    myTabs = append(myTabs, {"Options", 0, 0, 0, Cyan, 1,BrightWhite,{}})
+    myTabs = append(myTabs, {"Folders and Directories", 0, 0, 0, Green,3,BrightWhite,{}})
+    myTabs = append(myTabs, {"Language", 0, 0, 0, Red,2,BrightWhite,{}})
+
+    for i = 1 to length(myTabs) do
+        myTabs[i][2] = getTextWidth(Screen, myTabs[i][1])
+        myTabs[i][3] = getTextHeight(Screen, myTabs[i][1])
+    end for
+    myTabs[1][4] = 1
+    return 0
+end function
+
+include w32start.ew

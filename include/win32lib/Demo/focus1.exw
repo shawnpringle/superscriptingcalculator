@@ -1,0 +1,58 @@
+include win32lib.ew
+without warning
+
+integer Win
+integer box1
+integer box2
+integer box3
+integer box4
+integer btn1
+integer SB
+
+function change_focus(sequence pName)
+    integer newid
+
+    newid = getNameId(pName)
+    if newid > 0 then
+        setFocus(newid)
+    end if
+    return newid
+end function
+
+procedure onFocus_id(atom id, atom event, sequence params)
+    setText(SB, "Focus is now on '" & getIdName(id) & "'")
+end procedure
+
+procedure Key_Box4(atom id, atom event, sequence params)
+    if params[1] = VK_ENTER then
+        if change_focus(getText(id)) > 0 then
+            setText(id, "")
+            returnValue(-1)
+        end if
+
+    end if
+end procedure
+
+procedure Click_Btn1(atom id, atom event, sequence params)
+    setFocus(box1)
+end procedure
+
+procedure main()
+
+    Win  = create( Window, "TEST", 0, 50, 50, 300, 200,0 )
+    box1 = create( EditText, "Box 1", Win, 5, 10, 90, 22, 0)
+    box2 = create( EditText, "Box 2", Win, 5, 40, 90, 22, 0)
+    box3 = create( EditText, "Box 3", Win, 5, 70, 90, 22, 0)
+    box4 = create( EditText, "Box 4", Win, 105, 10, 90, 22, 0)
+    btn1 = create( Button, "Set Focus", Win, 105,110, 90, 22, 0)
+    SB   = create( StatusBar, "", Win, 0, 0, 0, 0, 0)
+
+    setText(btn1, "Goto Box 1")
+    setHint(box4, "Enter the name of control to set focus to it.")
+    setHandler({box1,box2,box3,box4,btn1},w32HGotFocus, routine_id("onFocus_id"))
+    setHandler(btn1, w32HClick, routine_id("Click_Btn1"))
+    setHandler(box4, w32HKeyPress, routine_id("Key_Box4"))
+    WinMain({Win, box1},Normal)
+end procedure
+
+main()

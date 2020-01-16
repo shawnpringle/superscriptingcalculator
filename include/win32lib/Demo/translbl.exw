@@ -1,0 +1,70 @@
+include win32lib.ew
+without warning 
+--with trace
+
+integer MyMain 
+integer MyLbl
+integer MyBtn
+
+integer vAmPainting  vAmPainting = w32False          
+sequence vOldParms vOldParms = {-1,-1,-1,-1}
+procedure Paint_MyLbl(integer self, integer event, sequence parms)
+    -- Draw the text onto the "label"                                        
+    setFont(self, "Arial", 10, Normal)
+    wPuts({self, 0, 0}, "Line 1")
+    setFont(self, "Courier New", 14, Bold)
+    wPuts({self, 0, 20}, "Line 2")    
+end procedure
+
+-- This just moves the label around so you can see the effect.
+-- Click anywhere on the main window to move the label.
+procedure Click_Screen(integer self, integer event, sequence parms)
+    sequence lPos
+    if vAmPainting then return  end if
+    if parms[1] != WM_MOUSEMOVE then return end if             
+
+    if equal(parms[2..3], vOldParms[2..3]) then return end if
+    vOldParms = parms
+    vAmPainting = w32True
+    -- Find where the mouse is.
+    lPos = getPointerPos()
+    -- Hide the label   
+    setVisible(MyLbl, w32False)
+    -- Get the background to redraw
+    doEvents(0)
+    -- Move the label
+    setRect(MyLbl, lPos[1], lPos[2], 100, 50, 1)
+    -- Reshow it.
+    setVisible(MyLbl, w32True)
+    vAmPainting = w32False
+
+end procedure
+
+procedure Paint_MyMain(integer self, integer event, sequence parms)
+    -- Make a pretty background to move over.
+    setPenColor(self, Pink)
+    drawRectangle(self, 1, 50, 50, 151, 151)
+    setPenColor(self, Yellow)
+    drawRectangle(self, 1, 150, 50, 251, 151)
+    setPenColor(self, BrightCyan)
+    drawRectangle(self, 1, 250, 50, 351, 151)
+
+end procedure
+
+function InitApp()
+   -- Create the controls I need. The button is just to show that
+   -- this will draw text over the top of a button too!
+   MyMain = createEx(Window, "Tr Lbl", 0, 0, 0, 500, 500, WS_CLIPCHILDREN, 0)
+   MyBtn  = createEx(Button, "Button", MyMain, 315,315, 40, 25, 0, 0)
+   MyLbl  = createEx(Window, "", MyMain, 100, 100, 100, 50, {WS_VISIBLE,WS_CHILD},  WS_EX_TRANSPARENT)
+  -- Attach the event handlers.
+   setHandler( MyLbl, w32HPaint, routine_id("Paint_MyLbl"))
+   setHandler( Screen, w32HMouse, routine_id("Click_Screen"))
+   setHandler( MyMain, w32HPaint, routine_id("Paint_MyMain"))
+   return 0
+end function
+                    -- Make it so!
+if InitApp() = 0 then
+   WinMain(MyMain, Normal)
+end if
+ 

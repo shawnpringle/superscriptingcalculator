@@ -1,0 +1,13 @@
+include Win32Lib.ew
+constant Window1 = createEx( Window, "Test Window", 0, Default, Default, 451, 339, 0, 0 )
+VOID = createEx( Label, "Counting", Window1, 10, 3, 148, 20, 0, 0)
+constant aList = createEx( List, "", Window1, 8, 25, 148, 168, 0, 0)
+
+addItem(aList, {"One", "Two", "Three", "Four",
+               "Five", "Six", "Seven", "Eight",
+               "Nine", "Ten", "Eleven", "Twelve",
+               "Thirteen", "Fourteen", "Fifteen",
+               "Sixteen", "Seventeen", "Eighteen",
+               "Ninteen", "Twenty"})
+WinMain( Window1,Normal )
+

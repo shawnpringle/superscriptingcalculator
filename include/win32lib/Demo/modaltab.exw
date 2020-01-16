@@ -1,0 +1,28 @@
+without warning
+include win32lib.ew
+
+global constant
+    main_window = create(Window, "win", 0, 100, 100, 300, 300, 0),
+    gob = create(Button, "Show it", main_window, 10, 10, 50, 25, 0),
+    modal_window = create(Window, "modal", 0, Default, Default, 220, 290, 0),
+    tab_control = create(TabControl, "", modal_window, 10, 10, 190,240, 0),
+    tab1 = create(TabItem, "a", tab_control, 0, 0, 0, 0, 0),
+    grp1 = create(Group, "GrpA", tab1, 2, 20, 180,200,0),
+    button1 = create(Button, "OK A", grp1, 72, 100, 50, 30, 0),
+    tab2 = create(TabItem, "b", tab_control, 0, 0, 0, 0, 0),
+    edit2 = create(EditBox, "", tab2, 20, 25, 80, 25, 0),
+    button2 = create(Button, "OK B", tab2, 72, 100, 50, 30, 0)
+
+
+procedure button_handler(integer self, integer event, sequence parms)
+    closeWindow(modal_window)
+end procedure
+setHandler({button1,button2}, w32HClick, routine_id("button_handler"))
+
+procedure gob_handler(integer self, integer event, sequence parms)
+    openDialog(modal_window)
+end procedure
+setHandler(gob, w32HClick, routine_id("gob_handler"))
+
+WinMain(main_window, Normal)
+--end code

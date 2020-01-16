@@ -1,0 +1,101 @@
+include win32lib.ew
+without warning
+include tbar_xpm.e
+
+
+-- Create the toolbar and subclass as a flat toolbar
+
+global constant
+MainWin = create(Window, "Main Window", 0, 0, 0, 700, 500, 0),
+MainTB__ = w32Func( xCreateToolbarEx,
+
+                    {getHandle(MainWin),
+
+                    or_all({WS_CHILD,WS_VISIBLE,TBSTYLE_FLAT,CCS_NODIVIDER,TBSTYLE_TOOLTIPS}),
+
+                    10000,0,0,0,0,0,24,24,24,24,20} ),
+
+MainTB = subClassControl( {FlatToolBar,MainWin}, MainTB__ )
+
+
+-- Load images for the toolbar
+   atom dib, String, Void, hBtn, hnList, tcolor
+
+
+   -- Create the image lists
+
+    hnList = w32Func( ImageList_Create,{18,24,or_all({ILC_COLOR24,ILC_MASK}),1,1} )
+
+    Void = sendMessage( MainTB, TB_SETIMAGELIST, 0, hnList )
+    tcolor= getTransparentColor()
+
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(new_xpm)),#FF00FF} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(open_xpm)),tcolor} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(save_xpm)),tcolor} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(save_as_xpm)),tcolor} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(cut_xpm)),tcolor} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(copy_xpm)),tcolor} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(paste_xpm)),tcolor} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(undo_xpm)),tcolor} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(source_xpm)),tcolor} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(ok_xpm)),tcolor} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(trash_full_xpm)),tcolor} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(refresh_xpm)),tcolor} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(preferences_xpm)),tcolor} )
+
+    hnList = w32Func( ImageList_Create,{18,24,or_all({ILC_COLOR24,ILC_MASK}),1,1} )
+
+    Void = sendMessage( MainTB, TB_SETHOTIMAGELIST, 0, hnList )
+
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(new_xpm)),#FF00FF} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(open_xpm)),#000000} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(save_xpm)),#000000} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(save_as_xpm)),#000000} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(cut_xpm)),#000000} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(copy_xpm)),#000000} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(paste_xpm)),#000000} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(undo_xpm)),#000000} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(source_xpm)),#000000} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(ok_xpm)),#000000} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(trash_full_xpm)),#000000} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(refresh_xpm)),#000000} )
+    Void = w32Func( ImageList_AddMasked,{hnList,getHandle(xpmToPixmap(preferences_xpm)),#000000} )
+
+-- Create buttons
+
+global constant NewPB = createEx( PictureButton,"New", MainTB, 1, 0, 24, 24, 0, 0 )
+
+global constant OpenPB = createEx( PictureButton, "Open", MainTB, 2, 0, 24, 24, 0, 0 )
+
+global constant SavePB = createEx( PictureButton, "Save", MainTB, 3, 0, 24, 24, 0, 0 )
+
+global constant SaveAsPB = createEx( PictureButton, "Save As", MainTB, 4, 0, 24, 24, 0, 0 )
+
+global constant SB1 = createEx( SepButton, "", MainTB, 0, 0, 0, 0, 0, 0 )
+
+global constant CutPB = createEx( PictureButton, "Cut", MainTB, 5, 0, 24, 24, 0, 0 )
+
+global constant CopyPB = createEx( PictureButton, "Copy", MainTB, 6, 0, 24, 24, 0, 0 )
+
+global constant PastePB = createEx( PictureButton, "Paste", MainTB, 7, 0, 24, 24, 0, 0 )
+
+global constant UndoPB = createEx( PictureButton, "Undo", MainTB, 8, 0, 24, 24, 0, 0 )
+
+global constant SB2 = createEx( SepButton, "", MainTB, 0, 0, 0, 0, 0, 0 )
+
+global constant CreatePB = createEx( PictureButton, "Create", MainTB, 9, 0, 24, 24, 0, 0 )
+
+global constant ExecutePB = createEx( PictureButton, "Run", MainTB, 10, 0, 24, 24, 0, 0 )
+
+global constant ClearHistPB = createEx( PictureButton, "Clear History", MainTB, 11, 0, 24, 24, 0, 0 )
+
+global constant SB3 = createEx( SepButton, "", MainTB, 0, 0, 0, 0, 0, 0 )
+
+global constant RefreshPB = createEx( PictureButton, "Refresh", MainTB, 12, 0, 24, 24, 0, 0 )
+
+global constant SB4 = createEx( SepButton, "", MainTB, 0, 0, 0, 0, 0, 0 )
+
+global constant PrefsPB = createEx( PictureButton, "Preferences", MainTB, 13, 0, 24, 24, 0, 0 )
+
+setCtlSize(MainWin,800,500) -- otherwise, texts don't show, don't know why
+WinMain(MainWin, 0)

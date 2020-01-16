@@ -1,0 +1,86 @@
+--  ListViewEdit.exw
+-- Example provided by Tony Stewart
+
+include Win32lib.ew
+without warning
+
+
+--------------------------------------------------------------------------------
+--  Window TestWin
+integer TestWin
+integer MyLV
+integer MiscText
+integer ChangeButton
+integer DeleteButton
+--------------------------------------------------------------------------------
+
+constant cName = 1,
+         cEmail = 2,
+         cTelephone = 3
+
+sequence MyLVSelected, MyLVID, MyData
+
+--------------------------------------------------------------------------------
+procedure MyLV_onClick (integer self, integer event, sequence parms)
+    MyLVSelected = getLVSelected(MyLV)
+    if length(MyLVSelected) > 0 then
+        setText(MiscText, getLVItemText(MyLV, MyLVSelected[1],cEmail))
+    else
+        setText(MiscText, "")        
+    end if        
+end procedure
+--------------------------------------------------------------------------------
+
+procedure ChangeButton_onClick (integer self, integer event, sequence parms)
+    sequence newText
+    VOID = getLVAllChecked(MyLV)
+    newText = getText(MiscText)
+    for i = 1 to length(MyLVSelected) do
+        setLVItemText(MyLV, MyLVSelected[i], cEmail, newText)
+    end for
+
+    
+    VOID = getColumnHeadings(MyLV)
+
+end procedure
+
+procedure DeleteButton_onClick (integer self, integer event, sequence parms)
+    sequence lSelected
+    lSelected = getLVAllChecked(MyLV)
+    for i = 1 to length(lSelected) do
+        setLVItemText(MyLV, lSelected[i], cEmail, "")
+    end for
+end procedure
+
+procedure AppInit()
+    atom flags                    
+
+    TestWin = createEx( Window, "Test LV", 0, Default, Default, 400, 300, 0, 0 )
+    MyLV = createEx( ListView, {{"Name",110,0},{"Email",140,0},{"Phone",96,'>'}}, TestWin, 24, 20, 352, 116,or_all({LVS_REPORT,LVS_SHOWSELALWAYS}),0)
+    MiscText = createEx( EditText, "", TestWin, 52, 156, 148, 20, 0, 0 )
+    ChangeButton = createEx( PushButton, "Change Email", TestWin, 204, 156, 88, 20, 0, 0 )
+    DeleteButton = createEx( PushButton, "Clear Email", TestWin, 204, 186, 88, 20, 0, 0 )---------------------------------------------------------
+
+    flags = or_all({LVS_EX_GRIDLINES,LVS_EX_FULLROWSELECT,LVS_EX_CHECKBOXES,LVS_EX_HEADERDRAGDROP })
+    VOID = sendMessage(MyLV, LVM_SETEXTENDEDLISTVIEWSTYLE, flags, flags)
+    MyLVSelected = {}
+    MyLVID = {}
+    MyData = {
+                {"Nigel Hawthorne","here@there.com","43234344"},
+                {"John Brown","this@there","332987"},
+                {"Samantha West","beauty@girls.com","99343666"}
+             }             
+                        
+    -- Add them in this order.            
+    VOID = setLVInsert(1)
+    for i = 1 to length(MyData) do
+        MyLVID &= addLVItem(MyLV, 0, MyData[i])
+    end for            
+    setHandler(MyLV, w32HClick,routine_id("MyLV_onClick"))
+    setHandler(ChangeButton, w32HClick,routine_id("ChangeButton_onClick"))
+    setHandler(DeleteButton, w32HClick, routine_id("DeleteButton_onClick"))
+                                  
+end procedure
+
+AppInit()
+WinMain( TestWin,Normal )

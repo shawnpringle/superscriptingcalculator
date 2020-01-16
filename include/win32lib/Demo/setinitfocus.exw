@@ -1,0 +1,24 @@
+without warning
+include win32lib.ew
+constant
+    main=create(Window,"Test",0,100,200,200,150,0),
+    txt=create(LText,"&Field",main,10,10,7*6,25,0),
+    in=create(EditText,"",main,50,10,100,25,0),
+    in2=create(EditText,"",main,50,50,100,25,0)
+
+procedure esc(integer self, integer event, sequence params)
+    integer keycode
+    keycode=params[1]
+    if keycode=VK_RETURN then
+        returnValue(-1)
+    elsif keycode = VK_ESCAPE then
+        setText(in2,"")
+        returnValue(-1)
+    else
+        setText(in2, getText(in2)&keycode)
+    end if
+end procedure
+setHandler(in,w32HKeyPress,routine_id("esc"))
+
+WinMain({main,in2},Normal)
+

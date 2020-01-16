@@ -1,0 +1,19 @@
+without warning
+include win32lib.ew
+constant 
+        win=create(Window,"Test",0,Default,Default,400,200,0),
+        b1=create(Button,"One",win,20,20,200,20,0)
+
+VOID=setHintWidth(b1,400)
+
+function test(integer ctl, integer width)
+    sequence text
+
+    return{"Some dynamically set hint text for the button blah blah blah blah blah blah blah",200}
+end function
+
+setHint(b1,routine_id("test"))
+
+WinMain(win,Normal)
+
+

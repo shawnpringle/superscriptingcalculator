@@ -1,0 +1,18 @@
+without warning
+include win32lib.ew
+
+constant Win = create(Window, "Save As dialog", 0, Center, Center, 250, 150, 0), 
+         Btn = create(PushButton, "Save As", Win, Center, Center, 50, 20, 0),
+         Fname = create(EditText, "", Win,5, 5, 220, 25, 0)
+
+
+procedure onClick_Btn(atom id, atom event, sequence params)
+   params = getSaveFileName(id, "", {"All Files","*.*"})                     
+   setText(Fname, params)
+end procedure
+
+setHandler(Btn, w32HClick, routine_id("onClick_Btn"))
+
+WinMain(Win,Normal)
+-- /code --
+

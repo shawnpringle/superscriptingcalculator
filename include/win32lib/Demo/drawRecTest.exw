@@ -1,0 +1,24 @@
+include win32lib.ew
+without warning
+
+createForm("Test drawRectangle, size=(150,150)")
+
+global procedure Paint_TestdrawRectangle(integer self, integer event, sequence params)
+    -- Draw the background
+    setPenColor(self, Yellow)
+    drawRectangle(self, w32True, 10, 10, 100, 100)
+
+    -- Draw the outside edge
+    setPenColor(self, BrightRed)
+    setPenWidth(self,2)
+    drawRectangle(self, w32False, 10, 10, 100, 100)
+
+    -- Draw the inner square
+    setPenColor(self, BrightBlue)
+    setPenWidth(self,3)
+    drawRectangle(self, w32False, 24, 24, 86, 86)
+
+end procedure
+registerRoutine("Paint_TestdrawRectangle", routine_id("Paint_TestdrawRectangle"))
+
+include w32Start.ew

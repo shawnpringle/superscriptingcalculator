@@ -1,0 +1,144 @@
+-- FindFile: find a file in or under a specified directory
+
+--  by Dan Moyer  September 11, 2000  version 0.5
+
+--  FindFile does *two* searches, first just in the target directory, and
+--  then in *all* the sub-directories under the target directory.
+--  As written, it searches the whole c: drive for *all* instances of the
+--  target file, but by adding "return 1" in the two routines, it could
+--  be made to stop searching as soon as it finds the *first* instance.
+
+--    "walk_dir" has two parts: the "walk_dir" function itself, which
+--	walks through a directory (or all, depending on last parameter:
+--	0 is just the named directory, 1 is recurse through all sub d's);
+--    and an associated USER CREATED FUNCTION which handles the results
+--	of the walk through. walk_dir links to the user supplied function
+--    like this:
+--    exit_code = walk_dir(TargetDirectory, routine_id("UsersFunction"), 0)
+--    of course, the user supplied function must reside ABOVE the walk_dir
+--    that calls it.  And you can use more than one walk_dir, to call more
+--    than one routine to do different things.
+
+--  REQUIRES "file.e" to be included (is already included in Win32Lib)
+
+--  RETURNS AS ELEMENTS OF ItemEntry: 
+--  		 D_NAME, D_ATTRIBUTES, D_SIZE, D_YEAR, D_MONTH,	D_DAY,
+--		 D_HOUR, D_MINUTE, D_SECOND
+
+--  eg, ItemEntry[D_NAME] contains a filename
+--  and an attribute "d" signifies a directory
+----------------------------------------------------------
+
+include std/text.e
+include std/filesys.e
+include win32lib.ew
+
+----------------------------------------------------------------
+--  DEFINE WHAT DIRECTORY TO LOOK AT:
+object TargetDirectory
+
+--  SET WHAT DIRECTORY YOU WANT TO LOOK IN/UNDER:
+TargetDirectory = "C:\\" 
+-------------------------------------------------------------------
+-- DEFINE WHAT FILE TO LOOK FOR:
+sequence FileToFind
+
+--"REGISTER.DOC" -- WinTutor.exw"WinTutor.exwREADME.DOCSEARCH.EX
+
+------------------------------------------------------------------
+-- CREATE THE WINDOW:
+constant 
+TheWindow   = create( Window, "Finds what directory(s) a specified file is in", 0, 100, 20, 640, 200, 0 ),
+InfoLabel = create( StatusBar, "", TheWindow, 0, 0, 0, 0, 0)
+
+-- CREATE A BUTTON:
+
+constant FindFileButton = create( DefPushButton, "Find File", TheWindow, 10, 10, 90, 30, 0 ),
+ FileName = create(EditText, "readme.txt", TheWindow, 110, 5, 300, 28, 0),
+ PathName = create(EditText, "C:\\", TheWindow, 110, 35, 300, 28, 0)
+
+-- CREATE A LISTBOX TO PUT DIRECTORY INFO INTO:
+constant List1 = create( List, "", TheWindow, 40, 65, 550, w32Edge, 0 )
+
+--  CREATE AN INFO LABEL:
+integer Stopped Stopped = 0
+-----------------------------------------------------------------------
+-- SET THE FONT STYLES IN THE LIST, BUTTON, & LABEL:
+setFont( List1, "Times New Roman", 10, Bold )
+setFont( FindFileButton, "Times New Roman", 12, Bold )
+setFont( InfoLabel, "Times New Roman", 10, Bold )
+--------------------------------------------------------------------------
+--  ROUTINES:
+-------------------------------------------------------------------------
+
+function IsFileINdirectory(sequence path_name, sequence ItemEntry)
+    doEvents(0)
+
+  if equal(ItemEntry[D_ATTRIBUTES], "d") then
+       --  if it's a directory, do nothing
+  else -- if it isn't a directory, must be a file, so check it:
+	if equal(upper(ItemEntry[D_NAME]), FileToFind) then
+         addItem( List1, path_name & "\\" & ItemEntry[D_NAME] )
+--   ADD THE FOLLOWING RETURN IF YOU WANT TO *STOP* WITH FIRST FOUND:
+--   	   return 1   -- stop looking, found it
+	end if
+  end if
+     return Stopped     -- continue looking
+end function
+
+
+----------------
+function IsFileUNDERdirectory(sequence path_name, sequence ItemEntry)
+    doEvents(0)
+  if equal(ItemEntry[D_ATTRIBUTES], "d") then
+       --  if it's a directory, do nothing
+  else -- if it isn't a directory, must be a file, so check it:
+	if equal(upper(ItemEntry[D_NAME]), FileToFind) then
+         addItem( List1, path_name & "\\" & ItemEntry[D_NAME] )
+--   ADD THE FOLLOWING RETURN IF YOU WANT TO *STOP* WITH FIRST FOUND:
+ --  	   return 1  -- stop looking, found it
+	end if
+  end if
+     return Stopped     -- continue looking
+end function
+
+--------------------------------------------------------------------  
+-- LOOKS for where a file might be, under some specified directory:
+
+global procedure onClick_FindFileButton(integer id,integer event,sequence params)
+integer exit_code
+
+    if equal(getText(FindFileButton) , "Stop") then
+        Stopped = 1
+        return
+    end if
+            
+--  prevent duplication of items in list if button pressed more than once:
+   if getCount(List1) > 0 then
+      eraseItems(List1)
+   end if
+    Stopped = 0
+    setText(InfoLabel, "(searching...)")
+    setText(FindFileButton, "Stop")
+    FileToFind = upper(getText(FileName))
+    TargetDirectory = upper(getText(PathName))
+
+--  looks at all files IN TargetDirectory:
+--  (enabled by the "0" at end in combination with its linked function):
+
+   exit_code = walk_dir(TargetDirectory, routine_id("IsFileINdirectory"), 0)
+
+-- looks at all file in all directories UNDER specified directory:
+--  (enabled by the "1" at end, in combination with its linked function): 
+
+   exit_code = walk_dir(TargetDirectory, routine_id("IsFileUNDERdirectory"), 1)
+
+    setText(InfoLabel, "")
+    setText(FindFileButton, "Find File")
+
+end procedure
+
+setHandler(FindFileButton,w32HClick,routine_id( "onClick_FindFileButton" ))
+
+--=============================================================
+WinMain( TheWindow, Normal )

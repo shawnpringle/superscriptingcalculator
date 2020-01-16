@@ -1,0 +1,35 @@
+include win32lib.ew
+without warning
+constant vTitle = "Welcome to the world of images"
+sequence cmdline 
+integer MainWin
+integer cvrbmp
+sequence bitmapsize
+
+procedure Closer(integer self, integer event, sequence parms)
+    closeWindow(MainWin)
+end procedure
+       
+function AppInit()
+    cmdline = command_line()
+    if length(cmdline) < 3 then
+        cmdline = {0,0, "..\\demoresources\\java.bmp"}
+    end if
+    MainWin = create( Window, vTitle, 0, Default, Default, 0, 0, 
+                        {WS_DLGFRAME,WS_POPUP,WS_CAPTION})
+    cvrbmp =  create( Bitmap,cmdline[3], MainWin, 0, 0, 32,32,
+                        SS_NOTIFY)
+    bitmapsize = getCtlSize(cvrbmp)     
+
+    setClientRect(MainWin, 
+        bitmapsize[1] + (getSystemMetrics(SM_CXDLGFRAME) * 2), 
+        bitmapsize[2] + (getSystemMetrics(SM_CYDLGFRAME) * 2) + 
+            getSystemMetrics(SM_CYCAPTION))
+
+    setHandler(cvrbmp, w32HClick, routine_id("Closer"))
+    return 0
+end function
+
+if AppInit() = 0 then
+    WinMain( MainWin, Normal )
+end if    

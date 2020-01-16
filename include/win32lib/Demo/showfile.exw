@@ -1,0 +1,45 @@
+include win32lib.ew
+without warning
+
+createForm({
+        "Window, Scroll Text",
+        "EditText, name=FileName, C:\\autoexec.bat, at=(5, 5), width=80char",
+        "DefPushButton, Load, at=(*+5, **+2), height=FileName+2 ",
+        "List, name=TextArea, at=(FileName*, FileName+5), size=(80char, 6char)," &
+            "font=(My Courier, 11)"
+        })
+
+constant TextArea = getNameId("TextArea"),
+         FileName = getNameId("FileName")
+
+procedure InitApp(sequence pFileName)
+    integer fh
+    object lLine
+
+    eraseItems(TextArea)
+
+    fh = open(pFileName, "r")
+    if fh = -1 then
+        return
+    end if
+
+    lLine = gets(fh)
+    while sequence(lLine) do
+        if lLine[length(lLine)] = '\n' then
+            lLine=lLine[1..length(lLine)-1]
+        end if
+        addItem(TextArea, lLine)
+        doEvents(0)
+        lLine = gets(fh)
+    end while
+
+    close(fh)
+    lLine = getItem(TextArea,1)
+    setFocus(TextArea)
+end procedure
+
+global procedure Click_Load(integer self, integer event, sequence parms)
+    InitApp( getText(FileName) )
+end procedure
+registerRoutine("Click_Load", routine_id("Click_Load"))
+include w32start.ew

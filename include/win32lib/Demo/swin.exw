@@ -1,0 +1,11 @@
+without warning
+include win32lib.ew
+
+-- This has no Max/Min buttons in title bar
+createForm({
+    "Window, Small Window, flags=(NEW, WS_SYSMENU,WS_POPUP, WS_CAPTION),width=200",
+    "Button, Close,at=(5,5), flag=autoclose"
+    })
+
+
+include w32start.ew

@@ -1,0 +1,49 @@
+-- Clock.exw:  a Simple Clock by Dan B Moyer
+-- gets actual time (in 24 hour format)
+-- puts time into caption of window which has no size other than caption
+
+-- March 30, 2002
+
+include win32lib.ew
+without warning
+
+------------------------------------------------------------------------
+-- make a really small window with just the caption to put the time into:
+createForm({
+        "Window,Clock, left=0, top=0, width=150, height=0," &
+        "flags=(NEW,WS_CAPTION, WS_SYSMENU),event=timer"
+             })
+
+----------------------------------------------------------------------------
+procedure ShowTime(integer id)
+    sequence TimeAndDate, theTime
+    integer seconds,minutes,hours
+
+    TimeAndDate = date() -- returns both time and date info
+    hours = TimeAndDate[4]
+    minutes = TimeAndDate[5]
+    seconds = TimeAndDate[6]
+
+    -- display the new clock time:
+    theTime=sprintf("  %02d:%02d:%02d",{hours,minutes,seconds})
+    setText(id,theTime) -- puts a space at left of caption 1st
+end procedure
+
+-- set the timer to tick once a second when window opens:
+procedure Open_Clock(integer self, integer event, sequence parms)
+    -- activate the timer to tick each second (1000 ms)
+    setTimer( self, 1, 1000 )
+    setFont(self, "Arial", 15, Bold)
+    ShowTime(self)
+end procedure
+registerRoutine("Open_Clock", routine_id("Open_Clock"))
+-------------------------------------------------------------------
+
+-- get the ACTUAL time every second, & show it in caption:
+procedure Timer_Clock( integer self, integer event, sequence parms)
+    ShowTime(self)
+end procedure
+registerRoutine("Timer_Clock", routine_id("Timer_Clock"))
+
+include w32Start.ew
+

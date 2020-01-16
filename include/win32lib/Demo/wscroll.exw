@@ -1,0 +1,73 @@
+without warning
+include std/dll.e
+include Win32Lib.ew
+
+-- Demo by Don Phillips
+constant
+MainWin     =
+    create( Window, "Scroll Testing", NULL, {0.5,-150}, {0.5,-150}, 300, 
+200, 0 ),
+ScrollBtn   =
+    create( Button, "Press me...", MainWin, 0, 5, 150, 25, 0 ),
+ScrollTxt   =
+    create( MleText, "", MainWin, 0, 0, 0, 0, 
+{WS_CHILD,WS_VISIBLE,ES_MULTILINE} )
+
+integer NumberOfLines
+
+-- process timer
+procedure onTimer_MainWin( integer CntlID, integer Event, sequence Param 
+)
+    atom Void
+    NumberOfLines -= 1
+    if NumberOfLines = 0 then
+        -- if out of lines kill timer and re-enable button
+        killTimer( MainWin, 0 )
+        setEnable( ScrollBtn, w32True )
+    else
+        -- scroll down one line
+        Void = w32Func( 
+xSendMessage,{getHandle(ScrollTxt),EM_LINESCROLL,0,1} )
+    end if
+end procedure
+setHandler( MainWin, w32HTimer, routine_id("onTimer_MainWin") )
+
+-- set a timer for scrolling the text
+procedure onClick_ScrollBtn( integer CntlID, integer Event, sequence 
+Param )
+    atom Void
+    setEnable( ScrollBtn, w32False )
+    -- get number of lines in edit control
+    NumberOfLines = w32Func( 
+xSendMessage,{getHandle(ScrollTxt),EM_GETLINECOUNT,0,0} )
+    -- move to beginning of edit controls text
+    Void = w32Func( 
+xSendMessage,{getHandle(ScrollTxt),EM_LINESCROLL,0,-50} )
+    -- set timer for 5 times a second
+    setTimer( MainWin, 0, 200 )
+end procedure
+setHandler( ScrollBtn, w32HClick, routine_id("onClick_ScrollBtn") )
+
+-- resize edit control to parent
+procedure onResize_MainWin( integer CntlID, integer Event, sequence 
+Param )
+    setRect( ScrollTxt, 0, 40, Param[2]-1, Param[3]-41, w32True )
+end procedure
+setHandler( MainWin, w32HResize, routine_id("onResize_MainWin") )
+
+-- set default help text into edit control
+procedure onOpen_MainWin( integer CntlID, integer Event, sequence Param 
+)
+    sequence NewText
+    NewText = {}
+    for Iter = 1 to 50 do
+        NewText &= "Text line: " & sprintf("%d",Iter) & "\r\n"
+    end for
+    setText( ScrollTxt, NewText )
+    setWindowBackColor( ScrollTxt, getSysColor(COLOR_INFOTEXT+1) )
+end procedure
+setHandler( MainWin, w32HOpen, routine_id("onOpen_MainWin") )
+
+-- start event handlers
+WinMain( MainWin, Normal )
+

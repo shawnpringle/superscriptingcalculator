@@ -1,0 +1,82 @@
+include win32lib.ew
+without warning
+constant win = create(Window, "Test", 0, Default, Default, 400, 400, 0),
+         color_button = create(PictureButton, "", win, 30, 10, 24, 24,0),
+         cdown_button = create(PictureButton, "", win, 54, 10, 10, 24,0)
+
+
+
+
+function bgr( atom col)
+    return rgb( and_bits(col, #FF0000) / (256*256), and_bits(col, #00FF00) / 256, and_bits(col, #0000FF) )
+end function
+
+sequence fontxpm fontxpm ={"24 24 4 1",
+"2   c #C0C0C0",
+"3   c #000080",
+"4   c #808080",
+"5   c #000000",
+"222222222222222222222222",
+"222222222222222222222222",
+"222222222222222222222222",
+"222222222222222222222222",
+"222222222223222222222222",
+"222222222243422222222222",
+"222222222233322222222222",
+"222222222433342222222222",
+"222222222332332222222222",
+"222222224322334222222222",
+"222222223333333222222222",
+"222222243222233422222222",
+"222222233222243322222222",
+"222222432222243342222222",
+"222223333222333333222222",
+"222222222222222222222222",
+"222225555555555555555222",
+"222225555555555555555222",
+"222225555555555555555222",
+"222225555555555555555222",
+"222222222222222222222222",
+"222222222222222222222222",
+"222222222222222222222222",
+"222222222222222222222222"}
+
+global constant downxpm ={"7 20 2 1",
+"2   c #C0C0C0",
+"3   c #000000",
+"2222222","2222222","2222222",
+"2222222","2222222","2222222",
+"2222222","2222222","2222222",
+"2333332","2233322","2223222",
+"2222222","2222222","2222222",
+"2222222","2222222","2222222",
+"2222222","2222222"}
+
+
+atom nowcolor nowcolor = #000000
+procedure Click_cdown_button(integer ID, integer Event, object params)
+    nowcolor = bgr( getColorDialog(win, bgr(nowcolor) ) )
+    fontxpm[5][8..13] = sprintf( "%06x", nowcolor)
+
+    setBitmap(color_button,createDIB(xpmToEuBmp(fontxpm)))
+    setFocus(color_button)
+end procedure
+
+procedure Click_color_button(integer ID, integer Event, object params)
+    setWindowBackColor(win, bgr(nowcolor))
+end procedure
+
+procedure Click_win(integer ID, integer Event, object params)
+    setWindowBackColor(win, rand( #FFFFFF ) )
+end procedure
+
+
+setBitmap(color_button,createDIB(xpmToEuBmp(fontxpm)))
+setBitmap(cdown_button,createDIB(xpmToEuBmp(downxpm)))
+
+setHandler(cdown_button, w32HClick, routine_id("Click_cdown_button"))
+setHandler(color_button, w32HClick, routine_id("Click_color_button"))
+setHandler(win, w32HClick, routine_id("Click_win") )
+
+
+WinMain(win, Normal)

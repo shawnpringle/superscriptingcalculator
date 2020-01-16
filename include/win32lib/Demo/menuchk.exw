@@ -1,0 +1,44 @@
+-- Demo of adding/removing a checkmark from a menu item.
+include win32lib.ew
+without warning
+constant SimpleWin =  create( Window, "Simple Window", 0, 0, 0, 300,200, 0 ),
+         SB        =  create(StatusBar, "", SimpleWin, 0, 0, 0, 0, 0),
+         menu      =  create(Menu,"Options",SimpleWin,0,0,0,0,0),
+         menu5     =  create(MenuItem,"Icy",menu,0,0,0,0,0),
+         menu1     =  create(MenuItem,"Cold",menu,0,0,0,0,0),
+         menu2     =  create(MenuItem,"Warm",menu,0,0,0,0,0),
+         menu3     =  create(MenuItem,"Hot",menu,0,0,0,0,0), 
+         menu6     =  create(MenuItem,"Boiling",menu,0,0,0,0,0),
+         sep1      =  create(MenuItem,"-", menu, 0, 0, 0, 0, 0),         
+         menu4     =  create(MenuItem,"Color",menu,0,0,0,0,0),
+         miGroup1  = {menu1, menu2, menu3, menu5, menu6}
+
+---------------------------------
+procedure w32HClick_radiomenus(integer self,integer event,sequence params)
+---------------------------------
+    integer curval 
+
+    curval = isChecked(self)
+
+    setCheck(self, w32True)    
+
+    setText(SB, sprintf("The menu item %d was %s",{self,w32iff(curval, "on", "off")}))
+end procedure
+                         
+---------------------------------
+procedure w32HClick_checkmenu(integer self,integer event,sequence params)
+---------------------------------
+    integer curval
+    curval = isChecked(self)
+
+    setCheck( self, not curval)
+
+    setText(SB, sprintf("The menu item %d was %s",{self,w32iff(curval, "on", "off")}))
+end procedure
+
+defineMenuRadioGroup(miGroup1)
+setCheck(menu2, w32True)    
+setHandler(miGroup1,w32HClick,routine_id("w32HClick_radiomenus"))
+setHandler(menu4,w32HClick,routine_id("w32HClick_checkmenu"))
+
+WinMain(SimpleWin, Normal)

@@ -1,0 +1,15 @@
+-- ex02.exw
+--
+-- This example opens a window, and places the text
+-- "Hello World!" in it.
+
+without warning
+include win32lib.ew
+
+-- Create a window
+createForm({
+             "My First Message",  -- Window title
+             "Hello World!"       -- Put some text in it
+            })
+
+include w32Start.ew

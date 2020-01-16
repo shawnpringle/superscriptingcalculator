@@ -1,0 +1,36 @@
+without warning
+include win32lib.ew
+
+integer MainWin, Win2
+integer Text1
+integer Text2
+integer Text3
+integer Text21
+integer Text22
+integer Text23
+                 
+-- Set initial position to outside the visible area.
+MainWin = create(Window,   "Initial Focus",0,     -10000,  -10000, 300, 300, 0)
+Text1   = create(EditText, "Not here", MainWin,   5,  5, 200,  25, 0)
+Text2   = create(EditText, "This is it", MainWin, 5, 35, 200,  25, 0)
+Text3   = create(EditText, "Nor here", MainWin,   5, 65, 200,  25, 0)
+
+Win2    = create(Window,   "Window 2",  MainWin, 50, 50, 300, 300, 0)
+Text22  = create(EditText, "Password",     Win2,  5,  5, 200,  25, 0)
+Text21  = create(Combo, "Text22",       Win2,  5, 35, 200,  25, 0)
+Text23  = create(EditText, "Text23",       Win2,  5, 65, 200,  25, 0)
+
+procedure Activate_MainWin(integer self, integer event, sequence parms)
+    openDialog(Win2)                                
+    -- Bring the main window back into view.
+    setCtlPosition(MainWin, 0,0)
+end procedure
+
+procedure Activate_Win2(integer self, integer event, sequence parms)
+    setFocus(Text21)
+end procedure
+
+setHandler(MainWin, w32HActivate, routine_id("Activate_MainWin"))
+setHandler(Win2, w32HActivate, routine_id("Activate_Win2"))
+
+WinMain(MainWin, Normal)

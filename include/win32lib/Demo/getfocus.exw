@@ -1,0 +1,61 @@
+include std/dll.e
+include win32lib.ew
+without warning
+
+object VOID
+constant
+    xGetFocus = registerw32Function(user32, "GetFocus", {},C_ULONG),
+    xGetForegroundWindow = registerw32Function(user32, "GetForegroundWindow", {}, C_ULONG)
+
+constant
+    winm = create(Window, "Main Window", 0, 0, 0, 400, 400, 0),
+    SB = create(StatusBar, "", winm, 0, 0, 0, 0, 0),
+    winc = create(Window, "Child Window", winm, 300, 300, 300, 300, 0),
+    btnc = create(Button, "child button", winc, 5, 5, 150, 25,0),
+    btnm = create(Button, "main button", winm, 5, 5, 150, 25, 0),
+    editc1 = create(EditText,"", winc, 5, 35, 200, 25, 0),
+    editc2 = create(EditText, "", winc, 5, 65, 200, 25, 0)
+
+integer vLastFocusId
+vLastFocusId = btnc
+
+openWindow(winc, 0)
+
+procedure showfocus(integer self, integer event, sequence parms)
+    integer lFocus, lFore
+    sequence lForeText, lFocusText
+
+    lFocus = getId(w32Func(xGetFocus,{}))
+    lFore = getId(w32Func(xGetForegroundWindow,{}))
+
+    lForeText = getText(lFore)
+    lFocusText = getText(lFocus)
+
+    setText(SB,
+        sprintf("Focus = '%s', Foreground = '%s'",
+        {lFocusText, lForeText }))
+end procedure
+setHandler({btnc,btnm}, w32HClick, routine_id("showfocus"))
+
+procedure sizer(integer self, integer event, sequence parms)
+--    if self = winc then
+        if parms[1] = SIZE_RESTORED then
+            VOID = w32Func(xSetForegroundWindow,{getHandle(winc)})
+            w32Proc(xSetFocus,{getHandle(winc)})
+            w32Proc(xSetFocus,{getHandle(editc1)})
+        end if
+--    end if
+end procedure
+setHandler({winc,winm}, w32HResize, routine_id("sizer"))
+
+procedure TrackFocus(integer self, integer event, sequence parms)
+    integer par
+
+    par = findParentWindow(self)
+    if find(par, {winm, winc}) then
+        vLastFocusId = self
+    end if
+end procedure
+setHandler(Screen, w32HGotFocus, routine_id("TrackFocus"))
+
+WinMain(winm, 0)

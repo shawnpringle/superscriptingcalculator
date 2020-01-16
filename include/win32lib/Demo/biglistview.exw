@@ -1,0 +1,94 @@
+include Win32lib.ew
+without warning
+with trace
+constant Window1 = createEx( Window, "Big ListView", 0, Default, Default, 600, 400, 0, 0 )
+constant SB = createEx(StatusBar, "", Window1, 0, 0, 0, 0,0, 0)
+constant myLV = createEx( ListView, {"One","Two"}, Window1, 44, 36, 500, 300, or_all({LVS_REPORT,LVS_SHOWSELALWAYS}), 0 )
+constant fCount = create(EditBox, "100", Window1, 5,3, 80, 25, ES_NUMBER)
+constant lbl1 = create(Label, "items", Window1, 85,5, 80, 25, ES_NUMBER)
+
+setLVStyle(myLV, {LVS_EX_FULLROWSELECT,
+                  LVS_EX_GRIDLINES,
+                  LVS_EX_HEADERDRAGDROP})
+VOID = setLVInsert(w32True)
+
+integer lSize
+integer lInc
+atom lWhen
+atom lDur
+
+constant lDir = "<|>"
+
+lInc = 1
+lSize = 0
+lWhen = 0
+lDur = 0
+
+
+procedure BuildList()
+    integer lCnt
+
+    lCnt = getNumber(fCount) 
+    eraseItems(myLV)
+    for i = 1 to lCnt do
+        VOID = addLVItem(myLV, 0, {sprintf("ITEM %4d", i),sprintf("Value %4d", lCnt + 1 - i)})
+    end for
+end procedure
+
+---------------------------------
+function lvsort(integer id, atom item1, atom item2, integer column)
+---------------------------------
+    object text1, text2
+
+    if item1 = -1 then
+        if item2 = -1 then
+            if column = 0 then
+                -- Sorting starts!
+                lInc = 1
+                lSize = 0
+                lWhen = 0
+                lDur = time()
+                setEnable(fCount, w32False)
+            else
+                -- Sorting ends!
+                lDur = time() - lDur
+                setText(SB, sprintf("Finished sorting in %g seconds.",lDur))
+                setEnable(fCount, w32True)
+            end if
+        end if
+
+        return w32True
+    end if
+
+    if lWhen = 0 or lWhen < time() then
+        lSize += lInc
+        if lSize >= 20 or lSize <= 0 then
+            lInc = -lInc
+            lSize += lInc
+        end if
+
+        setText(SB, repeat('=', lSize) & lDir[2+lInc] & sprintf(" elapsed %gs", time()-lDur))
+        lWhen = time() + 0.5
+
+    end if
+
+    text1 = getLVItemText(id, item1, column)
+    text2 = getLVItemText(id, item2, column)
+
+    return compare( text1, text2)
+
+end function
+
+VOID = setLVAttr(myLV, {{kLVSortRtn, {-2, routine_id("lvsort")}}})
+
+BuildList()
+
+procedure  KeyPress_fCount(integer self, integer event, sequence parms)
+    if parms[1] = VK_RETURN then
+        BuildList()
+        returnValue(-1)
+    end if
+end procedure
+setHandler(fCount, w32HKeyPress, routine_id("KeyPress_fCount"))
+
+WinMain( Window1,Normal )

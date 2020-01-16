@@ -1,0 +1,71 @@
+include win32lib.ew
+without warning
+
+constant Win = create( Window, "Typing Speed Test", 0, Default, Default, 300, 200, 0),
+    SB = create(StatusBar, "", Win, 0, 0, 0, 0, 0),
+   box1 = create( MleText, "", Win, 5, 10, 250, 100, 0),
+   btn1 = create( Button, "&Start",   Win, 5,120, 98, 22, 0)
+
+integer vIdling vIdling = w32True
+
+atom timeStart
+atom timeStop
+atom totalTime totalTime = 0
+integer timeCnt timeCnt = 0
+
+procedure onIdle(atom id, atom event, sequence params)
+    atom lTime
+    integer lX, lY
+    atom lMsgCode
+
+    if params[1] = 1 then
+        -- Just become idle
+        timeStart = fetch(params[2], msgTime)
+    elsif params[1] = -1 then
+        -- Just became busy again
+        if length(getText(box1)) > 0 then
+            lMsgCode = fetch(params[2], msgMessage)
+            if lMsgCode = WM_KEYDOWN then
+                timeStop = fetch(params[2], msgTime)
+                lTime = (timeStop - timeStart)
+                if lTime < 1500 then
+                    totalTime += lTime
+                    timeCnt += 1
+                    setText(SB, {"Ave Idle %gms", totalTime / timeCnt})
+                else
+                    VOID= invokeHandler(btn1, w32HClick, {})
+                end if
+            elsif lMsgCode = WM_MOUSEMOVE then
+                    VOID= invokeHandler(btn1, w32HClick, {})
+            end if
+        end if
+    else
+        timeStop = fetch(params[2], msgTime)
+        lTime = (timeStop - timeStart)
+        if lTime > 1500 and length(getText(box1)) > 0 then
+            timeStart = timeStop
+            VOID= invokeHandler(btn1, w32HClick, {})
+        end if
+    end if
+end procedure
+setHandler(Screen,w32HIdle, routine_id("onIdle"))
+
+procedure Click_Btn1(integer self, integer event, sequence params)
+    integer lOld
+
+    lOld = setIdle(vIdling)
+    vIdling = lOld
+    if lOld = w32False then
+        totalTime = 0
+        timeCnt = 0
+        setText(box1, "")
+        setText(btn1, "&Stop")
+        setFocus(box1)
+    else
+        setText(btn1, "&Start")
+        setFocus(self)
+    end if
+end procedure
+setHandler(btn1, w32HClick, routine_id("Click_Btn1"))
+
+WinMain({Win, btn1},Normal)

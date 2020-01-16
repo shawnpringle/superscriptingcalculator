@@ -1,0 +1,52 @@
+include win32lib.ew
+without warning
+object lNewState
+
+global procedure Click_Test(integer self, integer event, sequence parms)
+    showWindow(findParentWindow(self), lNewState)
+    lNewState = w32iff(equal(lNewState, SW_RESTORE), w32FullScreen,SW_RESTORE)
+end procedure
+registerRoutine("Click_Test", routine_id("Click_Test"))
+
+global procedure KeyDown_Test(integer self, integer event, sequence parms)
+    if parms[1] = VK_ENTER then
+        Click_Test(self, w32HClick, {})
+    end if
+end procedure
+registerRoutine("KeyDown_Test", routine_id("KeyDown_Test"))
+
+global procedure Paint_FullSizeTester(integer self, integer event,sequence parms)
+    sequence lRect
+
+    -- Draw some stuff so I can see a complete screen update.
+    lRect = getClientRect(self)
+    setPenColor(self, Yellow)
+    drawRectangle(self, 1, 0, 0, lRect[3], lRect[4])
+    setPenColor(self, Cyan)
+    drawRectangle(self, 0, 0, 0, lRect[3], lRect[4])
+    drawRectangle(self, 0, 1, 1, lRect[3]-1, lRect[4]-1)
+    setPenWidth(self, 3)
+    drawLine(self, 0, 0, lRect[3]-1, lRect[4]-1)
+    drawLine(self, lRect[3]-1, 0, 0, lRect[4]-1)
+end procedure
+registerRoutine("Paint_FullSizeTester", routine_id("Paint_FullSizeTester"))
+
+global procedure Resize_FullSizeTester(integer self, integer event,sequence parms)
+    repaintFG(self)
+end procedure
+registerRoutine("Resize_FullSizeTester", routine_id("Resize_FullSizeTester"))
+
+
+global function main(sequence pArgs)
+    lNewState = w32FullScreen
+
+    createForm({
+        "Window, FullSize Tester, at=(100,100)",
+        "Button, &Test, at=(20,50),event=KeyDown"
+        })
+
+    return 0
+end function
+
+include w32start.ew
+

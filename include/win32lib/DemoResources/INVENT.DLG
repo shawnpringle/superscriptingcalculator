@@ -1,0 +1,33 @@
+;; invent.dlg
+;; This defines the inventory input screen.
+
+Window, Inventory Input, bar=status, flags=(new,ws_ex_toolwindow)
+Menu, Search
+MenuItem, caption=Purchase Order, name=FindPO
+
+Label, N&umber ;;------------------ Product Number
+	at=(5,10)
+EditText, name=ProdNumber
+	left=**, top=*, width=20char
+        event=(keypress=LookupKey)
+        hint=Enter a Product number. Press RETURN to display existing data.
+
+Label, &Description ;;-------------------- Product Name
+	left=**, top=*+4
+EditText, name=ProdName
+	left=**, top=*, width=50char
+LText, Name=OldName,
+        left=**, top=*, width=20char
+
+Label, &Qty on Hand ;;-------------------- On Hand
+	left=ProdName+4, top=Description*
+EditText, name=QtyOnHand
+	left=**, top=*, width=5char
+
+Button, name=Accept, caption=&Accept ;;----------------- Accept Button
+	left=ProdNumber*, top=OldName+10
+
+CancelButton, name=Cancel, caption=&Cancel ;;----------------- Cancel Button
+	left=*+4, top=**
+	flag=autoclose
+

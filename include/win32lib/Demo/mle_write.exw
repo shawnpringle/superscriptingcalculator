@@ -1,0 +1,45 @@
+without warning
+include win32lib.ew
+
+global procedure Click_Btn(integer self, integer event, sequence parms)
+    sequence lText
+    integer lFH
+    integer lPos
+
+    lText = getText(getNameId("MleText"))
+    if length(lText) = 0 then
+        showMessage("No text to save yet.")
+        return
+    end if
+
+    lPos = match({13,10}, lText)
+    while lPos != 0 do
+        lText = lText[1 .. lPos-1] & lText[lPos+1..length(lText)]
+        lPos = match({13,10}, lText)
+    end while
+
+    lFH = open(getText(getNameId("SleText")), "w")
+    if lFH < 0 then
+        showMessage("You need a valid file path name.")
+    else
+        showMessage("Done.")
+        puts(lFH, lText)
+        close(lFH)
+    end if
+
+end procedure
+registerRoutine("Click_Btn", routine_id("Click_Btn"))
+
+global function main(sequence pArgs)
+    createForm({
+        "Window, Write a MLE field to disk, name=MainWin",
+        "MleText, name=MleText, at=(5,5), size=(300,200)",
+        "Button, name=Btn, caption=&Write, left=5, top=*+5",
+        "LText, File Name, left=**, top=*+10",
+        "SleText, name=SleText, value=c:\\temp\\test.txt, left=**, top=*, width=40char"
+    })
+
+    return 0
+end function
+
+include w32start.ew

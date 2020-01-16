@@ -1,0 +1,42 @@
+-- Center a window
+
+without warning
+include win32lib.ew
+
+-------------------------
+procedure Click_Btn1(integer self, integer event, sequence parms)
+-------------------------
+    integer lWin
+    
+    lWin  = getNameId("ModWin")
+    centerControl(lWin, Screen)
+    openWindow(lWin, "Modal")
+end procedure
+registerRoutine("Click_Btn1", routine_id("Click_Btn1"))
+
+-------------------------
+procedure Resize_ModWin(integer self, integer event, sequence parms)
+-------------------------
+    -- Keep the close button on the bottom left corner.
+    setRect(getNameId("Btn2"), 10, {w32AltEdge,-30}, 150, 30, 1)
+end procedure
+registerRoutine("Resize_ModWin", routine_id("Resize_ModWin"))
+
+-------------------------
+global function main(sequence pArgs)
+-------------------------
+    createForm({
+        "Window, name=MainWin, Centering a Window in a Window, size=Maximum ",
+        "Button, Name=Btn1, &Open Centered Window, at=(10, 10), size=(150, 30)",
+        "Button, &Close, at=(10, 40), size=(150, 30), flag=w32AUTOCLOSE"
+        })
+
+    createForm({
+        "Window, name=ModWin, A Centered Window",
+        "Button, name=Btn2, &Close, at=(10, 10), size=(150, 30), flag=w32AUTOCLOSE"
+        })
+
+    return 0
+end function
+
+include w32start.ew

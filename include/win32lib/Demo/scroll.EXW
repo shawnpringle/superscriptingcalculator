@@ -1,0 +1,68 @@
+-- scroll.exw
+without warning
+include win32lib.ew
+integer v_Scroller
+atom vScrollLines
+
+global procedure Scroll_VerticalScroll (integer self, integer event, sequence parms)
+	integer hour, minute, second
+	sequence date_return
+
+    -- Only update display if tracking the thumbbutton or if scrolling ends.
+    if find(parms[2], { SB_ENDSCROLL, SB_THUMBTRACK}) then
+    	date_return = date ()
+    	hour = date_return [4]
+    	minute = date_return [5]
+    	second = date_return [6]
+    	showMessage (sprintf ("pos=%d\t\ttime=%2d:%2d:%2d",
+                      {parms[1], hour, minute, second})
+                )
+    end if
+end procedure
+registerRoutine("Scroll_VerticalScroll", routine_id("Scroll_VerticalScroll"))
+
+procedure WheelScroll(integer pDir)
+    integer lPos
+
+    lPos = getIndex(v_Scroller)
+    lPos -= (pDir * vScrollLines)
+    -- Set the new position and indicate that the scroll thumb is being moved.
+    setIndex(v_Scroller, {lPos, SB_THUMBTRACK})
+
+end procedure
+registerRoutine("WheelScroll", routine_id("WheelScroll"))
+
+global procedure Mouse_SimpleWindow (integer self, integer event, sequence parms)
+    if parms[1] != WheelMove then
+        return
+    end if
+    WheelScroll(parms[5])
+end procedure
+registerRoutine("Mouse_SimpleWindow", routine_id("Mouse_SimpleWindow"))
+
+global procedure Mouse_VerticalScroll (integer self, integer event, sequence parms)
+    if parms[1] != WheelMove then
+        return
+    end if
+    WheelScroll(parms[5])
+end procedure
+registerRoutine("Mouse_VerticalScroll", routine_id("Mouse_VerticalScroll"))
+
+global procedure Resize_SimpleWindow (integer self, integer event, sequence parms)
+    setRect(v_Scroller, 0, 0, 20, 0.75, 1)
+end procedure
+registerRoutine("Resize_SimpleWindow", routine_id("Resize_SimpleWindow"))
+
+
+global function main(sequence pArgs)
+    vScrollLines = getWheelScrollLines()
+    createForm({
+        "Window, Simple Window, at=(0, 0), size=(200, 200), bar=status,event=mouse",
+        "VScroll, Vertical Scroll,at=( 0, 0), size=(20, 0.75), range=(1,100,5), delta=(1,8),position=1, event=mouse"
+        })
+    v_Scroller = getNameId("Vertical Scroll")
+    return 0
+end function
+
+include w32start.ew
+

@@ -1,0 +1,56 @@
+-- ex16.exw
+--
+--      Display Bitmaps In Window
+--      Change Control's Font
+
+include win32lib.ew
+without warning
+
+-----------------------------------------------------------------------------
+VOID = setSearchPaths("..\\demoresources\\")
+-----------------------------------------------------------------------------
+-- controls
+createForm({
+     "Test Window, width=50%, height=50%",
+     "Button,OK, left=10, top=10, width=80, height=40," &
+                "font=(Times New Roman,10),tag=1"
+              })
+
+-- load the bitmap
+
+constant hBitmap = loadBitmapFromFile("java.bmp")
+
+-----------------------------------------------------------------------------
+global procedure Paint_TestWindow( integer self, integer event, sequence parms)
+
+    sequence extent
+    sequence bmsize
+
+    -- get the window size
+    extent = getCtlSize( self )
+    bmsize = getCtlSize( hBitmap )
+
+    -- fill with the bitmap
+    for i = 0 to extent[1] by bmsize[1] do
+        for j = 0 to extent[2] by bmsize[2] do
+            drawBitmap( self, hBitmap, i, j )
+        end for
+    end for
+
+end procedure
+
+-----------------------------------------------------------------------------
+global procedure Click_OK(integer self, integer event, sequence parms)
+  -- change the font
+  sequence lTag
+  lTag = getUserProperty(self, "Tag")
+  if lTag[1] then
+     setFont( self, "Times New Roman", 18, Bold+Italic )
+  else
+     setFont( self, "Times New Roman", 10, Normal )
+  end if
+  setUserProperty(self, "Tag", not lTag[1])
+
+end procedure
+
+include w32Start.ew

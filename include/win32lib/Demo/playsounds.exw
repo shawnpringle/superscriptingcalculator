@@ -1,0 +1,99 @@
+without warning
+include std/sequence.e
+include win32lib.ew
+
+object VOID
+
+createForm({
+        "Sound Wave Player,width=400",
+        "Button,Play it, left=10, top = 10",
+        -- "Button,Silence,left=*+3,top=**",
+        "Button,Special,left=*+3,top=**",
+        "EditText, Special Text, left=**, top=*+2, width=30char, height=1char",
+        "List,WAV Files, left=10, top=Special Text+5,width=200,height=20char",
+        "Button,Browse..., left=*+3, top=**",
+        "Button,Clear List, left=**, top=*+5",
+        "CheckBox,Continuous,left=**,top=*+15",
+        "CheckBox,No Stop,left=**,top=*",
+        "CheckBox,No Wait,left=**,top=*"
+})
+
+constant
+    cFileList   = getNameId("WAVFiles"),
+    cContinuous = getNameId("Continuous"),
+    cNoStop     = getNameId("NoStop"),
+    cNoWait     = getNameId("NoWait")
+
+sequence vDir vDir =""
+
+addItem(cFileList, "DING.WAV")
+
+global procedure Click_Playit(integer self, integer event, sequence parms)
+    sequence lFileName
+    atom lSndFlags
+
+    lSndFlags = or_bits(SND_FILENAME, SND_ASYNC)
+    if isChecked(cContinuous) then
+        lSndFlags = or_bits(lSndFlags, SND_LOOP)
+    end if
+    if isChecked(cNoStop) then
+        lSndFlags = or_bits(lSndFlags, SND_NOSTOP)
+    end if
+    if isChecked(cNoWait) then
+        lSndFlags = or_bits(lSndFlags, SND_NOWAIT)
+    end if
+
+    lFileName = getItem(cFileList, 0)
+    if length(lFileName) > 0 then
+        VOID = playSound({vDir & lFileName, lSndFlags})
+    end if
+end procedure
+registerRoutine("Click_Playit", routine_id("Click_Playit"))
+
+
+-- This doesn't work.
+global procedure Click_Silence(integer self, integer event, sequence parms)
+    VOID = playSound({"", SND_PURGE})
+end procedure
+registerRoutine("Click_Silence", routine_id("Click_Silence"))
+
+global procedure Click_Special(integer self, integer event, sequence parms)
+    VOID = playSound({getText(getNameId("SpecialText")), {SND_APPLICATION}})
+end procedure
+registerRoutine("Click_Special", routine_id("Click_Special"))
+
+global procedure Click_ClearList(integer self, integer event, sequence parms)
+    eraseItems(cFileList)
+end procedure
+registerRoutine("Click_ClearList", routine_id("Click_ClearList"))
+
+global procedure Click_Browse(integer self, integer event, sequence parms)
+    sequence lFileName
+
+    lFileName = getOpenFileName(
+                  0,                  -- parent window
+                  "",                         -- no default name
+                  { "Dialog Flags", {OFN_ALLOWMULTISELECT},
+                    "Sound Waves (*.wav)", "*.wav"
+                  } )    -- everything else
+    if length(lFileName) > 0 then
+        -- Check for multiple files or just a single one.
+        if sequence(lFileName[1]) then
+            -- Multiple files
+            vDir = lFileName[1]
+            for i = 2 to length(lFileName) do
+                addItem(cFileList, lFileName[i])
+            end for
+        else
+            -- Single file
+            vDir = reverse(lFileName)
+            vDir = reverse(vDir[find('\\', vDir)..length(vDir)])
+            lFileName = lFileName[length(vDir)+1..length(lFileName)]
+            addItem(cFileList, lFileName)
+        end if
+    end if
+
+end procedure
+registerRoutine("Click_Browse", routine_id("Click_Browse"))
+
+include w32Start.ew

@@ -1,0 +1,14 @@
+------------------
+include Win32Lib.ew
+createForm({
+             "Window, Main, at=(Default, Default), size=(514,402),bars=(status,toolbar)",
+               "Menu, File",
+                 "MenuItem, Open",
+                 "MenuItem, New",
+                 "MenuItem, Close",
+                 "MenuItem, Quit, flag=autoclose",
+               "Window, at=(84, 2), size=(340,296), bars=(vert,horz),flags=WS_EX_CLIENTEDGE"
+            })
+include w32Start.ew
+---------------
+

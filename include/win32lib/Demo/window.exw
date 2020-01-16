@@ -1,0 +1,12 @@
+include Win32Lib.ew
+
+global constant TheForm = createEx(Window,"This is TheForm", 0,
+Default,Default,
+318,238,
+{WS_CLIPCHILDREN,WS_CAPTION,WS_SYSMENU},
+{WS_EX_STATICEDGE}
+
+)
+
+
+WinMain(TheForm,Normal)

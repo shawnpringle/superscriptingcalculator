@@ -1,0 +1,57 @@
+-- start of include file
+without warning
+
+include std/win32/msgbox.e
+include win32lib.ew
+
+global function CreateWindowWithMenu(sequence pMenu)
+  sequence retval
+  integer MenuCtl
+  retval={0,{}}
+
+  retval[1] = createEx( Window, "Something", 0, Default, Default,
+  800, 600, {WS_DLGFRAME, WS_SYSMENU, WS_MINIMIZEBOX},
+ {WS_EX_DLGMODALFRAME} ) -- window handle is now in retval[1]
+
+  MenuCtl = createEx(Menu, "Menu", retval[1], 0, 0, 0, 0, 0,0)
+  retval[2]=append(retval[2],createEx( MenuItem, pMenu[1], MenuCtl, 0,
+  1, 0, 0, 0, 0 )) -- menu handle is now in retval[2][1]
+  setUserProperty(retval[2][1],"handler",pMenu[2]) -- routine name is
+                                      -- now in a new property of
+                                      -- the menu
+
+  return retval
+end function
+
+procedure OnClickMenu(integer self, integer event, sequence params)
+  sequence lHandler
+  lHandler=getUserProperty(self, "handler")
+  if length(lHandler) > 0 then
+    call_proc(lHandler[1],{})
+  end if
+
+end procedure
+
+global procedure RunWindow(sequence WindowToRun)
+  -- routine name is available here as WindowToRun[2][2] but
+  -- it can't be used here, I think
+  setHandler(WindowToRun[2][1], w32HClick, routine_id("OnClickMenu"))
+  WinMain(WindowToRun[1],Normal)
+end procedure
+
+--------- end of include file, main program ---------------------
+
+procedure RunThisProcedureWhenMenuIsClicked()
+  -- do something
+  integer void
+
+  void = message_box("Hi", "MSGBOX", 0)
+end procedure
+
+sequence myWindow
+myWindow=CreateWindowWithMenu(
+                        {"Menu1",routine_id("RunThisProcedureWhenMenuIsClicked")}
+                    )
+
+RunWindow(myWindow)
+

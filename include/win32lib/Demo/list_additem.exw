@@ -1,0 +1,46 @@
+include Win32lib.ew
+without warning
+
+constant Window1 = createEx( Window, "Window1", 0, Default, Default, 500, 295, 0, 0)
+constant SB = createEx(StatusBar, "", Window1, 0, 0, 0, 0, 0, 0)
+constant List2 = createEx( List, "List2", Window1, 4, 4, 450, 120, 0, 0 )
+constant bttn_AddItem = createEx( PushButton, "Add", Window1, 36, 132, 88, 28,0, 0 )
+constant bttn_DelItem = createEx( PushButton, "Delete", Window1, 36+88+4, 132, 88, 28,0, 0 )
+
+
+procedure List2_onChange (integer self, integer event, sequence params)
+
+    if params[1] != w32CHG_Sel then
+        -- Move index to end of list
+        setIndex(List2,getCount(List2))
+        -- Turn off hightlight
+        setIndex(List2, 0)
+    end if
+    setText(SB, {"%d %d", params})
+
+end procedure
+setHandler( List2, w32HChange, routine_id("List2_onChange"))
+--------------------------------------------------------------------------------
+procedure bttn_AddItem_onClick (integer self, integer event, sequence params)--params is ()
+    integer lCnt
+    
+    lCnt = next_number("list_additem.exw")
+    addItem(List2,sprintf("%5d - Generated Item", lCnt))
+
+end procedure
+setHandler( bttn_AddItem, w32HClick, routine_id("bttn_AddItem_onClick"))
+
+with trace
+procedure bttn_DelItem_onClick (integer self, integer event, sequence params)--params is ()
+    integer lItem
+    
+    lItem = getIndex(List2)
+    if lItem > 0 then
+        VOID = deleteItem(List2, lItem)
+        setIndex(List2, lItem)
+    end if
+
+end procedure
+setHandler( bttn_DelItem, w32HClick, routine_id("bttn_DelItem_onClick"))
+
+WinMain( Window1,Normal )

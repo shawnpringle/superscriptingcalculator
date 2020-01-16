@@ -1,0 +1,37 @@
+
+-- code follows
+--
+-- GetDefaultPrinterName
+-- Author Pete Lomax 9/10/03
+--
+include std/dll.e
+include std/machine.e
+
+constant k32=open_dll("kernel32.dll"),
+xGetProfileStringA=define_c_func(k32,"GetProfileStringA",
+
+{C_POINTER,C_POINTER,C_POINTER,C_POINTER,C_LONG},C_LONG),
+win=allocate_string("windows"),
+dev=allocate_string("device"),
+default=allocate_string(",,,")
+
+global function GetPrintName()
+atom len, res
+integer maxlen
+sequence pname
+maxlen=40
+while 1 do
+res=allocate(maxlen)
+len=c_func(xGetProfileStringA,{win,dev,default,res,maxlen})
+if len<maxlen+1 then exit end if
+free(res)
+maxlen*=2
+end while
+pname=peek({res,len})
+pname=pname[1..find(',',pname)-1]
+free(res)
+return pname
+end function
+printf(1,"Your default printer is \"%s\"\nPress ENTER.",{GetPrintName()})
+if getc(0) then end if
+

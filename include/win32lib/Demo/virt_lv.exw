@@ -1,0 +1,194 @@
+------------------------------------------------
+-- virt_lv.exw   Version: 1
+--
+-- Virtual ListView demo
+------------------------------------------------
+without warning
+include win32lib.ew
+include std/eds.e
+--with trace
+------------------------------------------------
+-- Controls IDs
+------------------------------------------------
+integer MainWin
+integer SB
+integer LV
+
+atom pRAM
+
+------------------------------------------------
+-- Event Handlers
+------------------------------------------------
+integer vMaxRows
+vMaxRows = 600000
+constant vLastNames = {
+        "Abbot", "Addams", "Allen", "Asimov", "Aziz",
+        "Babbage", "Billings", "Bilton", "Boole", "Bullock",
+        "Carr", "Cerraras", "Cisman", "Collins", "Cummings",
+        "Daa", "Deng", "Diffmore", "Dodds", "Dudley",
+        "Ealing", "Eels", "Eising", "Euman",
+        "Fallon", "Fenwick", "Folsworthy", "Figgins", "Fuschia",
+        "Gallway", "Green", "Gowings", "Glock",
+        "Hallam", "Hickmont", "Helping","Hull",
+        "Jones",
+        "Lam", "Lamb",
+        "Mitchell", "Morris", "Musham",
+        "Neils", "Norris", "Netherwood",
+        "Oolong", "O'Brien", "Onslow",
+        "Parris", "Penne", "Pilsner", "Plum",
+        "Queen",
+        "Rhys", "Roberts", "Rumpole",
+        "Small", "Savoy", "Smith",
+        "Tannoy", "Tarrent", "Thomas",
+        "Ullmann",
+        "Yass",
+        "Zorro"
+        }
+
+constant vMaleNames = {
+        "Adam", "Aaron", "Andrew", "Abel", "Aidan", "Allan",
+        "Bob", "Bill", "Barry",
+        "Carl",
+        "David", "Douglas",
+        "Edward",
+        "Fred",
+        "George", "Garry",
+        "Harry", "Harold", "Harvey",
+        "Ian",
+        "Jim", "James", "John",
+        "Keith",
+        "Morris", "Murry",
+        "Neville", "Ned",
+        "Peter", "Paul", "Perry",
+        "Sam", "Samuel", "Sid"
+
+        }
+constant vFemaleNames = {
+        "Abby", "Adele", "Amy",
+        "Barbara", "Betty",
+        "Colleen", "Carrie", "Catherine",
+        "Debra", "Dee", "Derdrie",
+        "Emma",
+        "Fay",
+        "Gay", "Georgette",
+        "Matilda",
+        "Natalie",
+        "Pauline", "Polly",
+        "Tanya", "Terri",
+        "Wilma",
+        "Vimla"
+        }
+----------------------------------------------------
+function GetRecord(integer pID)
+----------------------------------------------------
+    integer lRecNo
+    sequence fname
+    sequence lname
+
+    lRecNo = db_find_key(pID)
+    if lRecNo < 0 then
+        -- Generate a sample record.
+        lname = vLastNames[rand(length(vLastNames))]
+        if rand(2) = 1 then
+            fname = vFemaleNames[rand(length(vFemaleNames))] & " " &
+                    vFemaleNames[rand(length(vFemaleNames))]
+        else
+            fname = vMaleNames[rand(length(vMaleNames))] & " " &
+                    vMaleNames[rand(length(vMaleNames))]
+        end if
+
+        -- Add it to the db
+        VOID = db_insert(pID, {fname, lname, sprintf("%4.2f",rand(999999)/100)})
+        setText(SB, pID)
+        lRecNo = -lRecNo
+    end if
+    return db_record_data(lRecNo)
+
+end function
+
+----------------------------------------------------
+function DoLVN_GETDISPINFO(integer id, atom hWnd, atom wParam, atom lParam)
+----------------------------------------------------
+atom
+     lMask
+integer
+    lColumn,
+    lRow
+sequence
+    lText
+
+    id = getId( fetch( lParam, NMHDR_hwndFrom ))
+
+    if id != 0 then
+        lMask    = fetch( lParam, LVDISPINFO_LVITEMmask )
+        lColumn = fetch( lParam, LVDISPINFO_LVITEMiSubItem ) + 1
+        lRow    = fetch( lParam, LVDISPINFO_LVITEMiItem ) + 1
+
+        if and_bits(lMask, LVIF_TEXT) then
+            if lRow > vMaxRows or lRow < 1 or lColumn > 3 or lColumn < 0 then
+                -- Indicate that somebody is looking for non-existant text.
+                store(lParam, LVDISPINFO_LVITEMpszText, -1)
+                store(lParam, LVDISPINFO_LVITEMcchTextMax, -1)
+            else
+                lText = GetRecord(lRow)
+                lText = lText[lColumn]
+                poke(pRAM, lText)
+                poke(pRAM+length(lText), 0)
+                store(lParam, LVDISPINFO_LVITEMpszText, pRAM)
+                store(lParam, LVDISPINFO_LVITEMcchTextMax, length(lText))
+            end if
+        end if
+    end if
+
+    return {kReturnNow}
+end function
+
+------------------------------------------------
+procedure onClose_MainWin(integer self, integer event, sequence parms)
+------------------------------------------------
+    db_close()
+end procedure
+
+
+------------------------------------------------
+-- Application Initiation
+------------------------------------------------
+function AppInit()
+    integer lRC
+
+    lRC = 0
+
+
+    if db_open("virt_lv.edb", DB_LOCK_NO) != DB_OK then
+        if db_create("virt_lv.edb", DB_LOCK_NO) != DB_OK then
+            return 1
+        end if
+        VOID = db_create_table("TESTDATA")
+    end if
+
+    VOID = db_select("virt_lv.edb")
+    VOID = db_select_table("TESTDATA")
+
+    MainWin = createEx(Window, "Virtual Listview Demo", 0, 0, 0, 600, 400, 0, 0)
+
+    SB = createEx( StatusBar, "", MainWin, 0,0,0,0, 0, 0)
+    LV = createEx( ListView, {"First","Surname","Balance"}, MainWin, 10, 10, 550, 320,
+                    or_all({LVS_REPORT,LVS_OWNERDATA}), 0)
+
+    -- Link in the event handlers.
+
+    setHandler(MainWin, w32HClose,    routine_id("onClose_MainWin"))
+
+    VOID = setNotifyHandler( LVN_GETDISPINFO, routine_id("DoLVN_GETDISPINFO"))
+
+    VOID = sendMessage(LV, LVM_SETITEMCOUNT, vMaxRows, 0)
+    return lRC
+end function
+
+pRAM = w32acquire_mem(0, 4000)
+
+if AppInit() = 0 then
+    WinMain( MainWin, Normal)
+end if
+
+w32release_mem(pRAM)

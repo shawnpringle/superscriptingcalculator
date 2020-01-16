@@ -1,0 +1,19 @@
+include Win32lib.ew
+include groupadv.ew
+without warning
+
+--------------------------------------------------------------------------------
+--  Window Window1
+constant Window1 = createEx( Window, "Window1", 0, Default, Default, 400, 300, 0, 0 )
+constant PushButton2 = createEx( PushButton, "Button", Window1, 8, 8, 88, 28, 0, 0 )
+constant Group3 = createEx( GroupAdv, "Group", Window1, 8, 44, 308, 204, 0, 0 )
+constant PushButton4 = createEx( PushButton, "Button in a group", Group3, 12, 16, 88, 28,0, 0 )
+constant Group5 = createEx( GroupAdv, "Group in a group", Group3, 8, 56, 148, 60, 0, 0 )
+constant PushButton6 = createEx( PushButton, "Button in a group in a group", Group5, 4, 20,136, 28, 0, 0 )
+constant VScroll8 = createEx( VScroll, "Disabled scroll", Window1, 372, 28, 16, 74, 0, 0)
+constant VScroll9 = createEx( VScroll, "Enabled scroll", Window1, 372, 102, 16, 74, 0, 0)
+setEnable( VScroll8, False )
+---------------------------------------------------------
+
+
+WinMain( Window1,Normal )

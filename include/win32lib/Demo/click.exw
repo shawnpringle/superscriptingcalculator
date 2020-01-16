@@ -1,0 +1,54 @@
+include win32lib.ew
+without warning
+
+constant win = create(Window, "Click", 0, 0, 0, 450, 450, 0),
+         sb  = create(StatusBar, "", win, 0, 0, 0, 0, 0),
+         lv = create(ListView, "", win, 10, 10, 150, 150, 0),
+         ls = create(List, "", win, 200, 10, 200, 350, WS_VSCROLL),
+         bt = create(Button, "NULL", win, 10, 180, 40, 25, 0)
+
+integer s s = 0         
+integer oldself oldself = 0
+constant mev = {"Left Down", "Left Up", "Left Dbl", "Right Down", "Right Up", "Right Dbl",
+                "Middle Down", "Middle Up", "WheelUp", "WheelDown", "Left Click"}
+constant ctl = {{win,sb,lv,ls,bt}, {"Window", "Statusbar", "ListView", "List", "Button"}}
+constant mevent = {WM_LBUTTONDOWN, WM_LBUTTONUP, WM_LBUTTONDBLCLK,
+                   WM_RBUTTONDOWN, WM_RBUTTONUP, WM_RBUTTONDBLCLK,
+                   WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MOUSEWHEEL, WM_MOUSEWHEEL,0
+                   }
+procedure showclick(integer self, integer event, sequence parms)
+
+    sequence lx
+    integer pos
+
+    if event = w32HClick then
+        pos = length(mevent)
+    else        
+            
+        pos = find(parms[1], mevent)
+        if pos = 0 then
+            return
+        end if     
+    end if
+        
+    s += 1
+    if self != oldself then
+        oldself = self
+        addItem(ls, sprintf("Control = %s", {ctl[2][find(self, ctl[1])]}))
+    end if  
+    -- Special handling for wheel.     
+    if length(parms) > 0 then
+    if parms[1] = WM_MOUSEWHEEL then
+        if parms[5] < 0 then
+            pos += 1 -- wheel down
+        end if
+    end if                   
+    end if
+    addItem(ls, sprintf("#%3d %s", {s,mev[pos]}))
+    setIndex(ls, getCount(ls))
+
+end procedure
+
+setHandler({win,lv, ls, sb, bt}, {w32HMouse, w32HClick}, routine_id("showclick"))
+
+WinMain(win, 0)         

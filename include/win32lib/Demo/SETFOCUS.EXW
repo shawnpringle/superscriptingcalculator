@@ -1,0 +1,27 @@
+include Win32Lib.ew
+without warning
+
+global procedure Click_PushButton2 (integer self, integer event, sequence params)--params is ()
+    -- Open the dialog form and set focus to the first field.
+
+    openDialog({getNameId("Dialog Form"), 0})
+end procedure
+registerRoutine("Click_PushButton2", routine_id("Click_PushButton2"))
+
+
+global function main(sequence pArgs)
+    createForm({
+        "Window, Main Window, at=(0,0),size=(400, 300)",
+        "Button, name=PushButton2, caption=Open Dialog, at=(4, 4), size=(88, 28)"
+            })
+
+    createForm({
+        "Window, Dialog Form",
+        "EditText, name=EditText4,at=(4, 4), size=(296, 20)",
+        "EditText, name=EditText5,at=(**,*+4), size=*",
+        "EditText, name=EditText6,at=(**,*+4), size=EditText4",
+        "Button, Close, at=(**,*+4), flag=autoclose"
+        })
+    return 0
+end function
+include w32start.ew

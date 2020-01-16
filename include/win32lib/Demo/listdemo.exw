@@ -1,0 +1,165 @@
+without warning
+include win32lib.ew
+
+object VOID
+integer vWindow,
+        vFilePath,
+        vList,
+        vGetFile,
+        vFindFile,
+        vLbl1,
+        vLbl2,
+        vTabSize,
+        vStatusBar
+------------------------------------------
+function CheckChars(sequence pText)
+------------------------------------------
+    sequence lText
+    integer lSPosn
+    integer lTPosn
+    integer lChar
+    integer lTabCnt
+
+    lText = repeat(' ', vTabSize * length(pText))
+    lTPosn = 0
+    lSPosn = 1
+
+    while lSPosn <= length(pText) do
+        lChar = pText[lSPosn]
+        if find(lChar, {10,13,12,8,7}) then
+            lTPosn += 1
+            lText[lTPosn] = ' '
+        elsif (lChar >= ' ' and lChar <= '~') or (lChar = 9) then
+            lTPosn += 1
+            lText[lTPosn] = lChar
+        else
+            lTPosn += 1
+            lText[lTPosn] = '.'
+        end if
+
+        lSPosn += 1
+    end while
+
+    return lText[1..lTPosn]
+end function
+
+------------------------------------------
+procedure click_vGetFile(integer self, integer event, sequence params)
+------------------------------------------
+    object lText
+    integer lFH
+    sequence lTextSize
+    integer lMaxLineSize
+    sequence tabs
+    atom lTabSize
+
+    lTabSize = getNumber(vTabSize)
+    if lTabSize < 1 then
+        lTabSize = 4
+    else
+        lTabSize = floor(lTabSize)
+    end if
+
+    tabs = {}
+    for i = 1 to 15 do
+        tabs &= i*4*getNumber(vTabSize)
+    end for
+    setTabs(vList, tabs)
+
+    setText(vStatusBar, "Loading file, please wait...")
+    doEvents(0)
+    eraseItems(vList)
+
+    lFH = open(getText(vFilePath), "r")
+    if lFH < 0 then
+        setText(vStatusBar, "File cannot be opened")
+        return
+    end if
+
+    lMaxLineSize = 0
+    lText = gets(lFH)
+    while sequence(lText) do
+        addItem(vList, CheckChars(lText))
+        if lMaxLineSize < length(lText) then
+            lMaxLineSize = length(lText)
+        end if
+        lText = gets(lFH)
+    end while
+
+    lTextSize = getTextExtent(vList, "_")
+    lMaxLineSize *= lTextSize[1]
+    VOID = sendMessage(vList, LB_SETHORIZONTALEXTENT, lMaxLineSize, 0)
+
+    close(lFH)
+    setText(vStatusBar, "")
+
+end procedure
+
+integer lLow, lHigh
+lLow = -1
+lHigh = -1
+------------------------------------------
+procedure click_vWindow(integer self, integer event, sequence params)
+------------------------------------------
+    setIndex(vList, 0)
+end procedure
+
+------------------------------------------
+procedure click_vFindFile(integer self, integer event, sequence params)
+------------------------------------------
+    sequence lFileName
+    sequence lTypes
+
+    lTypes = {
+          "Euphoria Program", "*.EX;*.EXW;*.E;*.EW",
+          "Text File", "*.TXT",
+          "All Files", "*.*" }
+
+    lFileName = getOpenFileName(0, getText(vFilePath), lTypes)
+
+    if length(lFileName) > 0 then
+        setText(vFilePath, lFileName)
+        click_vGetFile(self, event, params)
+    end if
+
+end procedure
+
+
+------------------------------------------
+procedure BuildWindow()
+------------------------------------------
+    object  lFileName
+
+    vWindow     = createEx(Window, "File Listing", 0, 0, 0, 500, 550, 0, 0)
+    vLbl1       = createEx(LText, "File Path", vWindow, 10, 5, 88, 20, 0, 0)
+    vFilePath   = createEx(EditText, "",
+                              vWindow, 10, 25, 400, 25, 0, 0)
+    vLbl2       = createEx(LText, "Tab Width", vWindow, 415, 5, 88, 20, 0, 0)
+    vTabSize    = createEx(EditText, "4", vWindow, 415, 25, 32, 25, ES_NUMBER, 0)
+    vList       = createEx(List, "", vWindow, 10, 60, 400, 400,
+                        or_all({WS_HSCROLL,LBS_USETABSTOPS,LBS_MULTIPLESEL}),
+                        0)
+    vGetFile    = createEx(DefPushButton, "&List File", vWindow, 420, 60, 70, 40,0,0)
+    vFindFile   = createEx(PushButton, "&Find File", vWindow, 420, 110, 70, 40,0,0)
+    vStatusBar  = createEx(StatusBar, "", vWindow, 0, 0, 0, 0, 0, 0)
+
+    lFileName   = getenv("EUDIR")
+    if atom(lFileName) then
+        lFileName = "GET.E"
+    else
+        lFileName &= "\\INCLUDE\\GET.E"
+    end if
+    setText(vFilePath, lFileName)
+
+    setFont(vList, "Courier New", 10, Normal)
+
+    setHandler(vGetFile, w32HClick, routine_id("click_vGetFile"))
+    setHandler(vFindFile, w32HClick, routine_id("click_vFindFile"))
+    setHandler(vWindow, w32HClick, routine_id("click_vWindow"))
+
+end procedure
+
+BuildWindow()
+WinMain(vWindow, Normal)
+
+

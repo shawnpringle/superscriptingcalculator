@@ -1,0 +1,110 @@
+without warning
+include win32lib.ew
+include std/wildcard.e
+----------------------------------------------------------------------------
+----
+
+--  Window MainWin
+constant MainWin = createEx( Window, "DOS Screen Emulation", 0, Default, Default, 400,300, 0, 0 )
+constant lbl1 = createEx(LText, "Text to display", MainWin, 5, 10, 200, 20, 0, 0)
+constant TextToUse = createEx(EditBox, "sample text", MainWin, 5, 30, 200, 20, 0, 0)
+constant lbl2 = createEx(LText, "Speed of display (milliseconds)", MainWin, 215, 10, 200, 20, 0, 0)
+constant Speed = createEx(EditBox, "500", MainWin, 215, 30, 200, 20, 0, 0)
+constant Msg = createEx(LText, "Press the 'Esc' key to stop/start the display.", MainWin, 5, 60, 400, 20, 0, WS_EX_CLIENTEDGE)
+constant DosBox = createEx( Window, "", MainWin, 5, 100, 0, 0, {WS_VISIBLE,WS_CHILD}, 0 )
+
+integer vRunning  vRunning = w32False
+---------------------------------------------------------
+-- Fixed width font.
+setFont(DosBox, "Courier New", 12, Normal)
+-- Set DosBox to Black
+setWindowBackColor(DosBox, Black)
+setTextColor(DosBox, BrightWhite)
+
+sequence vTextDim
+vTextDim = getTextExtent(DosBox, "M") + 0.25
+sequence vVirtualScreen
+vVirtualScreen = repeat( repeat(' ', 80), 25)
+
+
+function ColToPixel(integer column)
+    return (column-1) * vTextDim[1]
+end function
+
+function RowToPixel(integer row)
+    return (row-1) * vTextDim[2]
+end function
+
+------------------------------------------------
+procedure onPaint_DosBox(integer self, integer event, sequence parms)
+------------------------------------------------
+    -- Draw the virtual screen into the Dos Box.
+    for i = 1 to length(vVirtualScreen) do
+        wPuts({DosBox, 0, RowToPixel(i)}, vVirtualScreen[i])
+    end for
+
+end procedure
+
+sequence vPrevPosn vPrevPosn = {}
+------------------------------------------------
+procedure onTimer_MainWin(integer self, integer event, sequence parms)
+------------------------------------------------
+    integer lCol, lRow
+    sequence lText
+
+    -- Remove previous text.
+    if length(vPrevPosn) != 0 then
+        vVirtualScreen[vPrevPosn[1]][vPrevPosn[2] .. vPrevPosn[3]] =
+            repeat(' ', vPrevPosn[4])
+    end if
+    -- Place some text on the virtual screen.
+    lCol = rand(80)
+    lRow = rand(25)
+    lText = getText(TextToUse)
+
+    if lCol + length(lText) > 80 then
+        lText = lText[1 .. 80 - lCol + 1]
+    end if
+    vVirtualScreen[lRow][lCol .. lCol + length(lText) - 1] = lText
+
+    -- Update 'previous' for next time,
+    vPrevPosn = {lRow, lCol, lCol + length(lText) - 1, length(lText)}
+    -- Force the Dos Box to be redrawn.
+    repaintWindow(DosBox)
+
+
+end procedure
+------------------------------------------------
+procedure onPause(integer self, integer event, sequence parms)
+------------------------------------------------
+    if parms[1] = VK_ESCAPE then
+        if vRunning then
+            killTimer(MainWin, 1)
+            vRunning = w32False
+            setEnable(Speed, w32True)
+            setFocus(Speed)
+        else
+            setTimer(MainWin, 1, getNumber(Speed))
+            vRunning = w32True
+            setFocus(TextToUse)
+            setEnable(Speed, w32False)
+        end if
+        returnValue(-1) -- Have Windows ignore this key.
+    end if
+end procedure
+
+-- Make Dos Box big enough to display 80 cols by 25 rows.
+setRect( DosBox, 5, 100, ColToPixel(80), RowToPixel(25), 1)
+
+-- Set alarm for every 0.5 seconds.
+setTimer(MainWin, 1 , 500)
+vRunning = w32True
+setEnable(Speed, w32False)
+
+-- Initialise the event handlers.
+setHandler(MainWin, w32HTimer, routine_id("onTimer_MainWin"))
+setHandler(DosBox, w32HPaint, routine_id("onPaint_DosBox"))
+setHandler(Screen, w32HKeyPress, routine_id("onPause"))
+
+-- Begin running the program.
+WinMain( MainWin, Maximized )

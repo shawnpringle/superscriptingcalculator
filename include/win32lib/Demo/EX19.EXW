@@ -1,0 +1,676 @@
+-- example19.exw
+--
+-- Black Box Game Demonstrating Win32Lib Features
+--
+-- The Black Box is a large square containing an 8x8 grid squares. Four of
+-- these squares contain "particles" (chosen by the computer at random). If
+-- you fire a ray into the box from one of the 32 positions shown, there are
+-- a fixed number of rules as to what may occur. You fire the ray by clicking
+-- on one of the numbers.
+--
+-- Generally, the ray goes in, bounces around (see the rules), and either
+-- exits, or is absorbed by the particle. The screen will display the entry
+-- and exit (if there is an exit) locations.
+--
+-- The rules for the path your ray will follow are these:
+--
+-- [1] If the ray does not encounter any particles either ahead of, or
+--     adjacent to the path it is in it will simply pass through and
+--     come out on the other side.
+--
+-- [2] If the ray finds a particle directly in front of it, it will be
+--     absorbed and will not exit from the box.
+--
+-- (Those are the easy cases, now for the more complex scenario)
+--
+-- [3] If the ray encounters two particles in front of it, one to the left
+--     and the other to the right, it is reflected back in the direction it
+--     came from. i.e.
+--
+--
+--         | | | | | | | | |                        | | | | | | | | |
+--         +-+-+-+-+-+-+-+-+                        +-+-+-+-+-+-+-+-+
+--         | | | |O*********<-Enters here           | | | | | | | | |
+--         +-+-+-+-+-+-+-+-+    (gets absorbed)     +-+-+-+-+-+-+-+-+
+--         | | | | | | | | |                        | | |O| |O| | | |
+-- Enters  +-+-+-+-+-+-+-+-+                        +-+-+-+*+-+-+-+-+
+--  here->******************-->Exits here           | | | |*| | | | |
+--         +-+-+-+-+-+-+-+-+                        +-+-+-+*+-+-+-+-+
+--         | | | | | | | | |                        | | | |*| | | | |
+--         +-+-+-+-+-+-+-+-+                        +-+-+-+*+-+-+-+-+
+--                                            Entry AND exit here ^
+--
+--
+-- [4] If the ray encounters a particle in front of it, either to the left
+--     or to the right it will bounce off in the appropriate direction. (see
+--     the diagram below).
+--
+--
+--         | | | | | | | | |                        | | | | | | | | |
+--         +-+-+-+-+-+-+-+-+                        +-+-+-+-+-+-+-+-+
+--         | | | | | | | | |                        | | | | |O| | | |
+--         +-+-+-+-+-+-+-+-+           Exits here   +-+-+-+-+-+-+-+-+
+--         | | |O| | | | | |                     <--********| | | | |
+--         +-+-+-+-+-+-+-+-+                        +-+-+-+*+-+-+-+-+
+--         | | | |**********-->                     | | | |*| | | | |
+--         +-+-+-+*+-+-+-+-+  Exits here            +-+-+-+*+-+-+-+-+
+--         | | | |*| | | | |                        | | | |*| | | | |
+--         +-+-+-+*+-+-+-+-+                        +-+-+-+*+-+-+-+-+
+--                ^                                               ^
+--                Enters here                                     Enters here
+--
+-- Of course, once it bounces off one particle it could hit others, and
+-- bounce around and around before it finally exits or gets absorbed.
+--
+-- The idea is to figure it out in as few a number of firings into the box
+-- as you can. One is added to your score each time you fire. To keep track
+-- of where you THINK a particle might be, you may click on a square and a
+-- question mark will appear in the box. (Clicking again erases it). An
+-- arrow will appear showing the latest entry and exit points. Also, in the
+-- status line, you can see how many times your ray "bounced" off of a
+-- particle. When you think you know the solution, click "Display Particles"
+-- and the solution will be shown.
+--
+--
+
+include std/win32/msgbox.e
+include win32lib.ew
+object VOID
+without warning
+
+-----------------------------------------------------------------------------
+-- the controls
+createForm({
+        "Black Box,width=240,height=340," &
+                        "font=(Arial,10), BGColor=BrightWhite,bar=status," &
+                        "event=Mouse",
+        "Button, Show Particles, left=65,top=215,width=110,height=30",
+        "Menu, &File",
+            "MenuItem,&New Game",
+            "MenuItem,-",
+            "MenuItem,E&xit, flag=autoclose",
+        "Menu, &Help",
+            "MenuItem, &About..."
+    })
+constant
+    Win         =  getNameId("BlackBox")
+
+
+-----------------------------------------------------------------------------
+-- the bitmap tiles
+constant Block = textToBitmap( {
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx"} ),
+
+Question = textToBitmap( {
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxx      xxxxxxx",
+    "xxxxxxx         xxxxxx",
+    "xxxxxx           xxxxx",
+    "xxxxx     xxxx    xxxx",
+    "xxxxx    xxxxx    xxxx",
+    "xxxxx    xxxxx    xxxx",
+    "xxxxxxxxxxxxxx    xxxx",
+    "xxxxxxxxxxxxx     xxxx",
+    "xxxxxxxxxxxx     xxxxx",
+    "xxxxxxxxxxx     xxxxxx",
+    "xxxxxxxxxxx    xxxxxxx",
+    "xxxxxxxxxx    xxxxxxxx",
+    "xxxxxxxxxx    xxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxxxxxxxx    xxxxxxxx",
+    "xxxxxxxxxx    xxxxxxxx",
+    "xxxxxxxxxx    xxxxxxxx",
+    "xxxxxxxxxx    xxxxxxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx"} ),
+
+Check = textToBitmap( {
+    "xxxxxxxxxxxxxxxxxxxxxx",
+    "xxxx xxxxxxxxxxxx xxxx",
+    "xxx   xxxxxxxxxx   xxx",
+    "xx     xxxxxxxx     xx",
+    "x       xxxxxx       x",
+    "xx       xxxx       xx",
+    "xxx       xx       xxx",
+    "xxxx              xxxx",
+    "xxxxx            xxxxx",
+    "xxxxxx          xxxxxx",
+    "xxxxxxx        xxxxxxx",
+    "xxxxxxx        xxxxxxx",
+    "xxxxxx          xxxxxx",
+    "xxxxx            xxxxx",
+    "xxxx              xxxx",
+    "xxx       xx       xxx",
+    "xx       xxxx       xx",
+    "x       xxxxxx       x",
+    "xx     xxxxxxxx     xx",
+    "xxx   xxxxxxxxxx   xxx",
+    "xxxx xxxxxxxxxxxx xxxx",
+    "xxxxxxxxxxxxxxxxxxxxxx" } ),
+
+Atom = textToBitmap( {
+    "                      ",
+    "                      ",
+    "       xxxxxxx        ",
+    "     x     x xxx      ",
+    "    x        x xx     ",
+    "   x     x  x xxxx    ",
+    "   x      xx x xxx    ",
+    "  x  x  x   xxxxxxx   ",
+    "  xx     x x x xxxx   ",
+    "  x  x x  x xxxxxxx   ",
+    "  xxx x xx xxxxxxxx   ",
+    "  xxx x  xxxxxxxxxx   ",
+    "  x x xxx xxxxxxxxx   ",
+    "  xxxx xxxxxxxxxxxx   ",
+    "   x xxxxxxxxxxxxx    ",
+    "   xxxxxxxxxxxxxxx    ",
+    "    xxxxxxxxxxxxx     ",
+    "     xxxxxxxxxxx      ",
+    "       xxxxxxx        ",
+    "                      ",
+    "                      ",
+    "                      " }),
+
+Right = textToBitmap( {
+    "           x          ",
+    "           xx         ",
+    "           x x        ",
+    "           x  x       ",
+    "           x   x      ",
+    "xxxxxxxxxxxxx   x     ",
+    "x            x   x    ",
+    "x x x x x x x x   x   ",
+    "x  x x x x x x x   x  ",
+    "x x x x x x x x x   x ",
+    "x  x x x x x x x x   x",
+    "x x x x x x x x x xxxx",
+    "x  x x x x x x x xxxx ",
+    "x x x x x x x x xxxx  ",
+    "x  xxxxxxxxx x xxxx   ",
+    "xxxxxxxxxxxxx xxxx    ",
+    "xxxxxxxxxxxx xxxx     ",
+    "           xxxxx      ",
+    "           xxxx       ",
+    "           xxx        ",
+    "           xx         ",
+    "           x          "}),
+
+Left = textToBitmap( {
+    "          x           ",
+    "         xx           ",
+    "        x x           ",
+    "       x  x           ",
+    "      x   x           ",
+    "     x   xxxxxxxxxxxxx",
+    "    x   x            x",
+    "   x   x x x x x x x x",
+    "  x   x x x x x x x  x",
+    " x   x x x x x x x x x",
+    "x   x x x x x x x x  x",
+    "xxxx x x x x x x x x x",
+    " xxxx x x x x x x x  x",
+    "  xxxx x x x x x x x x",
+    "   xxxx x xxxxxxxxx  x",
+    "    xxxx xxxxxxxxxxxxx",
+    "     xxxx xxxxxxxxxxxx",
+    "      xxxxx           ",
+    "       xxxx           ",
+    "        xxx           ",
+    "         xx           ",
+    "          x           "}),
+
+Down  = textToBitmap( {
+    "     xxxxxxxxxxxx     ",
+    "     x         xx     ",
+    "     x x x x x xx     ",
+    "     x  x x x xxx     ",
+    "     x x x x xxxx     ",
+    "     x  x x x xxx     ",
+    "     x x x x xxxx     ",
+    "     x  x x x xxx     ",
+    "     x x x x xxxx     ",
+    "     x  x x x xxx     ",
+    "     x x x x xxxx     ",
+    "xxxxxx  x x x xxxxxxxx",
+    " x   x x x x x x xxxx ",
+    "  x   x x x x x xxxx  ",
+    "   x   x x x x xxxx   ",
+    "    x   x x x xxxx    ",
+    "     x   x x xxxx     ",
+    "      x   x xxxx      ",
+    "       x   xxxx       ",
+    "        x  xxx        ",
+    "         x xx         ",
+    "          xx          "}),
+
+Up  = textToBitmap( {
+    "          xx          ",
+    "         x xx         ",
+    "        x  xxx        ",
+    "       x   xxxx       ",
+    "      x   x xxxx      ",
+    "     x   x x xxxx     ",
+    "    x   x x x xxxx    ",
+    "   x   x x x x xxxx   ",
+    "  x   x x x x x xxxx  ",
+    " x   x x x x x x xxxx ",
+    "xxxxxx  x x x xxxxxxxx",
+    "     x x x x xxxx     ",
+    "     x  x x x xxx     ",
+    "     x x x x xxxx     ",
+    "     x  x x x xxx     ",
+    "     x x x x xxxx     ",
+    "     x  x x x xxx     ",
+    "     x x x x xxxx     ",
+    "     x  x x x xxx     ",
+    "     x x x x x xx     ",
+    "     x         xx     ",
+    "     xxxxxxxxxxxx     "})
+
+-----------------------------------------------------------------------------
+-- The directions
+constant
+    North   = 1,
+    South   = 2,
+    East    = 3,
+    West    = 4
+
+
+-----------------------------------------------------------------------------
+function pick( sequence s )
+    -- return a random item from the sequence
+    return s[ rand(length(s)) ]
+end function
+
+
+-----------------------------------------------------------------------------
+-- create an 8x8 grid
+sequence
+    tile,       -- holds the visible screen tiles
+    particle         -- holds the particles
+
+-- keep track of moves
+integer moves, bounces, gameOver
+
+-----------------------------------------------------------------------------
+procedure initialize(integer id)
+
+    -- set up the board for a new game
+    integer count, x, y
+
+    -- clear the moves
+    moves = 0
+    bounces = 0
+    gameOver = 0
+
+    -- initialize the grid
+    tile        = repeat( repeat( 0, 8 ), 8 )
+    particle    = repeat( repeat( 0, 8 ), 8 )
+
+    -- place particles in particle
+    count = 0
+    while count < 4 do
+        -- put somewhere between {2,2} and {7,7}
+        x = rand( 6 ) + 1
+        y = rand( 6 ) + 1
+        -- unoccupied?
+        if particle[x][y] = 0 then
+            -- place in position
+            particle[x][y] = 1
+            -- increment count
+            count = count + 1
+        end if
+    end while
+
+    -- set tiles
+    for i = 2 to 7 do
+        for j = 2 to 7 do
+            tile[i][j] = Block
+        end for
+    end for
+
+    -- display
+    repaintWindow( id )
+
+end procedure
+
+
+-----------------------------------------------------------------------------
+procedure setTile( integer i, integer j, atom hBmp )
+
+    -- change a tile, and display it
+    integer x, y
+
+    tile[i][j] = hBmp
+
+    -- calculate position
+    x = i * 23
+    y = j * 23
+
+    -- repaint the tile
+    repaintRect( Win, x, y, x+23, y+23 )
+
+end procedure
+
+-----------------------------------------------------------------------------
+function occupied( integer i, integer j )
+    -- returns true if particle is in position
+
+    -- out of range?
+    if i < 2 or i > 7
+    or j < 2 or j > 7 then
+        return 0
+    else
+        return particle[i][j]
+    end if
+end function
+
+-----------------------------------------------------------------------------
+procedure fireRay( integer i, integer j )
+    -- run a ray through the black box
+    integer moving
+
+    -- clear bounces
+    bounces = 0
+
+    -- clear any prior arrows
+    for pos = 1 to 8 do
+        if tile[pos][1] then setTile( pos, 1, 0 ) end if
+        if tile[pos][8] then setTile( pos, 8, 0 ) end if
+        if tile[1][pos] then setTile( 1, pos, 0 ) end if
+        if tile[8][pos] then setTile( 8, pos, 0 ) end if
+    end for
+
+    -- determine ray's direction
+    if      j = 8 then moving = North
+    elsif   j = 1 then moving = South
+    elsif   i = 8 then moving = West
+    elsif   i = 1 then moving = East
+    end if
+
+    -- set tile at starting position
+    if      moving = North  then setTile( i, j, Up )
+    elsif   moving = South  then setTile( i, j, Down )
+    elsif   moving = East   then setTile( i, j, Right )
+    elsif   moving = West   then setTile( i, j, Left )
+    end if
+
+
+    while bounces < 100 do
+
+        -- particle directly in front?
+        if  (moving = North and occupied(i,j-1))
+        or  (moving = South and occupied(i,j+1))
+        or  (moving = East  and occupied(i+1,j))
+        or  (moving = West  and occupied(i-1,j))
+        then
+            -- got absorbed
+            exit
+
+        -- two particles in front?
+        elsif   (moving = North and occupied(i-1,j-1) and occupied(i+1,j-1))
+        or      (moving = South and occupied(i-1,j+1) and occupied(i+1,j+1))
+        or      (moving = East  and occupied(i+1,j+1) and occupied(i+1,j-1))
+        or      (moving = West  and occupied(i-1,j+1) and occupied(i-1,j-1))
+        then
+            -- note bounce
+            bounces = bounces + 1
+            -- reverse direction
+            if    moving = North then moving = South
+            elsif moving = South then moving = North
+            elsif moving = East  then moving = West
+            elsif moving = West  then moving = East
+            end if
+
+        -- particle to right?
+        elsif   (moving = North and occupied(i+1,j-1))
+        or      (moving = South and occupied(i-1,j+1))
+        or      (moving = East  and occupied(i+1,j+1))
+        or      (moving = West  and occupied(i-1,j-1)) then
+            -- note bounce
+            bounces = bounces + 1
+            -- flip direction
+            if    moving = North then moving = West
+            elsif moving = South then moving = East
+            elsif moving = East  then moving = North
+            elsif moving = West  then moving = South
+            end if
+
+        -- particle to left?
+        elsif   (moving = North and occupied(i-1,j-1))
+        or      (moving = South and occupied(i+1,j+1))
+        or      (moving = East  and occupied(i+1,j-1))
+        or      (moving = West  and occupied(i-1,j+1)) then
+            -- note bounce
+            bounces = bounces + 1
+            -- flip direction
+            if    moving = North then moving = East
+            elsif moving = South then moving = West
+            elsif moving = East  then moving = South
+            elsif moving = West  then moving = North
+            end if
+
+        end if
+
+        -- move the ray
+        if      moving = North then j = j - 1
+        elsif   moving = South then j = j + 1
+        elsif   moving = East  then i = i + 1
+        elsif   moving = West  then i = i - 1
+        end if
+
+        -- ray exited black box?
+        if i = 1 or i = 8
+        or j = 1 or j = 8 then
+            exit
+        end if
+
+    end while
+
+    -- did the ray exit the black box?
+    if i = 1 or i = 8
+    or j = 1 or j = 8 then
+        -- show ray's location and direction
+        if      moving = North then setTile( i, j, Up )
+        elsif   moving = South then setTile( i, j, Down )
+        elsif   moving = East  then setTile( i, j, Right )
+        elsif   moving = West  then setTile( i, j, Left )
+        end if
+    end if
+
+
+
+end procedure
+
+
+-----------------------------------------------------------------------------
+procedure Click_ShowParticles(integer self, integer event, sequence parms)
+    -- display the hidden stuff
+
+    -- game is over
+    gameOver = 1
+
+    for i = 1 to 8 do
+        for j = 1 to 8 do
+            -- occupied?
+            if occupied( i, j ) then
+                -- guessed right?
+                if tile[i][j] = Question then
+                    tile[i][j] = Check
+                else
+                    tile[i][j] = Atom
+                end if
+            elsif tile[i][j] = Up
+            or    tile[i][j] = Down
+            or    tile[i][j] = Left
+            or    tile[i][j] = Right then
+                -- hide arrows
+                tile[i][j] = 0
+            end if
+        end for
+    end for
+    repaintWindow( Win )
+end procedure
+registerRoutine("Click_ShowParticles", routine_id("Click_ShowParticles"))
+
+-----------------------------------------------------------------------------
+procedure Paint_BlackBox( integer self, integer event, sequence parms)
+
+
+    -- tile the bitmaps randomly across the window
+
+    integer x, y
+    sequence info
+
+    -- draw the box around the grid
+    drawRectangle( self, 0, 22, 22, 23*9, 23*9 )
+
+    -- show moves and bounces
+    setPenPos( self, 1, 1 )
+
+    -- figure message
+    if gameOver then
+        info = sprintf( "Moves: %d", {moves} )
+    else
+        if bounces = 100 then
+            info = sprintf( "Moves: %d   Bounces: Stuck!", {moves} )
+        else
+            info = sprintf( "Moves: %d   Bounces: %d        ", {moves, bounces} )
+        end if
+    end if
+
+    -- set message
+    showMessage( info )
+
+    -- draw the tiles
+    for i = 1 to 8 do
+        for j = 1 to 8 do
+
+            -- calculate tile position
+            x = (i * 23)
+            y = (j * 23)
+
+            -- in repaint rectangle?
+            if x > parms[3] or x+23 < parms[1]
+            or y > parms[4] or y+23 < parms[2] then
+                -- not in rectangle
+
+            -- tile?
+            elsif tile[i][j] then
+                drawBitmap( self, tile[i][j], x, y )
+
+            end if
+        end for
+    end for
+
+end procedure
+registerRoutine("Paint_BlackBox", routine_id("Paint_BlackBox"))
+
+
+-----------------------------------------------------------------------------
+procedure Mouse_BlackBox( integer self, integer pevent, sequence parms)
+    integer event integer x integer y integer shift
+
+    integer i, j
+    event = parms[1]
+    x = parms[2]
+    y = parms[3]
+    shift = parms[4]
+    -- uncover the clicked tile
+
+
+    -- ignore if game over
+    if gameOver then
+        return
+    end if
+
+    if event = LEFT_DOWN then
+
+        -- convert to a tile
+        i = floor( x/23 )
+        j = floor( y/23 )
+
+        -- in range?
+        if i < 1 or i > 8
+        or j < 1 or j > 8
+        or ( i = 1 and j = 1 )
+        or ( i = 8 and j = 8 )
+        or ( i = 8 and j = 1 )
+        or ( i = 1 and j = 8 ) then
+            -- outside of grid
+
+        -- clicked an arrow?
+        elsif i = 1 or i = 8
+        or    j = 1 or j = 8 then
+
+            -- fire the ray
+            fireRay( i, j )
+
+            -- increment moves
+            moves = moves + 1
+
+            -- update status portion of window
+            repaintRect( self, 1, 1, 200, 20 )
+
+        else
+            -- toggle between block and a question
+            if tile[i][j] = Block then
+                setTile( i, j, Question )
+            else
+                setTile( i, j, Block )
+            end if
+
+        end if
+
+    end if
+
+end procedure
+registerRoutine("Mouse_BlackBox", routine_id("Mouse_BlackBox"))
+
+
+
+-----------------------------------------------------------------------------
+global procedure Click_About(integer self, integer event, sequence parms)
+    VOID = message_box(   "Black Box Game Demo\n" &
+        "Objective: Find the Particles in the Black Box.\n" &
+        "See program for details.",
+        "Black Box Game Demo",
+                MB_ICONINFORMATION+MB_TASKMODAL )
+end procedure
+registerRoutine("Click_About", routine_id("Click_About"))
+
+-----------------------------------------------------------------------------
+procedure Open_BlackBox(integer self, integer event, sequence parms)
+    initialize(self)
+end procedure
+registerRoutine("Open_BlackBox", routine_id("Open_BlackBox"))
+
+procedure Click_NewGame(integer self, integer event, sequence parms)
+    initialize(Win)
+end procedure
+registerRoutine("Click_NewGame", routine_id("Click_NewGame"))
+
+include w32Start.ew

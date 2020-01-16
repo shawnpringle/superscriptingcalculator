@@ -1,0 +1,67 @@
+without warning
+include win32lib.ew
+
+-- Use the GroupAdv control
+include groupadv.ew
+
+
+integer cl
+cl = 0
+procedure Click_GroupOne(integer self, integer event, sequence parms)
+    cl += 1
+    showMessage(sprintf("Click %d %d", {self,cl}))
+end procedure
+registerRoutine("Click_GroupOne", routine_id("Click_GroupOne"))
+registerRoutine("Click_GroupTwo", routine_id("Click_GroupOne"))
+
+procedure Clicks(integer self, integer event, sequence parms)
+    showMessage(getText(self))
+end procedure
+registerRoutine("Click_Btn1", routine_id("Clicks"))
+registerRoutine("Click_Rad1", routine_id("Clicks"))
+registerRoutine("Click_Rad2", routine_id("Clicks"))
+registerRoutine("Click_Rad3", routine_id("Clicks"))
+registerRoutine("Click_Rad11", routine_id("Clicks"))
+registerRoutine("Click_Rad12", routine_id("Clicks"))
+
+
+global function main(sequence pArgs)
+    atom lPic1
+    integer lId
+
+    createForm({
+        "Window, name=MainWin, caption=Using the 'GroupAdv' control, at=(0,0), size=(640,480), bar=status",
+        "GroupAdv, name=GroupOne, caption=(Group Title),  at=(10,20), size=(300,300), event=Click, bgcolor=(16,136,32)",
+        "Button, name=Btn1, caption=Btn1, at=(10,50) , size=(40,40)",
+        "Radio, name=Rad1, caption=Any, at=(60, 70), size=(100, 25), bgcolor=parent",
+        "Radio, name=Rad2, caption=Btn, at=(60, 95), size=(100, 25), bgcolor=parent",
+        "Radio, name=Rad3, caption=At all, at=(60,120), size=(100, 25), bgcolor=parent",
+        "GroupAdv, name=GroupTwo, caption=(Second Title),  at=(10,145), size=(200,150), event=Click,bgcolor=Pink",
+        "Radio, name=Rad11, caption=AA, at=(10, 60), size=(50, 25), bgcolor=parent",
+        "Radio, name=Rad12, caption=BB, at=(10, 85), size=(50, 25), bgcolor=parent"
+        })
+
+    lId = getNameId("GroupOne")
+    setUserProperty(lId, "BorderColor" ,BrightRed)
+
+
+    lId = getNameId("GroupTwo")
+    setUserProperty(lId, "BorderColor" ,Blue)
+    setUserProperty(lId, "BorderWidth" ,-2)
+    setUserProperty(lId, "CaptionFGColor" ,Blue)
+    setUserProperty(lId, "CaptionBGColor" ,getSysColor(COLOR_WINDOW))
+    setUserProperty(lId, "CaptionBorderColor" ,BrightBlue)
+    setUserProperty(lId, "CaptionPlacement" ,0)
+    setUserProperty(lId, "CaptionAlignment" ,1)
+    setUserProperty(lId, "CaptionOffset" ,0)
+    setUserProperty(lId, "CaptionCornerSize" ,10)
+    setUserProperty(lId, "CornerSize" ,40)
+    VOID = setSearchPaths("..\\demoresources\\")
+    lPic1 = loadBitmapFromFile("happy.bmp")
+    setUserProperty(lId, "CaptionIcon", lPic1)
+
+
+    return 0
+end function
+
+include w32start.ew

@@ -1,0 +1,329 @@
+include win32lib.ew
+
+integer MainWin  -- Hosts the Viewport
+integer Canvas   -- Where drawing takes place
+integer Viewport -- Where the drawing is made visible.
+integer FrameTimer -- 24 per second ticker
+integer StartAnim -- Button to start the animation
+
+sequence Sprite
+
+integer CanvasBg 
+
+constant LINE = 1
+constant TRIANGLE = 2
+constant RECTANGLE = 3
+constant CIRCLE = 4
+
+constant FILLED = 1
+constant EMPTY = 0
+
+sequence vKeyScenes
+integer vNextScene
+integer vNextTween
+sequence vTweens
+
+with trace
+procedure RenderSprite( sequence pSprite)
+	sequence lShape
+	sequence lFacet
+	sequence lSpriteID
+	
+--	trace(1)
+	lSpriteID = pSprite[1]
+	for f = 2 to length(pSprite) do
+		lFacet = pSprite[f]
+		for i = 1 to length(lFacet) do
+			if lFacet[1] = LINE then
+				lShape = lFacet[2]
+				setPenColor(Canvas, lShape[1])	
+				drawLine(Canvas, lShape[2], lShape[3], lShape[4], lShape[5])
+				
+			elsif lFacet[1] = TRIANGLE then
+				lShape = lFacet[2]
+				setPenColor(Canvas, lShape[1])	
+				drawPolygon(Canvas, lShape[8], {lShape[2], lShape[3], lShape[4], lShape[5], lShape[6], lShape[7]})
+				
+			elsif lFacet[1] = RECTANGLE then
+				lShape = lFacet[2]
+				setPenColor(Canvas, lShape[1])	
+				drawRectangle(Canvas, lShape[6], lShape[2], lShape[3], lShape[4], lShape[5])
+				
+			elsif lFacet[1] = CIRCLE then
+				lShape = lFacet[2]
+				setPenColor(Canvas, lShape[1])	
+				drawEllipse(Canvas, lShape[5], lShape[2]-lShape[4], lShape[3]-lShape[4], lShape[2] + lShape[4], lShape[3] + lShape[4])
+			end if
+		end for
+	end for
+end procedure
+
+procedure RenderScene( sequence pSpriteList)
+	setBackColor(Canvas, CanvasBg)
+	
+	for i = 1 to length(pSpriteList) do
+		RenderSprite(pSpriteList[i])
+	end for
+	
+	repaintFG(Viewport)
+end procedure
+
+
+procedure onPaint_Viewport(integer self, integer event, sequence parms)
+	copyBlt(self, 0, 0, Canvas)
+end procedure
+
+procedure onClick_StartAnim(integer self, integer event, sequence parms)
+	vTweens = {}
+	vNextTween = 1
+	vNextScene = 0
+    setTimer(Viewport, FrameTimer, floor(1000 / 24))	
+end procedure
+
+function calculateTweens( atom pDuration, sequence pSpriteListA, sequence pSpriteListB)
+-- Given two set of sprites, this routine calculates the positions for SpriteA 
+-- as it moves in a direct line to SpriteB's position.
+
+	sequence lSpriteA
+	sequence lSpriteB
+	sequence lXY_Starts
+	sequence lXY_Ends
+	sequence lTweens
+	sequence lFacetA
+	sequence lFacetB
+	sequence lShapeA
+	sequence lShapeB
+	sequence lSpriteList
+	sequence lNewSprite
+	integer lTweenCount
+	integer lDXa
+	integer lDYa
+	integer lDXb
+	integer lDYb
+	integer lDXc
+	integer lDYc
+	atom lDelta
+	
+--	trace(1)
+	vNextTween = 1
+	lTweenCount = floor(24 * pDuration)
+	if lTweenCount = 0 then
+		lTweenCount = 1
+	end if
+	lTweens = {}
+	
+	for t = 1 to lTweenCount do
+		lSpriteList = {}	
+		lDelta = (t-1) / lTweenCount
+		for i = 1 to length(pSpriteListA) do
+			-- Get next sprite pair
+			lSpriteA = pSpriteListA[i]
+			lSpriteB = {}
+			for j = 1 to length(pSpriteListB) do
+				if equal(lSpriteA[1], pSpriteListB[j][1]) then
+					-- Found matching sprite.
+					lSpriteB = pSpriteListB[j]
+					exit
+				end if
+			end for
+			
+			if length(lSpriteB) > 0 then
+				-- I have two sprites now, so base the new sprite on A
+				lNewSprite = lSpriteA
+				for f = 2 to length(lSpriteA) do
+					-- For each facet, calculate the new verticies
+					-- Assumption: Corresponding facets in A and B are of identical type
+					lFacetA = lSpriteA[f]
+					lFacetB = lSpriteB[f]
+					if lFacetA[1] = LINE then
+						lShapeA = lFacetA[2]					
+						lShapeB = lFacetB[2]
+						lDXa = lShapeB[2] - lShapeA[2]
+						lDYa = lShapeB[3] - lShapeA[3]
+						lDXb = lShapeB[4] - lShapeA[4]
+						lDYb = lShapeB[5] - lShapeA[5]
+						
+						lShapeA[2] = floor(lShapeA[2] + lDXa * lDelta)
+						lShapeA[3] = floor(lShapeA[3] + lDYa * lDelta)
+						lShapeA[4] = floor(lShapeA[4] + lDXb * lDelta)
+						lShapeA[5] = floor(lShapeA[5] + lDYb * lDelta)
+						lFacetA[2] = lShapeA
+						lNewSprite[f] = lFacetA
+					elsif lFacetA[1] = TRIANGLE then
+						lShapeA = lFacetA[2]					
+						lShapeB = lFacetB[2]
+						lDXa = lShapeB[2] - lShapeA[2]
+						lDYa = lShapeB[3] - lShapeA[3]
+						lDXb = lShapeB[4] - lShapeA[4]
+						lDYb = lShapeB[5] - lShapeA[5]
+						lDXc = lShapeB[6] - lShapeA[6]
+						lDYc = lShapeB[7] - lShapeA[7]
+						
+						lShapeA[2] = floor(lShapeA[2] + lDXa * lDelta)
+						lShapeA[3] = floor(lShapeA[3] + lDYa * lDelta)
+						lShapeA[4] = floor(lShapeA[4] + lDXb * lDelta)
+						lShapeA[5] = floor(lShapeA[5] + lDYb * lDelta)
+						lShapeA[6] = floor(lShapeA[6] + lDXc * lDelta)
+						lShapeA[7] = floor(lShapeA[7] + lDYc * lDelta)
+						lFacetA[2] = lShapeA
+						lNewSprite[f] = lFacetA
+						
+					elsif lFacetA[1] = RECTANGLE then
+						lShapeA = lFacetA[2]					
+						lShapeB = lFacetB[2]
+						lDXa = lShapeB[2] - lShapeA[2]
+						lDYa = lShapeB[3] - lShapeA[3]
+						lDXb = lShapeB[4] - lShapeA[4]
+						lDYb = lShapeB[5] - lShapeA[5]
+						
+						lShapeA[2] = floor(lShapeA[2] + lDXa * lDelta)
+						lShapeA[3] = floor(lShapeA[3] + lDYa * lDelta)
+						lShapeA[4] = floor(lShapeA[4] + lDXb * lDelta)
+						lShapeA[5] = floor(lShapeA[5] + lDYb * lDelta)
+						lFacetA[2] = lShapeA
+						lNewSprite[f] = lFacetA
+						
+					elsif lFacetA[1] = CIRCLE then
+						lShapeA = lFacetA[2]					
+						lShapeB = lFacetB[2]
+						lDXa = lShapeB[2] - lShapeA[2]
+						lDYa = lShapeB[3] - lShapeA[3]
+						lDXb = lShapeB[4] - lShapeA[4]
+						
+						lShapeA[2] = floor(lShapeA[2] + lDXa * lDelta)
+						lShapeA[3] = floor(lShapeA[3] + lDYa * lDelta)
+						lShapeA[4] = floor(lShapeA[4] + lDXb * lDelta)
+						lFacetA[2] = lShapeA
+						lNewSprite[f] = lFacetA
+					end if
+				end for
+				lSpriteList = append(lSpriteList, lNewSprite)
+			end if
+		end for
+		if length(lSpriteList) > 0 then
+			lTweens = append(lTweens, lSpriteList)
+		end if
+	end for
+	
+	return lTweens
+end function
+
+procedure onTimer_Viewport(integer self, integer event, sequence parms)
+
+	if vNextTween > length(vTweens) then
+--		trace(1)
+		vNextScene += 1
+		if vNextScene >= length(vKeyScenes) then
+			killTimer(Viewport, FrameTimer)
+			return
+		end if
+		
+		vTweens = calculateTweens(vKeyScenes[vNextScene][1],vKeyScenes[vNextScene][2], vKeyScenes[vNextScene+1][2])
+		vNextTween = 1
+	end if	
+	RenderScene(vTweens[vNextTween])
+	vNextTween += 1
+	
+end procedure
+
+procedure main()
+	MainWin = create(Window, "Main Window", 0, 50, 50, 800, 800, 0)
+	StartAnim = create(Button, "Start", MainWin, 5, 5, 60, 30, 0)	
+	Canvas  = create(Pixmap, "", 0, 0, 0, 640, 640, 0)
+	CanvasBg = BrightWhite
+	setBackColor(Canvas, CanvasBg)
+	--clearWindow(Canvas)
+	
+    Viewport = create(Window, "", MainWin, 100, 30, 640, 640, {WS_CHILD, WS_VISIBLE, WS_BORDER})
+    
+    setHandler( Viewport, w32HPaint, routine_id("onPaint_Viewport"))
+    setHandler( Viewport, w32HTimer, routine_id("onTimer_Viewport"))
+    setHandler( StartAnim, w32HClick, routine_id("onClick_StartAnim"))
+	    
+    
+    
+    Sprite= {
+    	{
+    	    "S1",
+	    	{CIRCLE, {Green, 5,5, 50, FILLED}},
+	    	{TRIANGLE, {BrightBlue, 15,15, 260, 160, 100, 250, FILLED}},
+	    	{RECTANGLE, {BrightRed,5,5, 69, 180, EMPTY}}
+	    }
+	    ,
+    	{
+    	    "S1",
+	    	{CIRCLE, {Green, 210,210, 150,  FILLED}},
+	    	{TRIANGLE, {BrightBlue,  210,210, 260, 670, 100, 250, FILLED}},
+	    	{RECTANGLE, {BrightRed,   210,210, 9, 150, EMPTY}}
+	    }
+	    ,
+    	{
+    	    "S1",
+	    	{CIRCLE, {Green, 21,21, 40,  FILLED}},
+	    	{TRIANGLE, {BrightBlue,  21,21, 60, 570, 100, 250, FILLED}},
+	    	{RECTANGLE, {BrightRed,   21,21, 0, 50, EMPTY}}
+	    }
+	    ,
+    	{
+    	    "S2",
+	    	{LINE, {BrightGreen, 210,210, 155,  10}},
+	    	{LINE, {BrightBlue,  210,210, 260, 670}},
+	    	{LINE, {BrightRed,   210,210, 9, 150}},
+	    	{LINE, {#808080, 155,10, 260,  670}},
+	    	{LINE, {#808080,  260,670, 9, 150}},
+	    	{LINE, {#808080,   9,150, 155, 10}}
+	    }
+	    ,
+    	{
+    	    "S2",
+	    	{LINE, {BrightGreen, 21,21, 55,  110}},
+	    	{LINE, {BrightBlue,  21,21, 60, 570}},
+	    	{LINE, {BrightRed,   21,21, 0, 50}},
+	    	{LINE, {#808080, 55,110, 60,  570}},
+	    	{LINE, {#808080,  60,570, 0, 50}},
+	    	{LINE, {#808080,   0,50, 55, 110}}
+	    }
+		,
+    	{
+    	    "S2",
+	    	{LINE, {BrightGreen,5,5, 50, 10}},
+	    	{LINE, {BrightBlue,5,5, 260, 160}},
+	    	{LINE, {BrightRed,5,5, 69, 180}},
+	    	{LINE, {#808080, 50,10, 260,  160}},
+	    	{LINE, {#808080,  260,160, 69, 180}},
+	    	{LINE, {#808080,   69,180, 50, 10}}
+	    }
+			    
+    }
+    FrameTimer = 1
+	vKeyScenes = {
+		{1, -- Duration
+		 {
+		  Sprite[1] -- sprites in this scene
+		  ,
+		  Sprite[4]
+		 }
+		}
+		, 
+		{2, -- Final scene
+		 {
+		  Sprite[2] -- sprites in this scene
+		  ,
+		  Sprite[5]
+		 }
+		}
+		, 
+		{0, -- Final scene
+		 {
+		  Sprite[3] -- sprites in this scene
+		  ,
+		  Sprite[6]
+		 }
+		}
+	}
+	
+    WinMain(MainWin, Normal)
+end procedure
+
+main()
+

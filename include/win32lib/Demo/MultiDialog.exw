@@ -1,0 +1,365 @@
+without warning
+include std/win32/msgbox.e
+include win32lib.ew
+with trace
+
+constant DBS     = next_number(0),
+         DBS_Index = next_number(DBS),
+         DBS_Data  = next_number(DBS),
+         DBS_SIZEOF = current_number(DBS)
+
+
+constant TDS     = next_number(0),
+         TDS_TableName = next_number(TDS),
+         TDS_ScreenFields = next_number(TDS),
+         TDS_DBIField  = next_number(TDS),
+         TDS_DBDFields = next_number(TDS),
+         TDS_SIZEOF = current_number(TDS)
+
+sequence TableDefn
+sequence db
+sequence DialogNames
+sequence DialogDBs
+
+-----------------------------
+function FindTable(sequence pTableName)
+-----------------------------
+    for i = 1 to length(TableDefn) do
+        if equal(TableDefn[i][TDS_TableName], pTableName) then
+            return i
+        end if
+    end for
+    return 0
+end function
+
+-----------------------------
+function FetchData(object pTable, object pKey, sequence pFld)
+-----------------------------
+    sequence lDefn
+    integer lFldNo
+    integer lPos
+    object lData
+    integer lSimple
+
+    pTable = FindTable(pTable)
+
+    lPos = find(pKey, db[pTable][DBS_Index])
+    if lPos = 0 then
+        lData = ""
+        lSimple = 0
+    else
+        if w32string(pFld) then
+            lSimple = 1
+            pFld = {pFld}
+        else
+            lSimple = 0
+        end if
+
+        lData = repeat({}, length(pFld))
+        for i = 1 to length(pFld) do
+            lDefn = TableDefn[pTable]
+            lFldNo = find(find(pFld[i], lDefn[TDS_ScreenFields]), lDefn[TDS_DBDFields])
+            if lFldNo != 0 then
+                lData[i] = db[pTable][DBS_Data][lPos][lFldNo]
+            end if
+        end for
+    end if
+
+    if lSimple then
+        lData = lData[1]
+    end if
+    return lData
+end function
+
+-----------------------------
+procedure ShowCurrent(integer self, sequence pTable )
+-----------------------------
+    integer lParent
+    sequence lData
+    integer lShowFld
+    sequence lDefn
+    sequence lRefFld
+    sequence lRecordKey
+
+    lDefn = TableDefn[FindTable(pTable)]
+
+    lParent = findParent(self)
+    lRecordKey = getText(self)
+
+    for i = 1 to length(lDefn[TDS_DBDFields]) do
+        lRefFld = lDefn[TDS_ScreenFields][lDefn[TDS_DBDFields][i]]
+        -- Lookup the record id to get the referenced data.
+        lData = FetchData(pTable, lRecordKey, lRefFld)
+
+        -- Show it in the 'display' area.
+        lShowFld = getNameIdInContext("Cur" & lRefFld, lParent)
+        if lShowFld > 0 then
+            setText(lShowFld, lData)
+        end if
+
+        -- Show it in the 'edit' area if its currently empty.
+        lShowFld = getNameIdInContext(lRefFld, lParent)
+        if lShowFld > 0 and length(getText(lShowFld)) = 0 then
+            setText(lShowFld, lData)
+        end if
+    end for
+
+end procedure
+
+-----------------------------
+global procedure LookupKey(integer self, integer event, sequence parms)
+-----------------------------
+    sequence lFormName
+    integer lForm
+    sequence lDBName
+    if parms[1] = VK_RETURN then
+        lForm = findParent(self)
+        lFormName = getUserProperty(lForm, "DialogName")
+        lFormName = lFormName[1]
+        lDBName = w32lookup(lFormName, DialogNames, DialogDBs)
+        ShowCurrent(self, lDBName)
+    end if
+end procedure
+registerRoutine("LookupKey", routine_id("LookupKey"))
+
+-----------------------------
+function Update_Database(integer pForm, object pTable)
+-----------------------------
+    sequence lKids
+    sequence lFldName
+    integer  lPos
+    sequence  lEmptyData
+    sequence lInputs
+    sequence lNewRecord
+    sequence lDefn
+
+    pTable = FindTable(pTable)
+    lDefn = TableDefn[pTable]
+
+    lInputs = getValues(pForm, lDefn[TDS_ScreenFields] )
+
+    lPos = find(lInputs[lDefn[TDS_DBIField]], db[pTable][DBS_Index])
+    if lPos = 0 then
+        -- Number not found, so we add it if the data is present.
+        lEmptyData = ""
+        for i = 1 to length(lDefn[TDS_DBDFields]) do
+            if length(lInputs[lDefn[TDS_DBDFields][i]]) = 0 then
+                lEmptyData = sprintf("Field '%s' is required.",{lDefn[TDS_ScreenFields][lDefn[TDS_DBDFields][i]]})
+                exit
+            end if
+        end for
+
+        if length(lEmptyData) = 0 then
+            -- All required fields present.
+            db[pTable][DBS_Index] = append(db[pTable][DBS_Index], lInputs[lDefn[TDS_DBIField]])
+            lNewRecord = repeat(0,length(lDefn[TDS_DBDFields]) )
+            for i = 1 to length(lDefn[TDS_DBDFields]) do
+                lNewRecord[i] = lInputs[lDefn[TDS_DBDFields][i]]
+            end for
+            db[pTable][DBS_Data] = append(db[pTable][DBS_Data], lNewRecord)
+        else
+            return {1, lEmptyData}
+        end if
+    else
+        -- Number found, so we either delete it or update it...
+        lEmptyData = ""
+        for i = 1 to length(lDefn[TDS_DBDFields]) do
+            if length(lInputs[lDefn[TDS_DBDFields][i]]) = 0 then
+                lEmptyData = "YES"
+                exit
+            end if
+        end for
+        if length(lEmptyData) = 0 then
+            -- Data is not blank, so update the record.
+            for i = 1 to length(lDefn[TDS_DBDFields]) do
+                db[pTable][DBS_Data][lPos][i] = lInputs[lDefn[TDS_DBDFields][i]]
+            end for
+
+        else
+            -- Name is blank so delete the record.
+            db[pTable][DBS_Index] = w32removeIndex(lPos, db[pTable][DBS_Index])
+            db[pTable][DBS_Data] = w32removeIndex(lPos, db[pTable][DBS_Data])
+        end if
+    end if
+
+    return ""
+end function
+
+-----------------------------
+function Accept(integer pForm)
+-----------------------------
+    sequence lFormName
+    sequence lDBName
+    sequence lMsg
+
+    lFormName = getUserProperty(pForm, "DialogName")
+    lFormName = lFormName[1]
+    lDBName = w32lookup(lFormName, DialogNames, DialogDBs)
+
+    lMsg = Update_Database( pForm, lDBName)
+
+    if length(lMsg) = 0 then
+        return 0
+    end if
+
+    showMessage({lMsg[2], pForm})
+    return lMsg[1]
+
+end function
+
+-----------------------------
+global procedure Click_Accept(integer self, integer event, sequence parms)
+-----------------------------
+    integer lParent
+
+    -- Get which form this accept button is on.
+    lParent = findParent(self)
+
+    if Accept(lParent) != 0 then
+        return
+    end if
+    closeWindow(lParent)
+
+end procedure
+registerRoutine("Click_Accept", routine_id("Click_Accept"))
+
+-----------------------------
+procedure DummySearch(sequence pText)
+-----------------------------
+    VOID = message_box("At this point some fancy " & pText & " 'search' form should display",
+                        "DEMO PROGRAM ONLY", 0)
+end procedure
+
+-----------------------------
+global procedure Click_FindCustomer(integer self, integer event, sequence parms)
+-----------------------------
+    DummySearch(getText(self))
+end procedure
+registerRoutine("Click_FindCustomer", routine_id("Click_FindCustomer"))
+
+-----------------------------
+global procedure Click_FindPO(integer self, integer event, sequence parms)
+-----------------------------
+    DummySearch(getText(self))
+end procedure
+registerRoutine("Click_FindPO", routine_id("Click_FindPO"))
+
+-----------------------------
+global procedure Click_FindProduct(integer self, integer event, sequence parms)
+-----------------------------
+    DummySearch(getText(self))
+end procedure
+registerRoutine("Click_FindProduct", routine_id("Click_FindProduct"))
+
+-----------------------------
+procedure Close_Form(integer self, integer event, sequence parms)
+-----------------------------
+    sequence lLauncher
+    sequence lDialogs
+
+    -- Find out which button lanched this window.
+    lLauncher = getUserProperty(self, "Launcher")
+    -- Get the list of forms launched by this button.
+    lDialogs = getUserProperty(lLauncher[1], "Dialogs")
+    if length(lDialogs) > 0 then
+        -- Remove the one I'm about to close.
+        lDialogs = w32removeItem(self, lDialogs[1])
+        setUserProperty(lLauncher, "Dialogs", lDialogs)
+    end if
+    -- Not only close it, but completely get rid of it.
+    destroy(self)
+end procedure
+registerRoutine("Close_Form", routine_id("Close_Form"))
+
+-----------------------------
+global procedure Clicker(integer self, integer event, sequence parms)
+-----------------------------
+    sequence lMaxDialogs
+    sequence lDialogs
+    integer lNewDialog
+    sequence lForm
+    sequence lFormName
+    object  lFormId
+
+    lMaxDialogs = getUserProperty(self, "MaxDialogs")
+    lDialogs = getUserProperty(self, "Dialogs")
+    lFormName = getUserProperty(self, "DialogName")
+
+    if length(lDialogs[1]) >= lMaxDialogs[1] then
+        showMessage(sprintf("Maximum number of %d '%s' forms are already showing.",
+                        {length(lDialogs[1]),lFormName[1]}))
+        return
+    end if
+
+    showMessage("")
+    lForm = getUserProperty(self, "DialogForm")
+    if length(lForm[1]) > 0 then
+        createForm(lForm[1])
+        lFormId = getFormIds(1)
+        lFormId = lFormId[1]
+        lDialogs[1] &= lFormId
+        setText(lFormId, sprintf("%s (%d)", {getText(lFormId), lFormId}))
+        setUserProperty(self, "Dialogs", lDialogs[1])
+        setHandler(lFormId, w32HClose, routine_id("Close_Form"))
+        defineUserProperty(lFormId, "Launcher", self)
+        defineUserProperty(lFormId, "DialogName", lFormName[1])
+        openWindow({lFormId,0}, Normal)
+    end if
+end procedure
+registerRoutine("Clicker", routine_id("Clicker"))
+
+-----------------------------
+global function main( sequence args )
+-----------------------------
+    sequence lKids
+    sequence lCurVal
+
+    VOID = setSearchPaths("..\\demoresources\\")
+
+    DialogNames = {"cust.dlg", "order.dlg", "invent.dlg", "recv.dlg"}
+    DialogDBs   = {"Customer", "Order",     "Inventory",  "Receiving"}
+
+    -- Define the tables I'm going to work with.
+    TableDefn = {
+        {"Customer",{"CustNumber", "CustName", "CustAddr"}, 1, {2,3}},
+        {"Order", {"PONumberValue", "OrderDate", "CustId", "ProdList"}, 1, {2,3,4}},
+        {"Inventory",{"ProdNumber", "ProdName", "QtyOnHand"}, 1, {2,3}},
+        {"Receiving",{"RecptNumber", "PONumberValue", "RecptDate", "SupplierId", "ProdList"}, 1, {2,3,4,5}}
+            }
+
+    -- Create an empty database.
+    db = repeat(repeat({}, DBS_SIZEOF) , length(TableDefn))
+
+    -- Set up main window
+    createForm({
+        "Window, Main Window, at=(0, 0), bar=status",
+        "Button, &Customers, left=5, top=10, size=(80, 25), event=(click=Clicker)," &
+                "user=(MaxDialogs,9), user=(DialogName,cust.dlg)",
+        "Button, &Orders, left=**, top=*+40, size=*, event=(click=Clicker)," &
+                "user=(MaxDialogs,3), user=(DialogName,order.dlg)",
+        "Button, &Inventory, left=**, top=*+40, size=*, event=(click=Clicker)," &
+                "user=(MaxDialogs,1), user=(DialogName,invent.dlg)",
+        "Button, &Receiving, left=**, top=*+40, size=*, event=(click=Clicker)," &
+                "user=(MaxDialogs,1), user=(DialogName, recv.dlg)"
+        })
+
+    -- Load in the form definitions for each button.
+    lKids = getFormIds(1)
+    lKids = findChildren(lKids[1])
+    for i = 1 to length(lKids) do
+        lCurVal = getUserProperty(lKids[i][1], "DialogName")
+        if length(lCurVal) = 1 then
+            defineUserProperty(lKids[i][1], "DialogForm", loadForm(lCurVal[1]))
+            defineUserProperty(lKids[i][1], "Dialogs", {})
+        end if
+
+    end for
+
+    return 0
+end function
+
+-----------------------------
+-----------------------------
+-----------------------------
+
+include w32Start.ew

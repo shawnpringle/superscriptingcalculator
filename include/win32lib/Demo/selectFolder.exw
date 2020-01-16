@@ -1,0 +1,66 @@
+-- An example of how to use selectFolder() routine.
+without warning
+include std/win32/msgbox.e
+include win32lib.ew
+--with trace
+
+sequence folders
+object VOID        
+constant theWindow = createEx(Window, "Folder Example", 0, 0, 0, 500, 100, 0, 0),
+         SB = createEx(StatusBar, "", theWindow, 0, 0, 0, 0, 0, 0),
+         BN = createEx(Button, "Folders", theWindow, 10, 10, 64, 25, 0, 0)
+
+integer vcb vcb = 0              
+integer vattempts vattempts = 0
+atom bif bif = 0
+function callback(atom hWnd, atom msg, atom lParam, atom lData)
+    atom res
+    sequence foldername
+
+    res = 0
+    if msg = BFFM_INITIALIZED then
+        if hWnd = 0 then
+            -- Starting initialiation
+            bif = lParam
+            vcb = 0
+            vattempts += 1
+            store(bif, bfTitle, sprintf("Get Folder #%d", vattempts))
+            setText(SB, "")
+        else 
+            -- Completed initialiation.
+            vcb = 1
+        end if                         
+        
+    elsif msg = BFFM_VALIDATEFAILED then
+        foldername = w32peek_string(lParam)
+        VOID = message_box(sprintf("[%s]",{foldername}), "Bad Folder", MB_OKCANCEL)
+        if VOID = IDOK then
+            res = -1
+        else
+            res = 0
+        end if
+        
+    elsif msg = BFFM_SELCHANGED and vcb then
+        setText(SB, sprintf("... %s ?", {getPathFromIDList(lParam)}))
+    end if
+    
+    return res
+end function
+
+------------------------------------------------
+procedure Click_BN(integer self, integer event, sequence parms)
+------------------------------------------------
+    folders = selectDirectory("Get a Dir", {BIF_USENEWUI,BIF_VALIDATE}, 
+            routine_id("callback"), 0)
+
+    setText(SB, sprintf("Chosen Folder: %s",{folders}))
+
+end procedure
+setHandler(BN, w32HClick, routine_id("Click_BN"))
+
+WinMain(theWindow, Normal)
+
+--Thomas Parslow (PatRat) ICQ #:26359483
+--Rat Software
+--<http://www.rat-software.com/>
+

@@ -1,0 +1,131 @@
+without warning
+include win32lib.ew
+integer win
+integer buf
+with trace
+procedure Paint_win(integer self, integer event, sequence parms)
+    -- Zap the graphics buffer onto the window.
+    copyBlt(win, 0, 0, buf)
+end procedure
+
+atom DeltaX
+atom DeltaY
+integer CenterX
+integer CenterY
+atom MoveX
+atom MoveY
+
+procedure Timer_win(integer self, integer event, sequence parms)
+    sequence lSize
+    integer lMoveIt
+    integer top,left,bottom,right
+    atom bdc
+
+    lMoveIt = 0
+    MoveX += DeltaX
+    MoveY += DeltaY
+
+    if (floor(MoveX) != CenterX) then
+        lMoveIt = 1
+        CenterX = floor(MoveX)
+    end if
+    if (floor(MoveY) != CenterY) then
+        lMoveIt = 1
+        CenterY = floor(MoveY)
+    end if
+
+    if lMoveIt = 0 then
+        -- No pixel actually changed yet.
+        return
+    end if
+
+    lSize = getSize(buf)
+    setPenColor(buf, Black)
+    drawRectangle(buf, 1, 0, 0, lSize[3], lSize[4])
+    setPenColor(buf, BrightWhite)
+    left = CenterX-40
+    top = CenterY-40
+    right = CenterX+40
+    bottom = CenterY+40
+
+    -- Detect edge collision and if so jsut reverse direction.
+    if left < 0 then
+        DeltaX = -DeltaX
+        left = 1
+        right = 81
+    elsif right > lSize[3] then
+        DeltaX = -DeltaX
+        right = floor(lSize[3]-DeltaX)-1
+        left = right-80
+    elsif top < 0 then
+        DeltaY = -DeltaY
+        top = 1
+        bottom = 81
+    elsif bottom > lSize[4] then
+        DeltaY = -DeltaY
+        bottom = floor(lSize[4]-DeltaY)-1
+        top = bottom-80
+    end if
+
+    drawEllipse(buf, 1, left, top, right, bottom )
+
+    setFont(buf, "Courier New", 10, 2)
+    setTextColor(buf, Brown)
+    wPuts({buf, 10, 10}, "Press arrow keys to adjust speed.")
+    setTextColor(buf, Cyan)
+    setFont(buf, "Courier New", 12, 4)
+    wPuts({buf, 10, lSize[4]-20}, sprintf("X=%f Y=%f", {DeltaX, DeltaY}))
+
+    repaintFG(win)
+end procedure
+
+procedure Resize_win(integer self, integer event, sequence parms)
+    sequence lSize
+    -- Match the graphics buffer to the client size of window.
+    lSize = getClientSize(win)
+    setCtlSize(buf, lSize[3], lSize[4])
+end procedure
+
+procedure KeyDown_win(integer self, integer event, sequence parms)
+    if parms[1] = VK_DOWN then
+        DeltaY += 0.16
+    elsif parms[1] = VK_UP then
+        DeltaY -= 0.16
+    elsif parms[1] = VK_LEFT then
+        DeltaX -= 0.16
+    elsif parms[1] = VK_RIGHT then
+        DeltaX += 0.16
+    elsif parms[1] = VK_END then
+        DeltaX = 0
+    elsif parms[1] = VK_HOME then
+        DeltaY = 0
+    end if
+end procedure
+
+procedure init()
+    sequence lSize
+
+    win = create(Window, "Circle", 0, 0, 0, 400, 400, 0)
+    buf = create(Pixmap, "", 0, 0, 0, 1, 1, 0 )
+    DeltaX = 1.2 -- pixel/tick
+    DeltaY = 1.7 -- pixel/tick
+
+    lSize = getClientSize(win)
+    CenterX = floor(lSize[3] / 2)
+    CenterY = floor(lSize[4] / 2)
+    MoveX = CenterX
+    MoveY = CenterY
+
+    setHandler(win, w32HResize, routine_id("Resize_win"))
+    setHandler(win, w32HPaint, routine_id("Paint_win"))
+    setHandler(win, w32HTimer, routine_id("Timer_win"))
+    setHandler(win, w32HKeyDown, routine_id("KeyDown_win"))
+
+    -- tick 25 times per second
+    setTimer( win, 1, 40 )
+
+
+end procedure
+
+init()
+WinMain(win, Normal)

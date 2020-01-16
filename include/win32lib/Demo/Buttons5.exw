@@ -1,0 +1,67 @@
+-- example5.exw
+--
+-- This opens a window with two buttons.
+-- Clicking the buttons brings up a message box.
+
+include std/win32/msgbox.e
+include win32lib.ew
+without warning
+
+integer 
+     Win
+   , thisButton
+   , thatButton                                                            
+
+       
+-- the buttons' behavior
+procedure onClick_Buttons(integer id,integer event,sequence params)
+atom 
+     lResult
+sequence
+     lTitle
+   , lMessage
+    
+    lResult = getSelf()
+    if lResult = thatButton
+    then 
+      lTitle   = "Ouch!"
+      lMessage = "That hurt!"
+    elsif lResult = thisButton
+    then
+      lTitle   = "*Giggle*"
+      lMessage = "That tickles!"
+    elsif lResult = Win
+    then
+      lTitle   = "Instructions"
+      lMessage = "Use the BUTTONS!"
+    else
+      lTitle   = "LOGIC ERROR"
+      lMessage = "Should Never See This!"
+    end if  
+    
+    lResult = message_box( lMessage, lTitle, 0 )
+end procedure                                       
+Win        = createEx( Window, "Two Buttons", 0, Default, Default, 170, 170, 0, 0 )
+
+sequence TE, thatText, thisText
+thatText = "&Don't Push Me!"
+thisText = "&Push Me!"
+TE = getTextExtent(Win, {thatText, thisText}) + 10
+
+thisButton = createEx( DefPushButton, thisText, Win,
+                                            25,
+                                            10,
+                                            TE[1], TE[2], 0, 0 )
+thatButton = createEx( PushButton,    thatText, Win,
+                                            25,
+                                            10 + 2 + TE[2],
+                                            TE[1], TE[2], 0, 0 )
+
+-- tell Windows when to do the action
+setHandler({thisButton,thatButton,Win},w32HClick ,routine_id( "onClick_Buttons" ))
+-- Note, buttons share the same routine.
+-- Note, and so does the window.
+
+-- hand control over to Windows
+WinMain( Win, Normal )
+

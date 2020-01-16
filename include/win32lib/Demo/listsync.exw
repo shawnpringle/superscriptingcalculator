@@ -1,0 +1,51 @@
+include win32lib.ew
+without warning
+
+constant Win = createEx(Window, "List Sync", 0, 0, 0, 410, 250, 0, 0),
+         SB  = createEx(StatusBar, "", Win, 0, 0, 0, 0, 0, 0),
+         Ls1 = createEx(ListBox, "", Win,   5, 5, 90, 200,   0, 0),
+         Ls2 = createEx(ListBox, "", Win, 105, 5, 90, 200,   0, 0),
+         Ls3 = createEx(ListBox, "", Win, 205, 5, 90, 200,   0, 0),
+         Ls4 = createEx(ListBox, "", Win, 305, 5, 90, 200,   0,  0),
+         Lists = {Ls1, Ls2, Ls3, Ls4},
+         MagicEvent = #118 -- Don't know what this is but it works.
+
+addItem(Ls1, {"Dog",   "Cat",   "Cow",   "Pig"})
+addItem(Ls2, {"Woof",  "Meow",  "Moo",   "Oink"})
+addItem(Ls3, {"Black", "White", "Brown", "Pink"})
+addItem(Ls4, {"Bones", "Fish",  "Grass", "Slops"})
+
+procedure SetLists(integer pos)
+
+   for i = 1 to length(Lists) do
+        setIndex(Lists[i], pos)
+   end for
+
+end procedure
+
+integer vTracking vTracking = 0
+procedure ChangeLists(integer self, integer event, sequence parms)
+    integer lDoIt
+
+    lDoIt = 0
+    if event = w32HChange then
+        lDoIt = 1
+    elsif parms[1] = WM_LBUTTONUP then
+        vTracking = 0
+    elsif parms[1] = WM_LBUTTONDOWN then
+        vTracking = 1
+    elsif vTracking = 1 and find(parms[1],{ WM_MOUSEMOVE, MagicEvent}) then
+        lDoIt = 1
+    end if
+
+    if lDoIt then
+        SetLists(getIndex(self))
+    end if
+
+end procedure
+
+setHandler(Lists, {w32HChange, w32HEvent}, routine_id("ChangeLists"))
+
+setIndex(Ls1, 1)
+WinMain(Win, Normal)
+

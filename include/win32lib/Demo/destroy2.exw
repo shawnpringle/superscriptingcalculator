@@ -1,0 +1,81 @@
+-- destroytest.exw
+without warning
+include win32lib.ew
+
+integer win
+integer b1
+
+integer fn_debug fn_debug = 1
+global constant w32DebugLog = -1772
+global procedure wDebug(sequence pData)
+
+    if length(pData) = 2 then
+        if sequence(pData[1]) then
+            printf(fn_debug, pData[1], pData[2])
+        else
+            if pData[1] = w32DebugLog then
+                if fn_debug > 2 then
+                    close(fn_debug)
+                end if
+                fn_debug = w32FileOpen(pData[2], "w")
+                if fn_debug < 0 then
+                    fn_debug = 1
+                end if
+            end if
+        end if
+    else
+        puts(fn_debug, w32ToString(pData))
+        if not equal(pData[length(pData)], '\n') then
+            puts(fn_debug, '\n')
+        end if
+    end if
+end procedure
+
+procedure w_destroy( integer self, atom event, sequence params )
+    integer lWin 
+                
+    lWin = findParentWindow(self)
+    wDebug({"destroying %d\n", {lWin}})
+    destroy(lWin)
+end procedure
+
+procedure put( sequence s, integer i )
+    wDebug({"created %s: %d\n", {s,i}})
+end procedure
+
+procedure b1_click( integer self, atom event, sequence params )
+    integer w, tc, ti, id
+    w = create( Window, "", win, 300, 300, 300, 300, 0 )
+    setText(w, {"Destroy me %d", w})
+    put("Window",w)
+
+    id = create( PushButton, "Destroy", w, 10, 10, 90, 25, 0 )
+    put("Button",id)
+    setHandler( id, w32HClick, routine_id("w_destroy"))
+
+    tc = create( TabControl, "", w ,10, 50, 200, 200, 0 )
+    put("TabControl",tc)
+
+    ti = create( TabItem, "1", tc, 0, 0, 0, 0, 0 )
+    put("TabItem 1", ti)
+    put("EditText 1",  create( EditText, "1", ti, 10, 30, 90, 25, 0 ))
+    
+    ti = create( TabItem, "2", tc, 0, 0, 0, 0, 0 )
+    put("TabItem 2", ti )
+    put("EditText 2",  create( EditText, "2", ti, 10, 30, 90, 25, 0 ))
+    
+    openWindow( w, Normal )
+end procedure
+
+
+procedure InitApp()
+    wDebug({w32DebugLog, "debug.log"})
+    win = create( Window, "Destroy Test", 0, 100, 100, 200, 100, 0 )
+    b1  = create( PushButton, "Create", win, 10, 10, 90, 25, 0 )
+                                                      
+    setHandler( b1, w32HClick, routine_id("b1_click"))
+    startApp(0)
+end procedure
+    
+InitApp()
+

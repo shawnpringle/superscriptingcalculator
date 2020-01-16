@@ -1,0 +1,104 @@
+-- WrtLabel: Write to label
+
+-- example of writing text to a label, erasing it, and re-writing
+
+-- sets "line spacing" using getFontMetric to get the height of font used
+
+-- note: make sure you set the width of the label to accept the full length
+--       of your text at the selected font size; if you don't, the text
+--       *will* be shown, but will *not* all be erased.
+--       Same goes for height of the label.
+
+--  by Dan Moyer Sept 11, 2000
+
+include win32lib.ew
+without warning
+-- Only one instance required.
+if setAppName("WrtLabel") then abort(0) end if
+
+----------------------------------------------------------
+constant SimpleWin =  
+    create( Window, "Fill Label with Text (& erase)", 0, 0, 0, 500, 400, 0 ),
+    WriteButton1 = create( DefPushButton, "Write ==>",  SimpleWin, 10, 10, 120, 30, 0 ),
+    WriteButton2 = create( DefPushButton, "Write ==>", SimpleWin, 10, 40, 120, 30, 0 ),
+    WriteButton3 = create( DefPushButton, "Erase ",       SimpleWin, 10, 70, 120, 30, 0 ),
+    Text1        = create( EditText, "abcdefghijklmnopqABCDEFG", SimpleWin, 132, 12, 300, 25, 0),
+    Text2        = create( EditText, "1234567890", SimpleWin, 132, 42, 300, 25, 0)
+--------------------------------------------------------------------
+-- Set up which font to use.
+setFont(SimpleWin, "Arial", 12, Normal) --Bold, Italic
+
+-- Set to OPAQUE so that background color shows
+setPenBkMode(SimpleWin, OPAQUE)
+
+
+integer TheFontHeight -- of TheLabel
+TheFontHeight = getFontMetric(SimpleWin,tmHeight)
+
+integer maxWidth, maxHeight
+maxWidth = 0
+maxHeight = (10 * TheFontHeight)
+
+integer LastText
+LastText = 0
+
+procedure EraseTextArea()
+    integer x,y,w,h
+    -- Set color to window's background
+    setPenColor(SimpleWin, getSysColor(COLOR_BTNFACE))
+
+    -- Wipe out the area used for the text.
+    x = 132
+    y = 72
+    w = x + maxWidth
+    h = y + maxHeight
+    drawRectangle(SimpleWin, 1, x, y, w, h)
+
+end procedure
+
+procedure ShowText(sequence pText, sequence pColor)
+    integer y
+    sequence m
+    
+    m = getTextExtent(SimpleWin, pText)
+    if m[1] > maxWidth then
+        maxWidth =  m[1]
+    end if
+    
+    EraseTextArea()
+    y = 72
+    --
+    for n = 1 to 10 do
+        -- position the text in the window
+        setPosition(SimpleWin, 132, y)
+        -- Pick a background color
+        setPenBkColor(SimpleWin, pColor[remainder(n-1, length(pColor)) + 1])
+        -- Draw the text on the window.
+        wPuts(SimpleWin, pText)
+        y += TheFontHeight
+    end for
+end procedure
+
+-----------------------------------------------
+procedure Click(integer self, integer event, sequence parms)
+    LastText = self
+    if self = WriteButton1 then
+        ShowText( getText(Text1), {BrightWhite,BrightCyan})
+        
+    elsif self = WriteButton2 then
+        ShowText( getText(Text2), {Pink,Yellow,BrightRed})
+        
+    else
+        EraseTextArea()
+    end if
+end procedure
+setHandler({WriteButton1, WriteButton2, WriteButton3}, w32HClick,
+              routine_id( "Click" ))
+
+procedure painter(integer self, integer event, sequence parms)
+    Click(LastText, 0, {})
+end procedure
+setHandler(SimpleWin, w32HPaint, routine_id("painter"))
+------------------------------------------
+
+WinMain( SimpleWin, Normal )

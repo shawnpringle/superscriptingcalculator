@@ -1,0 +1,89 @@
+include std/dll.e
+include win32lib.ew
+without warning
+
+integer win, lst1, SB
+
+
+constant xEnumWindows = registerw32Function(user32, "EnumWindows",
+                            {C_ULONG, C_ULONG}, C_ULONG)
+                            
+constant xEnumChildWindows = registerw32Function(user32, "EnumChildWindows",
+                            {C_ULONG, C_ULONG, C_ULONG}, C_ULONG)
+
+
+atom rc
+
+win =  create(Window, "All Window Text",    0,   0,  0, 400, 400, 0)
+SB  = create(StatusBar, sprintf("Win32lib v%d.%d(%d)",
+                     {Win32LibVersion[1],
+                      Win32LibVersion[2],
+                      Win32LibVersion[3]
+                     })
+                     , win, 0, 0, 0, 0, 0)
+lst1 = create(List, "List of text items found", win, 5,5, 350, 340, 0)
+
+
+integer wcnt, ccnt
+    wcnt = 0
+    ccnt = 0
+    
+function gettext(atom hWnd)
+    atom tlen
+    sequence text
+    atom tbuf, tbuflen
+
+    tlen = w32Func(xSendMessage, {hWnd, WM_GETTEXTLENGTH, 0, 0})
+    if tlen > 0 then
+        tlen += 1
+        tbuf = w32acquire_mem(0, tlen)
+        tbuflen = w32Func(xSendMessage, {hWnd, WM_GETTEXT, tlen, tbuf})
+        if tbuflen>1024 then tbuflen=256 end if
+        text = peek( {tbuf, tbuflen})
+        w32release_mem(tbuf)
+    else
+        text = ""
+    end if
+
+    return text
+end function
+
+with trace
+function enumcw(atom hWnd, atom lParam)
+    sequence text
+    
+    doEvents(0)
+
+    ccnt += 1
+    text = gettext(hWnd)
+    VOID = insertItem(lst1, sprintf("%4d %4d %s", {wcnt, ccnt, text}),1)
+    return 1
+end function
+
+function enumw(atom hWnd, atom lParam)
+    atom rc
+    sequence text
+
+    doEvents(0)
+    ccnt = 0
+    wcnt += 1  
+    text = gettext(hWnd)
+    rc = 1
+    if length(text) > 0 then
+        VOID = insertItem(lst1, sprintf("Parent text '%s'", {text}),1)
+        doEvents(0)
+        rc = w32Func(xEnumChildWindows, {hWnd, call_back(routine_id("enumcw")), wcnt})
+    end if
+
+    return 1
+end function
+
+
+procedure Act(integer self, integer event, sequence parms)
+
+rc = w32Func(xEnumWindows, {call_back(routine_id("enumw")), 0})  
+
+end procedure
+setHandler(win, w32HActivate, routine_id("Act"))
+                            
+WinMain(win, Normal)
