@@ -37,6 +37,7 @@ include std/search.e as search
 include std/filesys.e as fs
 include std/types.e
 include std/datetime.e
+include std/io.e
 with type_check
 --------------------------------------------------------------------------------
 --  Window Window1
@@ -90,12 +91,17 @@ cntrl_pressed = 0
 debug_keyPress = 0
 debug_keyUpDown = 0
 overwrite_flag = 0
-constant debug_log = open(getenv("HOMEPATH") & "\\wcalc-debug.log", "a")
+                              
+atom debug_log = open(getenv("APPDATA") & "\\..\\Local\\wcalc-debug.log", "a", 1)
 
 if debug_log = -1 then
 	message_box("Could not open debug log", "Attention!", MB_OK)
-	abort(0)
+	debug_log = io:STDERR
 end if
+
+puts(debug_log, "Starting Superscripting Calculator\n")
+flush(debug_log)
+
 constant TOK_COMMAND = "COM", TOK_BRACE = "BRACE", TOK_TEXT = "TXT", TOK_IGNORE = "IGNORE"
 
 
@@ -129,8 +135,9 @@ function scan(sequence text)
     if equal(tokens[$],{0}) then
 	tokens = chop(tokens)
     end if
-    pretty_print(debug_log, "Scanned tokens:\n", {3})
+    puts(debug_log, "Scanned tokens:\n")
     pretty_print(debug_log, tokens, {3})
+    puts(debug_log,10)
     flush(debug_log)
     return tokens
 end function
@@ -179,7 +186,7 @@ type value_vector(sequence s)
     return 1
 end type
 
-procedure display_value_vector(value_vector tokens)
+procedure display_value_vector(integer fd, value_vector tokens)
     if debug = w32False then
         return
     end if
@@ -187,9 +194,9 @@ procedure display_value_vector(value_vector tokens)
     for i = 1 to length(tokens) do
       value_entity t = tokens[i]
       if t[V_CLASS] = VC_NUM then
-	printf(1, "<%d, %g, VC_NUM>,\n", t[1..2])
+	printf(fd, "<%d, %g, VC_NUM>,\n", t[1..2])
       else
-	printf(1, "<%d, %s, VC_OPERATOR>,\n", t[1..2])
+	printf(fd, "<%d, %s, VC_OPERATOR>,\n", t[1..2])
       end if
    end for
    puts(1, "}\n")
@@ -253,6 +260,7 @@ function parser(sequence tokens)
       end for
       puts(debug_log, "Parsed Values:\n")
       pretty_print(debug_log, values, {3})
+      puts(debug_log, 10)
       return {GET_SUCCESS, values}
 end function
 
@@ -262,7 +270,9 @@ end type
 
 true_value truth
 
-function execute(value_vector vals)
+
+function execute(value_vector vals, integer call_level = -1)
+    call_level += 1
     -- first, the trival cases of 0 and one element:
     sequence region = {}
     if length(vals) < 1 then
@@ -272,7 +282,8 @@ function execute(value_vector vals)
     end if
     -- parentheses:
     
-    display_value_vector(vals)
+    printf(debug_log, "[%d] About to prcess parentheses...", call_level)
+    display_value_vector(debug_log, vals)
     integer r_pointer, l_pointer, vi
     value_entity r_v, l_v
     while l_pointer < r_pointer and equal(l_v[V_VAL..V_CLASS] & r_v[V_VAL..V_CLASS], 
@@ -284,13 +295,13 @@ function execute(value_vector vals)
 	    return {GET_FAIL, "Unsensible empty parenthesis"}
 	end if
 	sequence buf = vals[l_pointer+1..r_pointer-1]
-	buf = execute(buf)
+	buf = execute(buf, call_level)
 	if buf[1] != GET_SUCCESS then
 	    return buf
 	end if
 	value_entity ve = {/*V_LVL*/vals[l_pointer+1][V_LVL], /* V_VAL*/buf[2], /*V_CLASS*/VC_NUM}
 	vals = vals[1..l_pointer-1] & {ve} & vals[r_pointer+1..$]
-        display_value_vector(vals)
+        display_value_vector(debug_log, vals)
     entry
 	l_pointer = 0
 	r_pointer = 0
@@ -316,8 +327,9 @@ function execute(value_vector vals)
 	l_v = vals[l_pointer]
     end while
     
-    puts(debug_log, "After processing the ():\n")
-    pretty_print(debug_log, vals, {3})    
+    printf(debug_log, "[%d] The parenthesis have been processed.\nAbout to do exponents...", call_level)
+    display_value_vector(debug_log, vals)
+    puts(debug_log, '\n')
     
     -- exponents
     integer exp_ends = -1 -- length(vals)
@@ -338,7 +350,7 @@ function execute(value_vector vals)
 	      end if
 	      sequence buf
 	      buf = vals[exp_begs..exp_ends] - repeat({/*V_LVL*/vals[exp_begs][V_LVL], /* V_VAL*/0, /*V_CLASS*/0}, exp_ends - exp_begs + 1)
-	      buf = execute(buf)
+	      buf = execute(buf, call_level)
 	      if buf[1] != GET_SUCCESS then
 		  return buf
 	      end if
@@ -350,13 +362,12 @@ function execute(value_vector vals)
 	      if length(vals) = 1 then
 		  return {GET_SUCCESS, vals[1][V_VAL]}
 	      end if
-	      return execute(vals)
+	      return execute(vals, call_level)
 	end if
     end for
     
-    puts(debug_log, "After processing the exponents:\n")
-    pretty_print(debug_log, vals, {3})
-    display_value_vector(vals)
+    printf(debug_log, "[%d] The exponents have been processed...\n[%d] About to do unary ops...", repeat(call_level,2))
+    display_value_vector(debug_log, vals)
     
     integer k, m
     value_vector_with_all_0levels v_save = vals
@@ -396,8 +407,8 @@ function execute(value_vector vals)
 	end if
     end while
 
-    puts(debug_log, "After processing the unary ops:\n")
-    pretty_print(debug_log, vals, {3})
+    printf(debug_log, "[%d] done.\n[%d] About to do binary geometric ops...", repeat(call_level,2))
+    display_value_vector(debug_log, vals)
     -- execute the "terms"
     atom product = 1
     boolean divide_op = FALSE
@@ -427,8 +438,8 @@ function execute(value_vector vals)
 	end if
     end while
     
-    puts(debug_log, "After processing the * / ops:\n")
-    pretty_print(debug_log, vals, {3})    
+    printf(debug_log, "[%d] done.\n[%d] About to do arithmetic binary ops...", call_level & call_level)
+    display_value_vector(debug_log, vals)    
     -- now finally to do the arithmetic operations
     loop do
 	doEvents(0)
@@ -444,8 +455,8 @@ function execute(value_vector vals)
     until FALSE
     end loop
     
-    puts(debug_log, "After processing the + - ops:\n")
-    pretty_print(debug_log, vals, {3})
+    printf(debug_log, "[%d] done.\n", call_level)
+    display_value_vector(debug_log, vals)
     flush(debug_log)
     if length(vals) = 1 then
 	return {GET_SUCCESS, vals[1][V_VAL]}
@@ -642,10 +653,18 @@ procedure RichEdit3_onKeyDown (integer self, integer event, sequence params)--pa
 			returnValue(-1)
 	elsif and_bits(ControlMask, params[2]) = ControlMask then
 	    if params[1] = 'T' then
+	    	setText( DebugInfo, "Running test expressions" )
 	        test_runs()
 	    elsif params[1] = 'D' then
-	        debug = not debug
+	    elsif and_bits(ShiftMask, params[2]) = ShiftMask then
+	    	setText( DebugInfo, "Control+Shift Pressed")	    	
+	    else
+	    	setText( DebugInfo, "Control Pressed")
 	    end if
+	elsif and_bits(ShiftMask, params[2]) = ShiftMask then
+		setText( DebugInfo, "Shift Pressed")
+	elsif equal(params[1], VK_INSERT) then
+		overwrite_flag = not overwrite_flag
 	end if
 
 
@@ -673,21 +692,43 @@ procedure RichEdit3_onKeyPress (integer self, integer event, sequence params)--p
 		test_runs()
 	elsif not find(params[1],"0123456789." & operators) then
 		returnValue(-1) -- only allow characters we like. ;)
-		setText( DebugInfo, sprintf("Character %s isn't allowed", params[1]))
+		if find(params[1],"Dd") then
+	     		setText( DebugInfo, "Use Shift+Control+D for debugging")
+	     	else
+			setText( DebugInfo, sprintf("Character %s isn't allowed", params[1]))
+		end if
 	end if
 end procedure
 
 setHandler( RichEdit3, w32HKeyPress, routine_id("RichEdit3_onKeyPress"))
 --------------------------------------------------------------------------------
 procedure RichEdit3_onKeyUp (integer self, integer event, sequence params)--params is ( atom scanCode, atom shift )
+	atom scanCode
+	atom shift
+	{scanCode,shift} = params
 	if debug_keyUpDown then
 		puts(1, "KeyUp" ) ? params
 	end if
 
+	if and_bits(ControlMask+ShiftMask, params[2]) = ControlMask+ShiftMask and (scanCode = 'D' or scanCode = 'd')  then
+	    debug = not debug
+	    if debug then
+		    if debug_log = io:STDERR then
+			setText( DebugInfo, "Debug details sent to standard error" )
+		    else
+			setText( DebugInfo, "Debug details sent to %USERDATA%\\AppData\\Local\\wcalc_debug.log" )
+		    end if
+	    else		    	
+		    setText( DebugInfo, "Detailed debugging disabled.")
+	    end if
+	end if
+
+	
 	if params[1] = 17 then
 		cntrl_pressed = 0
 	end if  
 end procedure
 setHandler( RichEdit3, w32HKeyUp, routine_id("RichEdit3_onKeyUp"))
+--------------------------------------------------------------------------------
 
 WinMain( Window1,Normal )
